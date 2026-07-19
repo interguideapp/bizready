@@ -91,35 +91,35 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6">
-      <Link href="/" className="mb-8 text-2xl font-bold text-brand-700">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6">
+      <Link href="/" className="mb-8 text-2xl font-bold text-brand-strong">
         BizReady
       </Link>
 
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-edge/80 bg-card p-8 shadow-sm">
         {state === "sent" ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-status-done-bg text-status-done">
               <MailCheck className="h-6 w-6" aria-hidden />
             </div>
-            <h1 className="text-lg font-bold text-slate-900">בדקו את המייל</h1>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            <h1 className="text-lg font-bold text-ink">בדקו את המייל</h1>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               שלחנו קישור כניסה אל <span className="font-medium">{email}</span>.
               לחצו עליו וניכנס ישר לעניינים.
             </p>
             <button
               onClick={() => setState("idle")}
-              className="mt-4 text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="mt-4 text-sm font-medium text-brand-strong hover:text-brand-strong"
             >
               שליחה לכתובת אחרת
             </button>
           </div>
         ) : (
           <>
-            <h1 className="text-center text-lg font-bold text-slate-900">
+            <h1 className="text-center text-lg font-bold text-ink">
               כניסה או הרשמה
             </h1>
-            <p className="mt-1 text-center text-sm text-slate-500">
+            <p className="mt-1 text-center text-sm text-ink-muted">
               בלי סיסמאות — קישור קסם למייל
             </p>
 
@@ -135,7 +135,7 @@ export default function LoginPage() {
                 placeholder="you@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-xl border border-edge-strong px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
               />
               <button
                 type="submit"
@@ -156,37 +156,37 @@ export default function LoginPage() {
               )}
             </form>
 
-            <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
-              <div className="h-px flex-1 bg-slate-200" />
+            <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
+              <div className="h-px flex-1 bg-surface-3" />
               או
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-px flex-1 bg-surface-3" />
             </div>
 
-            <div className="rounded-xl border border-slate-200 p-4">
-              <div className="mb-3 flex rounded-lg bg-slate-100 p-1 text-sm font-medium">
-                <button type="button" onClick={() => setMode("login")} className={`flex-1 rounded-md px-2 py-1.5 ${mode === "login" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>כניסה עם סיסמה</button>
-                <button type="button" onClick={() => setMode("register")} className={`flex-1 rounded-md px-2 py-1.5 ${mode === "register" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>הרשמה</button>
+            <div className="rounded-xl border border-edge p-4">
+              <div className="mb-3 flex rounded-lg bg-surface-2 p-1 text-sm font-medium">
+                <button type="button" onClick={() => setMode("login")} className={`flex-1 rounded-md px-2 py-1.5 ${mode === "login" ? "bg-card text-ink shadow-sm" : "text-ink-muted"}`}>כניסה עם סיסמה</button>
+                <button type="button" onClick={() => setMode("register")} className={`flex-1 rounded-md px-2 py-1.5 ${mode === "register" ? "bg-card text-ink shadow-sm" : "text-ink-muted"}`}>הרשמה</button>
               </div>
               <form onSubmit={submitUsernamePassword} className="flex flex-col gap-3">
-                <input type="text" required minLength={3} maxLength={30} autoComplete="username" dir="ltr" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-                <input type="password" required minLength={12} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder="סיסמה (12 תווים לפחות)" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
-                <button type="submit" disabled={passwordState === "submitting"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 py-3 font-semibold text-white transition hover:bg-slate-900 disabled:opacity-60">
+                <input type="text" required minLength={3} maxLength={30} autoComplete="username" dir="ltr" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
+                <input type="password" required minLength={12} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder="סיסמה (12 תווים לפחות)" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
+                <button type="submit" disabled={passwordState === "submitting"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60">
                   {passwordState === "submitting" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <KeyRound className="h-4 w-4" aria-hidden />}
                   {mode === "register" ? "יצירת חשבון" : "כניסה"}
                 </button>
               </form>
-              <p className="mt-3 text-center text-xs text-slate-500">לא נדרשת כתובת אימייל או אימות במייל.</p>
+              <p className="mt-3 text-center text-xs text-ink-muted">לא נדרשת כתובת אימייל או אימות במייל.</p>
             </div>
 
-            <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
-              <div className="h-px flex-1 bg-slate-200" />
+            <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">
+              <div className="h-px flex-1 bg-surface-3" />
               או
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-px flex-1 bg-surface-3" />
             </div>
 
             <button
               onClick={signInWithGoogle}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-3 font-medium text-slate-700 transition hover:bg-slate-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-edge-strong px-4 py-3 font-medium text-ink-soft transition hover:bg-surface"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden>
                 <path
@@ -212,7 +212,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="mt-6 max-w-xs text-center text-xs text-slate-400">
+      <p className="mt-6 max-w-xs text-center text-xs text-ink-faint">
         בהרשמה אתם מסכימים לקבל מיילים תפעוליים על החשבון שלכם בלבד
       </p>
     </div>

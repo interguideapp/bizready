@@ -79,17 +79,17 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-surface">
       {/* progress */}
-      <div className="sticky top-0 z-10 bg-slate-50/95 px-6 pt-6 pb-3 backdrop-blur">
+      <div className="sticky top-0 z-10 bg-surface/95 px-6 pt-6 pb-3 backdrop-blur">
         <div className="mx-auto max-w-lg">
-          <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold text-brand-700">BizReady</span>
+          <div className="mb-2 flex items-center justify-between text-xs text-ink-muted">
+            <span className="font-bold text-brand-strong">BizReady</span>
             <span>
               שאלה {stepIndex + 1} מתוך {STEPS.length}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
             <div
               className="h-full rounded-full bg-brand-600 transition-all duration-500"
               style={{ width: `${progress}%` }}
@@ -100,9 +100,9 @@ export function OnboardingWizard() {
 
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-6 py-6">
         <div key={step.id} className="animate-fade-up flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">{step.title}</h1>
+          <h1 className="text-2xl font-bold text-ink">{step.title}</h1>
           {step.subtitle && (
-            <p className="mt-1 text-slate-500">{step.subtitle}</p>
+            <p className="mt-1 text-ink-muted">{step.subtitle}</p>
           )}
 
           <div className="mt-6">
@@ -113,7 +113,7 @@ export function OnboardingWizard() {
                 onChange={(e) => set("businessName", e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && canNext && next()}
                 placeholder="למשל: הסטודיו של דנה"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-lg outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-2xl border border-edge-strong bg-card px-5 py-4 text-lg outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
               />
             )}
 
@@ -144,13 +144,13 @@ export function OnboardingWizard() {
                 />
                 <button
                   onClick={() => setEntityHelp((v) => !v)}
-                  className="text-right text-sm font-medium text-brand-600 hover:text-brand-700"
+                  className="text-right text-sm font-medium text-brand-strong hover:text-brand-strong"
                 >
                   לא בטוחים מה מתאים? ככה מחליטים ←
                 </button>
                 {entityHelp && (
-                  <div className="animate-fade-up rounded-2xl border border-brand-100 bg-brand-50/60 p-4 text-sm leading-relaxed text-slate-700">
-                    <p className="font-semibold text-slate-900">כלל אצבע:</p>
+                  <div className="animate-fade-up rounded-2xl border border-brand-edge bg-brand-tint/60 p-4 text-sm leading-relaxed text-ink-soft">
+                    <p className="font-semibold text-ink">כלל אצבע:</p>
                     <ul className="mt-2 list-disc space-y-1.5 pr-5">
                       <li>
                         צפי מחזור מתחת ל-₪
@@ -177,8 +177,8 @@ export function OnboardingWizard() {
                     onClick={() => set("field", opt.value)}
                     className={`rounded-2xl border px-4 py-3.5 text-sm font-medium transition ${
                       draft.field === opt.value
-                        ? "border-brand-600 bg-brand-50 text-brand-700 ring-2 ring-brand-100"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        ? "border-brand-600 bg-brand-tint text-brand-strong ring-2 ring-brand-edge"
+                        : "border-edge bg-card text-ink-soft hover:border-edge-strong"
                     }`}
                   >
                     {opt.label}
@@ -215,7 +215,7 @@ export function OnboardingWizard() {
             {step.id === "channels" && (
               <div className="flex flex-col gap-6">
                 <div>
-                  <p className="mb-2.5 text-sm font-semibold text-slate-700">איך מוכרים?</p>
+                  <p className="mb-2.5 text-sm font-semibold text-ink-soft">איך מוכרים?</p>
                   <ChoiceList
                     value={draft.sales_channel}
                     onChange={(v) => set("sales_channel", v)}
@@ -227,7 +227,7 @@ export function OnboardingWizard() {
                   />
                 </div>
                 <div>
-                  <p className="mb-2.5 text-sm font-semibold text-slate-700">מי הלקוחות?</p>
+                  <p className="mb-2.5 text-sm font-semibold text-ink-soft">מי הלקוחות?</p>
                   <ChoiceList
                     value={draft.client_type}
                     onChange={(v) => set("client_type", v)}
@@ -268,15 +268,15 @@ export function OnboardingWizard() {
                       }
                       className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-right text-sm font-medium transition ${
                         selected
-                          ? "border-brand-600 bg-brand-50 text-brand-700"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          ? "border-brand-600 bg-brand-tint text-brand-strong"
+                          : "border-edge bg-card text-ink-soft hover:border-edge-strong"
                       }`}
                     >
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
                           selected
                             ? "border-brand-600 bg-brand-600 text-white"
-                            : "border-slate-300 bg-white"
+                            : "border-edge-strong bg-card"
                         }`}
                       >
                         {selected && <Check className="h-3.5 w-3.5" aria-hidden />}
@@ -285,7 +285,7 @@ export function OnboardingWizard() {
                     </button>
                   );
                 })}
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-ink-faint">
                   שום דבר? לגמרי בסדר — בשביל זה אנחנו כאן.
                 </p>
               </div>
@@ -294,11 +294,11 @@ export function OnboardingWizard() {
         </div>
 
         {/* nav buttons */}
-        <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-3 border-t border-slate-200 bg-slate-50/95 px-6 py-4 backdrop-blur">
+        <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-3 border-t border-edge bg-surface/95 px-6 py-4 backdrop-blur">
           {stepIndex > 0 && (
             <button
               onClick={() => setStepIndex((i) => i - 1)}
-              className="inline-flex items-center gap-1 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-800"
+              className="inline-flex items-center gap-1 rounded-xl px-4 py-3 text-sm font-medium text-ink-muted hover:text-ink"
             >
               <ArrowRight className="h-4 w-4" aria-hidden />
               חזרה
@@ -348,19 +348,19 @@ function ChoiceList<T extends string>({
           onClick={() => onChange(opt.value)}
           className={`rounded-2xl border px-5 py-4 text-right transition ${
             value === opt.value
-              ? "border-brand-600 bg-brand-50 ring-2 ring-brand-100"
-              : "border-slate-200 bg-white hover:border-slate-300"
+              ? "border-brand-600 bg-brand-tint ring-2 ring-brand-edge"
+              : "border-edge bg-card hover:border-edge-strong"
           }`}
         >
           <span
             className={`block font-semibold ${
-              value === opt.value ? "text-brand-700" : "text-slate-800"
+              value === opt.value ? "text-brand-strong" : "text-ink"
             }`}
           >
             {opt.label}
           </span>
           {opt.hint && (
-            <span className="mt-0.5 block text-sm text-slate-500">{opt.hint}</span>
+            <span className="mt-0.5 block text-sm text-ink-muted">{opt.hint}</span>
           )}
         </button>
       ))}
@@ -378,8 +378,8 @@ function YesNo({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
-      <span className="text-sm font-medium text-slate-800">{label}</span>
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-edge bg-card px-4 py-3.5">
+      <span className="text-sm font-medium text-ink">{label}</span>
       <div className="flex shrink-0 gap-1.5">
         {[
           { v: true, label: "כן" },
@@ -392,7 +392,7 @@ function YesNo({
             className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
               value === v
                 ? "bg-brand-600 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                : "bg-surface-2 text-ink-soft hover:bg-surface-3"
             }`}
           >
             {l}

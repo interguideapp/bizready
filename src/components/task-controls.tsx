@@ -40,8 +40,8 @@ export function StatusPicker({
                   ? "border-status-done bg-status-done-bg text-status-done"
                   : s === "in_progress"
                     ? "border-status-progress bg-status-progress-bg text-status-progress"
-                    : "border-brand-600 bg-brand-50 text-brand-700"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                    : "border-brand-600 bg-brand-tint text-brand-strong"
+                : "border-edge bg-card text-ink-soft hover:border-edge-strong"
             }`}
           >
             {pending && target === s ? (
@@ -86,9 +86,9 @@ export function NotesEditor({
         onBlur={() => notes !== initialNotes && save()}
         rows={3}
         placeholder="הערות אישיות — מספרי אסמכתא, עם מי דיברתם, מה נשאר..."
-        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        className="w-full rounded-xl border border-edge bg-card px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
       />
-      <p className="mt-1 h-4 text-xs text-slate-400">
+      <p className="mt-1 h-4 text-xs text-ink-faint">
         {pending ? "שומר..." : saved ? "✓ נשמר" : "נשמר אוטומטית"}
       </p>
     </div>

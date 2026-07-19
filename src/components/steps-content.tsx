@@ -6,7 +6,7 @@ export function StepsContent({ text }: { text: string }) {
     .filter(Boolean);
 
   return (
-    <ol className="steps-content text-slate-700">
+    <ol className="steps-content text-ink-soft">
       {lines.map((line, i) => (
         <li key={i}>{renderBold(line.replace(/^\d+\.\s*/, ""))}</li>
       ))}

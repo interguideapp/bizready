@@ -10,10 +10,14 @@ import {
   ListTodo,
   Paperclip,
 } from "lucide-react";
+import { AdvertiseCard } from "@/components/advertise-card";
 import { DueBadge, PriorityBadge } from "@/components/badges";
 import { CategoryIcon } from "@/components/category-icon";
 import { DocumentUpload } from "@/components/document-upload";
+import { GuideContent } from "@/components/guide-content";
+import { LogoUploader } from "@/components/logo-uploader";
 import { OfferCard } from "@/components/offer-card";
+import { PriceList } from "@/components/price-list";
 import { StepsContent } from "@/components/steps-content";
 import { NotesEditor, StatusPicker } from "@/components/task-controls";
 import { Card, Disclaimer } from "@/components/ui";
@@ -23,7 +27,12 @@ import {
   getBusinessTasks,
   getDocuments,
   getOffersForTemplate,
+  getProducts,
 } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
+
+/** Task ids that get an in-app smart action embedded in their page. */
+const SMART_ACTION_TASKS = new Set(["basic-branding", "pricing"]);
 
 const DOC_CATEGORY_BY_TASK_CATEGORY: Record<string, string> = {
   "legal-setup": "registration",
@@ -57,6 +66,41 @@ export default async function TaskDetailPage({
   const documents = allDocs.filter((d) => d.task_id === task.id);
   const category = CATEGORIES_BY_ID.get(template.category_id)!;
 
+  // smart in-app actions for specific tasks
+  let smartAction: React.ReactNode = null;
+  if (SMART_ACTION_TASKS.has(template.id)) {
+    if (template.id === "pricing") {
+      const products = await getProducts(business.id);
+      smartAction = (
+        <Card className="p-5">
+          <h3 className="mb-1 font-bold text-ink">המחירון שלי</h3>
+          <p className="mb-4 text-sm text-ink-muted">
+            בנו את המחירון ישירות כאן — הוא נשמר בפרופיל העסקי שלכם
+          </p>
+          <PriceList products={products} />
+        </Card>
+      );
+    } else if (template.id === "basic-branding") {
+      let logoUrl: string | null = null;
+      if (business.logo_path) {
+        const supabase = await createClient();
+        const { data } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(business.logo_path, 3600);
+        logoUrl = data?.signedUrl ?? null;
+      }
+      smartAction = (
+        <Card className="p-5">
+          <h3 className="mb-1 font-bold text-ink">הלוגו שלי</h3>
+          <p className="mb-4 text-sm text-ink-muted">
+            יש כבר לוגו? העלו אותו — הוא יישמר בפרופיל העסקי ותמיד יהיה בהישג יד
+          </p>
+          <LogoUploader currentLogoUrl={logoUrl} />
+        </Card>
+      );
+    }
+  }
+
   const dependencies = template.depends_on
     .map((depId) => {
       const depTemplate = TEMPLATES_BY_ID.get(depId);
@@ -75,23 +119,23 @@ export default async function TaskDetailPage({
     <div>
       <Link
         href="/tasks"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800"
+        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-ink-muted hover:text-ink"
       >
         <ArrowRight className="h-4 w-4" aria-hidden />
         כל המשימות
       </Link>
 
       <header className="mb-6">
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+        <div className="mb-2 flex items-center gap-2 text-sm text-ink-muted">
           <CategoryIcon name={category.icon} className="h-4 w-4" />
           {category.title}
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">{template.title}</h1>
+        <h1 className="text-2xl font-bold text-ink">{template.title}</h1>
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={template.priority} />
           {task.status !== "done" && <DueBadge dueDate={task.due_date} />}
           {template.recurrence && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
               {template.recurrence === "monthly"
                 ? "משימה חודשית"
                 : template.recurrence === "bimonthly"
@@ -117,7 +161,7 @@ export default async function TaskDetailPage({
               <li key={depTemplate.id}>
                 <Link
                   href={`/tasks/${depTemplate.id}`}
-                  className="text-sm font-medium text-slate-700 underline decoration-slate-300 hover:text-slate-900"
+                  className="text-sm font-medium text-ink-soft underline decoration-edge-strong hover:text-ink"
                 >
                   {depTemplate.title}
                 </Link>
@@ -129,16 +173,16 @@ export default async function TaskDetailPage({
 
       {/* why */}
       <section className="mt-6">
-        <h2 className="mb-2 flex items-center gap-2 font-bold text-slate-900">
+        <h2 className="mb-2 flex items-center gap-2 font-bold text-ink">
           <Lightbulb className="h-4.5 w-4.5 text-brand-500" aria-hidden />
           למה זה חשוב
         </h2>
-        <p className="leading-relaxed text-slate-700">{template.why}</p>
+        <p className="leading-relaxed text-ink-soft">{template.why}</p>
       </section>
 
       {/* steps */}
       <section className="mt-6">
-        <h2 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
+        <h2 className="mb-3 flex items-center gap-2 font-bold text-ink">
           <ListTodo className="h-4.5 w-4.5 text-brand-500" aria-hidden />
           איך עושים את זה
         </h2>
@@ -147,22 +191,29 @@ export default async function TaskDetailPage({
         </Card>
       </section>
 
+      {/* extended guide, when available */}
+      {template.guide && (
+        <section className="mt-6">
+          <GuideContent text={template.guide} />
+        </section>
+      )}
+
       {/* meta: cost, time, docs needed */}
       {(template.est_cost || template.est_time || template.docs_needed.length > 0) && (
         <section className="mt-6 grid gap-3 sm:grid-cols-2">
           {(template.est_cost || template.est_time) && (
             <Card className="p-4">
               {template.est_cost && (
-                <p className="flex items-center gap-2 text-sm text-slate-700">
-                  <Banknote className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                <p className="flex items-center gap-2 text-sm text-ink-soft">
+                  <Banknote className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
                   <span>
                     <b>עלות:</b> {template.est_cost}
                   </span>
                 </p>
               )}
               {template.est_time && (
-                <p className="mt-1.5 flex items-center gap-2 text-sm text-slate-700">
-                  <Clock className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                <p className="mt-1.5 flex items-center gap-2 text-sm text-ink-soft">
+                  <Clock className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
                   <span>
                     <b>זמן:</b> {template.est_time}
                   </span>
@@ -172,11 +223,11 @@ export default async function TaskDetailPage({
           )}
           {template.docs_needed.length > 0 && (
             <Card className="p-4">
-              <p className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-800">
-                <FileText className="h-4 w-4 text-slate-400" aria-hidden />
+              <p className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-ink">
+                <FileText className="h-4 w-4 text-ink-faint" aria-hidden />
                 מה להכין
               </p>
-              <ul className="list-disc space-y-1 pr-5 text-sm text-slate-600">
+              <ul className="list-disc space-y-1 pr-5 text-sm text-ink-soft">
                 {template.docs_needed.map((doc) => (
                   <li key={doc}>{doc}</li>
                 ))}
@@ -189,7 +240,7 @@ export default async function TaskDetailPage({
       {/* official links */}
       {template.official_links.length > 0 && (
         <section className="mt-6">
-          <h2 className="mb-3 font-bold text-slate-900">קישורים רשמיים</h2>
+          <h2 className="mb-3 font-bold text-ink">קישורים רשמיים</h2>
           <div className="flex flex-col gap-2">
             {template.official_links.map((link) => (
               <a
@@ -197,11 +248,11 @@ export default async function TaskDetailPage({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-brand-700 transition hover:border-brand-300 hover:bg-brand-50/50"
+                className="group flex items-center justify-between gap-3 rounded-xl border border-edge bg-card px-4 py-3 text-sm font-medium text-brand-strong transition hover:border-brand-300 hover:bg-brand-tint/50"
               >
                 {link.label}
                 <ExternalLink
-                  className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500"
+                  className="h-4 w-4 shrink-0 text-ink-faint group-hover:text-brand-500"
                   aria-hidden
                 />
               </a>
@@ -210,36 +261,43 @@ export default async function TaskDetailPage({
         </section>
       )}
 
-      {/* partner offers */}
-      {offers.length > 0 && (
-        <section className="mt-6">
-          <h2 className="mb-3 font-bold text-slate-900">קיצור דרך</h2>
-          <div className="flex flex-col gap-3">
-            {offers.map((offer) => (
-              <OfferCard key={offer.id} offer={offer} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* smart in-app action */}
+      {smartAction && <section className="mt-6">{smartAction}</section>}
+
+      {/* partner offers / advertise slot */}
+      <section className="mt-6">
+        {offers.length > 0 ? (
+          <>
+            <h2 className="mb-3 font-bold text-ink">קיצור דרך</h2>
+            <div className="flex flex-col gap-3">
+              {offers.map((offer) => (
+                <OfferCard key={offer.id} offer={offer} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <AdvertiseCard context={template.title} />
+        )}
+      </section>
 
       {/* attached documents */}
       <section className="mt-6">
-        <h2 className="mb-3 flex items-center gap-2 font-bold text-slate-900">
+        <h2 className="mb-3 flex items-center gap-2 font-bold text-ink">
           <Paperclip className="h-4.5 w-4.5 text-brand-500" aria-hidden />
           המסמכים של המשימה
         </h2>
         <Card className="p-4">
           {documents.length > 0 && (
-            <ul className="mb-3 divide-y divide-slate-100">
+            <ul className="mb-3 divide-y divide-edge-soft">
               {documents.map((doc) => (
-                <li key={doc.id} className="flex items-center gap-2 py-2 text-sm text-slate-700">
-                  <FileText className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                <li key={doc.id} className="flex items-center gap-2 py-2 text-sm text-ink-soft">
+                  <FileText className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
                   {doc.name}
                 </li>
               ))}
             </ul>
           )}
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-ink-muted">
             קיבלתם תעודה, אישור או פוליסה מהמשימה הזו? תייקו אותה כאן — והיא
             תישמר בארכיון המסמכים של העסק.
           </p>
@@ -253,12 +311,12 @@ export default async function TaskDetailPage({
 
       {/* notes */}
       <section className="mt-6">
-        <h2 className="mb-3 font-bold text-slate-900">הערות שלי</h2>
+        <h2 className="mb-3 font-bold text-ink">הערות שלי</h2>
         <NotesEditor taskId={task.id} initialNotes={task.notes ?? ""} />
       </section>
 
       {template.source_url && (
-        <p className="mt-6 text-xs text-slate-400">
+        <p className="mt-6 text-xs text-ink-faint">
           מבוסס על מקור רשמי · נבדק לאחרונה: {template.last_reviewed}
         </p>
       )}

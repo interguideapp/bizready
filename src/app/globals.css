@@ -1,6 +1,77 @@
 @import "tailwindcss";
 
-@theme {
+/* class-based dark mode (toggled on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- semantic tokens: light ---------- */
+:root {
+  --surface: #f5f6fa;
+  --surface-2: #ecEEf5;
+  --surface-3: #e2e5ef;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-solid: #ffffff;
+
+  --ink: #0f172a;
+  --ink-soft: #40495c;
+  --ink-muted: #67718a;
+  --ink-faint: #97a0b5;
+
+  --edge: rgba(15, 23, 42, 0.1);
+  --edge-soft: rgba(15, 23, 42, 0.06);
+  --edge-strong: rgba(15, 23, 42, 0.18);
+
+  --brand-tint: rgba(99, 102, 241, 0.1);
+  --brand-edge: rgba(99, 102, 241, 0.28);
+  --brand-strong: #4338ca;
+
+  --status-done: #15803d;
+  --status-done-bg: rgba(34, 197, 94, 0.12);
+  --status-progress: #b45309;
+  --status-progress-bg: rgba(245, 158, 11, 0.14);
+  --status-overdue: #b91c1c;
+  --status-overdue-bg: rgba(239, 68, 68, 0.11);
+  --status-todo: #475569;
+  --status-todo-bg: rgba(100, 116, 139, 0.12);
+
+  --glow-a: rgba(99, 102, 241, 0.09);
+  --glow-b: rgba(56, 189, 248, 0.07);
+}
+
+/* ---------- semantic tokens: dark ---------- */
+.dark {
+  --surface: #0b1120;
+  --surface-2: #161f36;
+  --surface-3: #202b48;
+  --card: rgba(22, 30, 51, 0.66);
+  --card-solid: #151d33;
+
+  --ink: #e9edf6;
+  --ink-soft: #b9c2d6;
+  --ink-muted: #8d97ae;
+  --ink-faint: #626e89;
+
+  --edge: rgba(255, 255, 255, 0.1);
+  --edge-soft: rgba(255, 255, 255, 0.06);
+  --edge-strong: rgba(255, 255, 255, 0.2);
+
+  --brand-tint: rgba(129, 140, 248, 0.15);
+  --brand-edge: rgba(129, 140, 248, 0.35);
+  --brand-strong: #a5b4fc;
+
+  --status-done: #4ade80;
+  --status-done-bg: rgba(34, 197, 94, 0.15);
+  --status-progress: #fbbf24;
+  --status-progress-bg: rgba(245, 158, 11, 0.16);
+  --status-overdue: #f87171;
+  --status-overdue-bg: rgba(239, 68, 68, 0.16);
+  --status-todo: #94a3b8;
+  --status-todo-bg: rgba(148, 163, 184, 0.14);
+
+  --glow-a: rgba(99, 102, 241, 0.16);
+  --glow-b: rgba(56, 189, 248, 0.08);
+}
+
+@theme inline {
   /* brand — deep indigo, trustworthy + modern */
   --color-brand-50: #eef2ff;
   --color-brand-100: #e0e7ff;
@@ -13,23 +84,46 @@
   --color-brand-800: #3730a3;
   --color-brand-900: #312e81;
 
+  /* semantic, theme-aware */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-edge: var(--edge);
+  --color-edge-soft: var(--edge-soft);
+  --color-edge-strong: var(--edge-strong);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-edge: var(--brand-edge);
+  --color-brand-strong: var(--brand-strong);
+
   /* status — reserved, always shipped with icon + label */
-  --color-status-done: #15803d;
-  --color-status-done-bg: #f0fdf4;
-  --color-status-progress: #b45309;
-  --color-status-progress-bg: #fffbeb;
-  --color-status-overdue: #b91c1c;
-  --color-status-overdue-bg: #fef2f2;
-  --color-status-todo: #475569;
-  --color-status-todo-bg: #f1f5f9;
+  --color-status-done: var(--status-done);
+  --color-status-done-bg: var(--status-done-bg);
+  --color-status-progress: var(--status-progress);
+  --color-status-progress-bg: var(--status-progress-bg);
+  --color-status-overdue: var(--status-overdue);
+  --color-status-overdue-bg: var(--status-overdue-bg);
+  --color-status-todo: var(--status-todo);
+  --color-status-todo-bg: var(--status-todo-bg);
 
   --font-sans: var(--font-heebo), "Heebo", system-ui, sans-serif;
 
   --radius-card: 1rem;
 }
 
+/* ambient glass backdrop */
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-surface text-ink antialiased;
+  background-image:
+    radial-gradient(52rem 34rem at 85% -6%, var(--glow-a), transparent 60%),
+    radial-gradient(44rem 30rem at -10% 108%, var(--glow-b), transparent 60%);
+  background-attachment: fixed;
+  transition: background-color 0.3s ease;
 }
 
 /* readable content inside task steps */
@@ -40,7 +134,7 @@ body {
   @apply leading-relaxed;
 }
 .steps-content strong {
-  @apply font-semibold text-slate-900;
+  @apply font-semibold text-ink;
 }
 
 @keyframes score-pop {

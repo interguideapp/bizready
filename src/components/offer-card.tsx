@@ -7,21 +7,21 @@ import type { OfferRow } from "@/lib/data";
  */
 export function OfferCard({ offer }: { offer: OfferRow }) {
   return (
-    <div className="rounded-2xl border border-brand-100 bg-gradient-to-l from-brand-50/70 to-white p-4">
-      <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-600">
+    <div className="rounded-2xl border border-brand-edge bg-gradient-to-l from-brand-tint/70 to-card p-4">
+      <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-strong">
         <Tag className="h-3.5 w-3.5" aria-hidden />
         הצעת שותף
       </div>
-      <p className="font-semibold text-slate-900">{offer.title}</p>
+      <p className="font-semibold text-ink">{offer.title}</p>
       {offer.description && (
-        <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
+        <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">
           {offer.description}
         </p>
       )}
       {offer.coupon_code && (
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="mt-2 text-sm text-ink-soft">
           קוד קופון:{" "}
-          <span className="rounded-md bg-white px-2 py-0.5 font-mono font-bold text-brand-700 ring-1 ring-brand-200">
+          <span className="rounded-md bg-card px-2 py-0.5 font-mono font-bold text-brand-strong ring-1 ring-brand-edge">
             {offer.coupon_code}
           </span>
         </p>

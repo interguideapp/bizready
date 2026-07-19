@@ -32,7 +32,7 @@ export function StatusBadge({ status }: { status: TaskStatus }) {
       icon: <Circle className="h-3.5 w-3.5" />,
     },
     not_relevant: {
-      cls: "bg-slate-100 text-slate-400",
+      cls: "bg-surface-2 text-ink-faint",
       icon: <EyeOff className="h-3.5 w-3.5" />,
     },
   };
@@ -56,8 +56,8 @@ export const PRIORITY_LABELS: Record<TaskPriority, string> = {
 export function PriorityBadge({ priority }: { priority: TaskPriority }) {
   const cls: Record<TaskPriority, string> = {
     critical: "bg-status-overdue-bg text-status-overdue",
-    important: "bg-brand-50 text-brand-700",
-    recommended: "bg-slate-100 text-slate-500",
+    important: "bg-brand-tint text-brand-strong",
+    recommended: "bg-surface-2 text-ink-muted",
   };
   return (
     <span
@@ -90,7 +90,7 @@ export function DueBadge({ dueDate }: { dueDate: string | null }) {
       </span>
     );
   return (
-    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+    <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
       עד {due.toLocaleDateString("he-IL")}
     </span>
   );

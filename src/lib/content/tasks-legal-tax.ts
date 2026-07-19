@@ -82,13 +82,15 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     category_id: "legal-setup",
     title: "בדיקת חובת רישיון עסק ברשות המקומית",
     why: "עסקים בתחומי מזון, טיפולים, ועסקים עם קבלת קהל עשויים להיות טעוני רישוי. פעילות בלי רישיון נדרש היא עבירה פלילית וחושפת לקנסות וסגירה.",
-    steps: `1. בדקו בצו רישוי עסקים אם התחום שלכם טעון רישוי (מזון, קוסמטיקה ומספרות, חדרי כושר ועוד)
-2. פנו למחלקת רישוי עסקים ברשות המקומית שלכם — גם עסק מהבית יכול להיות טעון רישוי
-3. אם נדרש: הגישו בקשה, וייתכנו דרישות מכבאות, משרד הבריאות או איכות הסביבה
-4. שמרו את הרישיון והציגו אותו בבית העסק כנדרש`,
+    steps: `1. בדקו ב"צו החכם" של משרד הפנים (קישור למטה) אם סוג העסק שלכם מופיע ברשימת העסקים טעוני הרישוי — מזון, קוסמטיקה ומספרות, חדרי כושר ועוד
+2. גם אם לא מצאתם — התקשרו למחלקת רישוי עסקים ברשות המקומית, תארו את הפעילות ובקשו תשובה בכתב. גם עסק מהבית יכול להיות טעון רישוי
+3. אם נדרש רישיון: הגישו בקשה מקוונת (קישור למטה) או ברשות; ייתכנו דרישות מכבאות, משרד הבריאות או איכות הסביבה
+4. עד קבלת הרישיון בדקו אם אפשר לקבל היתר מזורז — הרפורמה ברישוי מאפשרת זאת לחלק מהעסקים
+5. שמרו את הרישיון, תייקו אותו בארכיון, והציגו בבית העסק כנדרש`,
     official_links: [
+      { label: "הצו החכם — בדיקה אם העסק טעון רישוי", url: "https://www.gov.il/he/departments/dynamiccollectors/add-zav-rishuy" },
+      { label: "בקשה לרישיון עסק — משרד הפנים", url: "https://www.gov.il/he/service/application-for-new-business-license" },
       { label: "רישיון עסק — כל-זכות", url: "https://www.kolzchut.org.il/he/רישיון_עסק" },
-      { label: "רישוי עסקים — gov.il", url: "https://www.gov.il/he/departments/topics/business_licensing" },
     ],
     docs_needed: ["פרטי בית העסק", "תכנית העסק (לעסקים פיזיים)"],
     est_cost: "אגרה של כמה מאות שקלים (משתנה לפי רשות)",
@@ -111,14 +113,15 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
 3. בדקו דרישות המשך — ריענון או השתלמויות תקופתיות
 4. ציינו את ההסמכה בחומרי השיווק — זה יתרון מכירתי`,
     official_links: [
-      { label: "רישוי מקצועות — gov.il", url: "https://www.gov.il/he/departments/topics/licensing-professionals" },
+      { label: "מאגר בעלי מקצוע מורשים — משרד הבריאות", url: "https://practitioners.health.gov.il/" },
+      { label: "רישיון עסק — כל-זכות", url: "https://www.kolzchut.org.il/he/רישיון_עסק" },
     ],
     docs_needed: ["תעודות והסמכות קיימות"],
     est_time: "תלוי בתחום",
     applies_when: { field: ["beauty_care", "food", "construction"] },
     depends_on: [],
     priority: "important",
-    source_url: "https://www.gov.il/he/departments/topics/licensing-professionals",
+    source_url: "https://practitioners.health.gov.il/",
     last_reviewed: REVIEWED,
     sort_order: 5,
   },

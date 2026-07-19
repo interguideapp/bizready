@@ -71,6 +71,8 @@ export interface TaskTemplate {
   title: string;
   why: string;
   steps: string; // markdown
+  /** Optional long-form guide (markdown) rendered as an expandable section. */
+  guide?: string;
   official_links: OfficialLink[];
   docs_needed: string[];
   est_cost?: string;

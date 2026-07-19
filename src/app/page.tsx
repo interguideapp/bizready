@@ -7,6 +7,7 @@ import {
   ListChecks,
   Sparkles,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Disclaimer } from "@/components/ui";
 
 const FEATURES = [
@@ -34,25 +35,28 @@ const FEATURES = [
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
-        <span className="text-xl font-bold text-brand-700">BizReady</span>
-        <Link
-          href="/login"
-          className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-        >
-          כניסה
-        </Link>
+        <span className="text-xl font-bold text-brand-strong">BizReady</span>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <Link
+            href="/login"
+            className="rounded-xl px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink"
+          >
+            כניסה
+          </Link>
+        </div>
       </header>
 
       <main className="flex-1">
         <section className="mx-auto max-w-3xl px-6 pt-16 pb-12 text-center">
-          <h1 className="text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl">
+          <h1 className="text-4xl font-extrabold leading-tight text-ink md:text-5xl">
             פותחים עסק בישראל?
             <br />
-            <span className="text-brand-600">אנחנו נדאג שלא תפספסו כלום.</span>
+            <span className="text-brand-strong">אנחנו נדאג שלא תפספסו כלום.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
             רישום ברשויות, מיסים, ביטוחים, נוכחות דיגיטלית — כל מה שעסק חדש
             צריך, בתכנית אחת ברורה עם סטטוסים, תזכורות וציון מוכנות.
           </p>
@@ -63,7 +67,7 @@ export default function LandingPage() {
             בנו לי תכנית לעסק — חינם
             <ArrowLeft className="h-5 w-5" aria-hidden />
           </Link>
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-ink-faint">
             5 דקות, בלי כרטיס אשראי
           </p>
         </section>
@@ -72,20 +76,20 @@ export default function LandingPage() {
           {FEATURES.map(({ icon: Icon, title, text }) => (
             <div
               key={title}
-              className="rounded-2xl border border-slate-200/80 bg-slate-50/60 p-6"
+              className="rounded-2xl border border-edge/80 bg-surface/60 p-6"
             >
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
                 <Icon className="h-5 w-5" aria-hidden />
               </div>
-              <h2 className="font-semibold text-slate-900">{title}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{text}</p>
+              <h2 className="font-semibold text-ink">{title}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">{text}</p>
             </div>
           ))}
         </section>
 
-        <section className="border-t border-slate-100 bg-slate-50/60 py-12">
+        <section className="border-t border-edge-soft bg-surface/60 py-12">
           <div className="mx-auto max-w-2xl px-6 text-center">
-            <h2 className="text-2xl font-bold text-slate-900">
+            <h2 className="text-2xl font-bold text-ink">
               מתאים לעוסק פטור ולעוסק מורשה
             </h2>
             <ul className="mx-auto mt-5 flex max-w-md flex-col gap-2 text-right">
@@ -94,7 +98,7 @@ export default function LandingPage() {
                 "דדליינים ומשימות מחזוריות — כלום לא נופל",
                 "מבוסס על מקורות רשמיים ומתעדכן כשהחוק משתנה",
               ].map((line) => (
-                <li key={line} className="flex items-start gap-2 text-slate-700">
+                <li key={line} className="flex items-start gap-2 text-ink-soft">
                   <CheckCircle2
                     className="mt-0.5 h-5 w-5 shrink-0 text-status-done"
                     aria-hidden

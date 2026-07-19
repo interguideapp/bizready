@@ -11,6 +11,7 @@ import {
   Settings,
   Store,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
@@ -42,9 +43,9 @@ export function AppShell({
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* desktop sidebar */}
-      <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-slate-200 md:bg-white">
+      <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-edge md:bg-card">
         <Link href="/dashboard" className="px-6 py-5">
-          <span className="text-xl font-bold text-brand-700">BizReady</span>
+          <span className="text-xl font-bold text-brand-strong">BizReady</span>
         </Link>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           {NAV.map(({ href, label, icon: Icon }) => {
@@ -55,8 +56,8 @@ export function AppShell({
                 href={href}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-brand-tint text-brand-strong"
+                    : "text-ink-soft hover:bg-surface hover:text-ink"
                 }`}
               >
                 <Icon className="h-5 w-5" aria-hidden />
@@ -68,8 +69,8 @@ export function AppShell({
             href="/notifications"
             className={`mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
               pathname.startsWith("/notifications")
-                ? "bg-brand-50 text-brand-700"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-brand-tint text-brand-strong"
+                : "text-ink-soft hover:bg-surface hover:text-ink"
             }`}
           >
             <span className="relative">
@@ -79,20 +80,26 @@ export function AppShell({
             התראות
           </Link>
         </nav>
+        <div className="border-t border-edge-soft px-3 py-3">
+          <ThemeToggle />
+        </div>
       </aside>
 
       {/* mobile top bar */}
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-20 border-b border-edge bg-card/90 backdrop-blur-xl md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
-          <span className="text-lg font-bold text-brand-700">BizReady</span>
-          <Link
-            href="/notifications"
-            aria-label={`התראות${unreadCount > 0 ? `, ${unreadCount} חדשות` : ""}`}
-            className="relative rounded-lg p-2 text-slate-600"
-          >
-            <Bell className="h-5 w-5" aria-hidden />
-            <UnreadDot count={unreadCount} />
-          </Link>
+          <span className="text-lg font-bold text-brand-strong">BizReady</span>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link
+              href="/notifications"
+              aria-label={`התראות${unreadCount > 0 ? `, ${unreadCount} חדשות` : ""}`}
+              className="relative rounded-lg p-2 text-ink-soft"
+            >
+              <Bell className="h-5 w-5" aria-hidden />
+              <UnreadDot count={unreadCount} />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -103,7 +110,7 @@ export function AppShell({
       </main>
 
       {/* mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-edge bg-card/95 backdrop-blur md:hidden">
         <div className="flex justify-around">
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
@@ -112,7 +119,7 @@ export function AppShell({
                 key={href}
                 href={href}
                 className={`flex flex-col items-center gap-0.5 px-2 py-2 text-[11px] font-medium ${
-                  active ? "text-brand-700" : "text-slate-500"
+                  active ? "text-brand-strong" : "text-ink-muted"
                 }`}
               >
                 <Icon className="h-5 w-5" aria-hidden />

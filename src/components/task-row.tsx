@@ -31,7 +31,7 @@ export function TaskRow({
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3.5 transition hover:bg-slate-50 ${
+      className={`flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface ${
         status === "not_relevant" ? "opacity-50" : ""
       }`}
     >
@@ -42,11 +42,11 @@ export function TaskRow({
         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition ${
           done
             ? "border-status-done bg-status-done text-white"
-            : "border-slate-300 bg-white hover:border-brand-500"
+            : "border-edge-strong bg-card hover:border-brand-500"
         }`}
       >
         {pending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" aria-hidden />
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-faint" aria-hidden />
         ) : done ? (
           <Check className="h-4 w-4" aria-hidden />
         ) : null}
@@ -55,7 +55,7 @@ export function TaskRow({
       <Link href={`/tasks/${templateId}`} className="min-w-0 flex-1">
         <p
           className={`truncate font-medium ${
-            done ? "text-slate-400 line-through" : "text-slate-900"
+            done ? "text-ink-faint line-through" : "text-ink"
           }`}
         >
           {title}

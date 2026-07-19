@@ -107,11 +107,11 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
   return (
     <div className="flex flex-col gap-5">
       <Card className="p-5">
-        <h2 className="mb-4 font-bold text-slate-900">פרופיל העסק</h2>
+        <h2 className="mb-4 font-bold text-ink">פרופיל העסק</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {SELECTS.map(({ key, label, options }) => (
             <label key={key} className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-600">
+              <span className="mb-1 block text-sm font-medium text-ink-soft">
                 {label}
               </span>
               <select
@@ -119,7 +119,7 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [key]: e.target.value }))
                 }
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
               >
                 {options.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -135,9 +135,9 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
           {TOGGLES.map(({ key, label }) => (
             <label
               key={key}
-              className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-100 px-4 py-3"
+              className="flex cursor-pointer items-center justify-between rounded-xl border border-edge-soft px-4 py-3"
             >
-              <span className="text-sm font-medium text-slate-700">{label}</span>
+              <span className="text-sm font-medium text-ink-soft">{label}</span>
               <input
                 type="checkbox"
                 checked={values[key] as boolean}
@@ -164,7 +164,7 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
             {pending ? "מעדכן את התכנית..." : saved ? "עודכן!" : "שמירה ועדכון התכנית"}
           </button>
           {dirty && !pending && (
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-ink-faint">
               משימות חדשות יתווספו, לא-רלוונטיות יוסתרו — ההיסטוריה נשמרת
             </span>
           )}
@@ -172,10 +172,10 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
       </Card>
 
       <Card className="p-5">
-        <h2 className="mb-3 font-bold text-slate-900">חשבון</h2>
+        <h2 className="mb-3 font-bold text-ink">חשבון</h2>
         <button
           onClick={() => startTransition(() => signOut())}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:border-status-overdue hover:text-status-overdue"
+          className="inline-flex items-center gap-2 rounded-xl border border-edge px-5 py-2.5 text-sm font-medium text-ink-soft transition hover:border-status-overdue hover:text-status-overdue"
         >
           <LogOut className="h-4 w-4" aria-hidden />
           התנתקות

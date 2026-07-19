@@ -96,7 +96,7 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
                 setValues(initial);
                 setEditing(false);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink"
             >
               <X className="h-4 w-4" aria-hidden />
               ביטול
@@ -117,7 +117,7 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:text-brand-700"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-edge bg-card px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-brand-300 hover:text-brand-strong"
           >
             <Pencil className="h-4 w-4" aria-hidden />
             עריכת פרטים
@@ -128,10 +128,10 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
       <div className="flex flex-col gap-4">
         {SECTIONS.map((section) => (
           <Card key={section.title} className="overflow-hidden">
-            <h2 className="border-b border-slate-100 bg-slate-50/60 px-5 py-3 text-sm font-bold text-slate-700">
+            <h2 className="border-b border-edge-soft bg-surface/60 px-5 py-3 text-sm font-bold text-ink-soft">
               {section.title}
             </h2>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-edge-soft">
               {section.fields.map((field) => (
                 <FieldRow
                   key={field.key}
@@ -149,7 +149,7 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
         ))}
       </div>
 
-      <p className="mt-5 text-xs leading-relaxed text-slate-400">
+      <p className="mt-5 text-xs leading-relaxed text-ink-faint">
         טיפ: אחרי שפותחים תיק ברשות — חוזרים לכאן ומזינים את מספר התיק. ככה
         כשהבנק, הרו"ח או לקוח מבקשים פרט — הוא אצלכם בקליק.
       </p>
@@ -180,20 +180,20 @@ function FieldRow({
 
   return (
     <div className="flex items-center gap-3 px-5 py-3">
-      <span className="w-32 shrink-0 text-sm text-slate-500">{label}</span>
+      <span className="w-32 shrink-0 text-sm text-ink-muted">{label}</span>
       {editing ? (
         <input
           value={value}
           dir={dir}
           onChange={(e) => onChange(e.target.value)}
-          className={`min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 ${dir === "ltr" ? "text-left" : ""}`}
+          className={`min-w-0 flex-1 rounded-lg border border-edge px-3 py-1.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge ${dir === "ltr" ? "text-left" : ""}`}
         />
       ) : (
         <>
           <span
             dir={dir}
             className={`min-w-0 flex-1 truncate text-sm font-medium ${
-              value ? "text-slate-900" : "text-slate-300"
+              value ? "text-ink" : "text-ink-faint"
             } ${dir === "ltr" ? "text-left" : ""}`}
           >
             {value || "—"}
@@ -202,7 +202,7 @@ function FieldRow({
             <button
               onClick={copy}
               aria-label={`העתקת ${label}`}
-              className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+              className="shrink-0 rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-2 hover:text-brand-strong"
             >
               {copied ? (
                 <Check className="h-4 w-4 text-status-done" aria-hidden />

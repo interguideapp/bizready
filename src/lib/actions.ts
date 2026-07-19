@@ -205,6 +205,67 @@ export async function deleteDocument(documentId: string) {
   revalidatePath("/documents");
 }
 
+/** Set (or replace) the business logo after a client-side storage upload. */
+export async function setBusinessLogo(storagePath: string) {
+  const { supabase, user } = await requireUser();
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id, logo_path")
+    .eq("owner_id", user.id)
+    .single();
+  if (!business) throw new Error("business not found");
+
+  // best-effort cleanup of a previous logo
+  if (business.logo_path && business.logo_path !== storagePath) {
+    await supabase.storage.from("documents").remove([business.logo_path]);
+  }
+
+  const { error } = await supabase
+    .from("businesses")
+    .update({ logo_path: storagePath })
+    .eq("id", business.id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function addProduct(product: {
+  name: string;
+  description?: string;
+  price?: number | null;
+  unit: string;
+}) {
+  const { supabase, user } = await requireUser();
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", user.id)
+    .single();
+  if (!business) throw new Error("business not found");
+
+  const name = product.name.trim();
+  if (!name) throw new Error("שם הפריט חסר");
+
+  const { error } = await supabase.from("business_products").insert({
+    business_id: business.id,
+    name,
+    description: product.description?.trim() || null,
+    price: product.price ?? null,
+    unit: product.unit,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function deleteProduct(productId: string) {
+  const { supabase } = await requireUser();
+  const { error } = await supabase
+    .from("business_products")
+    .delete()
+    .eq("id", productId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
 export async function updateNotificationPrefs(prefs: {
   notify_email: boolean;
   notify_whatsapp: boolean;

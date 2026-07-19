@@ -60,15 +60,15 @@ export default async function TasksPage({
           return (
             <section key={category.id}>
               <div className="mb-2.5 flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-tint text-brand-strong">
                   <CategoryIcon name={category.icon} className="h-4 w-4" />
                 </div>
-                <h2 className="font-bold text-slate-900">{category.title}</h2>
-                <span className="mr-auto text-xs font-medium text-slate-400">
+                <h2 className="font-bold text-ink">{category.title}</h2>
+                <span className="mr-auto text-xs font-medium text-ink-faint">
                   {doneCount}/{list.length}
                 </span>
               </div>
-              <Card className="divide-y divide-slate-100">
+              <Card className="divide-y divide-edge-soft">
                 {sorted.map((task) => {
                   const template = TEMPLATES_BY_ID.get(task.template_id)!;
                   return (
@@ -109,7 +109,7 @@ function FilterChip({
       className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition ${
         active
           ? "bg-brand-600 text-white"
-          : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+          : "bg-card text-ink-soft ring-1 ring-edge hover:bg-surface"
       }`}
     >
       {label}

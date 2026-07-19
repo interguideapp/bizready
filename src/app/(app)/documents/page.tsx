@@ -55,20 +55,20 @@ export default async function DocumentsPage() {
             return (
               <section key={cat.id}>
                 <div className="mb-2 flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-700">
+                  <h2 className="text-sm font-bold text-ink-soft">
                     {cat.label}
-                    <span className="mr-2 font-normal text-slate-400">
+                    <span className="mr-2 font-normal text-ink-faint">
                       {docs.length > 0 && `(${docs.length})`}
                     </span>
                   </h2>
                   <DocumentUpload category={cat.id} label="העלאה" compact />
                 </div>
                 {docs.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-400">
+                  <p className="rounded-xl border border-dashed border-edge px-4 py-3 text-xs text-ink-faint">
                     ריק בינתיים
                   </p>
                 ) : (
-                  <Card className="divide-y divide-slate-100">
+                  <Card className="divide-y divide-edge-soft">
                     {docs.map((doc) => (
                       <DocumentRowItem
                         key={doc.id}

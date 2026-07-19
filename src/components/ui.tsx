@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200/80 shadow-sm ${className}`}
+      className={`rounded-2xl border border-edge/80 bg-card shadow-sm backdrop-blur-xl ${className}`}
     >
       {children}
     </div>
@@ -25,8 +25,8 @@ export function PageTitle({
 }) {
   return (
     <header className="mb-6">
-      <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-      {subtitle && <p className="mt-1 text-slate-500">{subtitle}</p>}
+      <h1 className="text-2xl font-bold text-ink">{title}</h1>
+      {subtitle && <p className="mt-1 text-ink-muted">{subtitle}</p>}
     </header>
   );
 }
@@ -44,12 +44,12 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-tint text-brand-strong">
         {icon}
       </div>
-      <p className="font-semibold text-slate-800">{title}</p>
+      <p className="font-semibold text-ink">{title}</p>
       {subtitle && (
-        <p className="mt-1 max-w-sm text-sm text-slate-500">{subtitle}</p>
+        <p className="mt-1 max-w-sm text-sm text-ink-muted">{subtitle}</p>
       )}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -58,7 +58,7 @@ export function EmptyState({
 
 export function Disclaimer() {
   return (
-    <p className="mt-8 text-center text-xs leading-relaxed text-slate-400">
+    <p className="mt-8 text-center text-xs leading-relaxed text-ink-faint">
       המידע ב-BizReady הוא מידע כללי בלבד ואינו מהווה ייעוץ משפטי, מיסויי או
       פיננסי. לפני החלטות מהותיות מומלץ להתייעץ עם איש מקצוע מוסמך.
     </p>

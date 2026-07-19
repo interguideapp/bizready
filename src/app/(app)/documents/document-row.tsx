@@ -28,16 +28,16 @@ export function DocumentRowItem({
             href={signedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block truncate text-sm font-medium text-slate-800 hover:text-brand-700"
+            className="block truncate text-sm font-medium text-ink hover:text-brand-strong"
           >
             {doc.name}
           </a>
         ) : (
-          <span className="block truncate text-sm font-medium text-slate-800">
+          <span className="block truncate text-sm font-medium text-ink">
             {doc.name}
           </span>
         )}
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-faint">
           {new Date(doc.created_at).toLocaleDateString("he-IL")}
           {doc.expires_at &&
             ` · בתוקף עד ${new Date(doc.expires_at).toLocaleDateString("he-IL")}`}
@@ -47,7 +47,7 @@ export function DocumentRowItem({
         onClick={remove}
         disabled={pending}
         aria-label={`מחיקת ${doc.name}`}
-        className="shrink-0 rounded-lg p-1.5 text-slate-300 transition hover:bg-slate-100 hover:text-status-overdue"
+        className="shrink-0 rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-2 hover:text-status-overdue"
       >
         {pending ? (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

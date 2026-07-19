@@ -1,4 +1,5 @@
 import { Store } from "lucide-react";
+import { AdvertiseCard } from "@/components/advertise-card";
 import { CategoryIcon } from "@/components/category-icon";
 import { OfferCard } from "@/components/offer-card";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
@@ -52,10 +53,10 @@ export default async function ShopPage() {
           {CATEGORIES.filter((c) => byCategory.has(c.id)).map((category) => (
             <section key={category.id}>
               <div className="mb-2.5 flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-tint text-brand-strong">
                   <CategoryIcon name={category.icon} className="h-4 w-4" />
                 </div>
-                <h2 className="font-bold text-slate-900">{category.title}</h2>
+                <h2 className="font-bold text-ink">{category.title}</h2>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {byCategory.get(category.id)!.map((offer) => (
@@ -66,7 +67,7 @@ export default async function ShopPage() {
           ))}
           {byCategory.has("other") && (
             <section>
-              <h2 className="mb-2.5 font-bold text-slate-900">כללי</h2>
+              <h2 className="mb-2.5 font-bold text-ink">כללי</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {byCategory.get("other")!.map((offer) => (
                   <OfferCard key={offer.id} offer={offer} />
@@ -77,7 +78,11 @@ export default async function ShopPage() {
         </div>
       )}
 
-      <p className="mt-6 text-xs leading-relaxed text-slate-400">
+      <div className="mt-8">
+        <AdvertiseCard />
+      </div>
+
+      <p className="mt-6 text-xs leading-relaxed text-ink-faint">
         BizReady עשויה לקבל עמלה על הצעות שותפים. ההמלצות המקצועיות והמדריכים
         באפליקציה תמיד זמינים בחינם וללא תלות בהצעות.
       </p>

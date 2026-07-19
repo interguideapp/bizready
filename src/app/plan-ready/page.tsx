@@ -22,10 +22,10 @@ export default async function PlanReadyPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-slate-50 px-6 py-10">
+    <div className="flex min-h-screen flex-col items-center bg-surface px-6 py-10">
       <div className="w-full max-w-lg text-center">
-        <p className="text-sm font-semibold text-brand-600">התכנית של {business.name} מוכנה 🎉</p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-900">
+        <p className="text-sm font-semibold text-brand-strong">התכנית של {business.name} מוכנה 🎉</p>
+        <h1 className="mt-1 text-3xl font-bold text-ink">
           זה המצב — ומכאן רק עולים
         </h1>
 
@@ -33,9 +33,9 @@ export default async function PlanReadyPage() {
           <ScoreRing score={score.overall} size={180} />
         </div>
 
-        <p className="mx-auto mt-6 max-w-sm leading-relaxed text-slate-600">
+        <p className="mx-auto mt-6 max-w-sm leading-relaxed text-ink-soft">
           בנינו לכם תכנית אישית עם{" "}
-          <b className="text-slate-900">{activeTasks.length} משימות</b> ב-
+          <b className="text-ink">{activeTasks.length} משימות</b> ב-
           {byCategory.size} תחומים — כל אחת עם הסבר, צעדים וקישורים רשמיים.
         </p>
 
@@ -43,15 +43,15 @@ export default async function PlanReadyPage() {
           {CATEGORIES.filter((c) => byCategory.has(c.id)).map((c, i) => (
             <div
               key={c.id}
-              className="animate-fade-up flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5"
+              className="animate-fade-up flex items-center gap-3 rounded-2xl border border-edge/80 bg-card p-3.5"
               style={{ animationDelay: `${i * 70}ms` }}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
                 <CategoryIcon name={c.icon} className="h-4.5 w-4.5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-800">{c.title}</p>
-                <p className="text-xs text-slate-500">{byCategory.get(c.id)} משימות</p>
+                <p className="truncate text-sm font-semibold text-ink">{c.title}</p>
+                <p className="text-xs text-ink-muted">{byCategory.get(c.id)} משימות</p>
               </div>
             </div>
           ))}

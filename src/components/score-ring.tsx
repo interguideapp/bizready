@@ -40,7 +40,7 @@ export function ScoreRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--color-brand-100)"
+          stroke="var(--color-surface-3)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -57,8 +57,8 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-bold text-slate-900">{score}</span>
-        <span className="text-xs font-medium text-slate-500">{label}</span>
+        <span className="text-4xl font-bold text-ink">{score}</span>
+        <span className="text-xs font-medium text-ink-muted">{label}</span>
       </div>
     </div>
   );
@@ -83,7 +83,7 @@ export function MiniRing({
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="var(--color-brand-100)"
+        stroke="var(--color-surface-3)"
         strokeWidth={strokeWidth}
       />
       <circle

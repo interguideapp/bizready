@@ -13,6 +13,7 @@ export interface BusinessRow {
   notify_email: boolean;
   notify_whatsapp: boolean;
   whatsapp_phone: string | null;
+  logo_path: string | null;
   dealer_number: string | null;
   vat_file: string | null;
   income_tax_file: string | null;
@@ -132,6 +133,27 @@ export async function getOffersForTemplate(
     .eq("template_id", templateId)
     .order("sort_order");
   return (data ?? []) as OfferRow[];
+}
+
+export interface ProductRow {
+  id: string;
+  business_id: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  unit: string;
+  sort_order: number;
+}
+
+export async function getProducts(businessId: string): Promise<ProductRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("business_products")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("sort_order")
+    .order("created_at");
+  return (data ?? []) as ProductRow[];
 }
 
 /** All active offers (for the Shop), newest-relevant first. */

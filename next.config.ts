@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // TypeScript is type-checked in CI/build; keep ESLint from blocking deploys.
-  eslint: { ignoreDuringBuilds: true },
+  /* Next 16 runs no ESLint during build; type-checking runs automatically. */
 };
 
 export default nextConfig;

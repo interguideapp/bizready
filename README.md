@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BizReady
 
-## Getting Started
+פלטפורמת אונבורדינג חכמה לעסקים חדשים בישראל — שאלון קצר → תכנית משימות מותאמת אישית (הקמה, מיסים, פיננסים, ביטוח, רגולציה דיגיטלית, נוכחות, שיווק, תפעול) עם סטטוסים, דדליינים, תזכורות, ציון מוכנות, תיק דיגיטלי (כרטיס עסק + ארכיון מסמכים), מרקטפלייס הצעות שותפים וחנות.
 
-First, run the development server:
+## סטאק
+
+Next.js 16 (App Router, `src/`) · TypeScript · Tailwind v4 · lucide-react · Supabase (Auth · Postgres · RLS · Storage) · Vercel.
+
+## פיתוח מקומי
 
 ```bash
+npm install
+cp .env.local.example .env.local   # מלאו את המשתנים (ראו למטה)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test                            # בדיקות יחידה (vitest) למנוע החוקים והתזכורות
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## מבנה
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `src/lib/content/` — התוכן: 8 קטגוריות + ~48 תבניות משימות (מקור האמת). מיוצא ל-DB דרך `scripts/seed-sql.ts`.
+- `src/lib/rules-engine.ts` — מנוע חוקים טהור (התאמת משימות, ציון מוכנות, צעדים הבאים). נבדק ב-`rules-engine.test.ts`.
+- `src/lib/reminders.ts` — מנוע תזכורות טהור (דדליינים, איחורים, איפוס משימות מחזוריות). נבדק ב-`reminders.test.ts`.
+- `src/app/(app)/` — האזור המחובר: דשבורד, משימות, כרטיס עסק, מסמכים, חנות, התראות, הגדרות.
+- `src/app/api/cron/reminders/` — סריקה יומית (Vercel Cron, `vercel.json`).
+- `supabase/migrations/` — סכמת ה-DB + RLS.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## משתני סביבה
 
-## Learn More
+| משתנה | חובה | לְמה |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | כתובת פרויקט Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | מפתח publishable (בטוח לחשיפה) |
+| `SUPABASE_SERVICE_ROLE_KEY` | לתזכורות | מפתח סוד — רק ל-cron. **לעולם לא בצד לקוח.** |
+| `CRON_SECRET` | לתזכורות | מגן על `/api/cron/reminders` |
+| `NEXT_PUBLIC_APP_URL` | מומלץ | הדומיין בפרודקשן (לקישורים במיילים) |
+| `RESEND_API_KEY` + `REMINDER_FROM_EMAIL` | לתזכורות מייל | שליחת מיילים דרך Resend |
+| `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` (+ `WHATSAPP_TEMPLATE_NAME`) | לוואטסאפ | Meta Cloud API |
 
-To learn more about Next.js, take a look at the following resources:
+## פריסה ל-Vercel — צ'קליסט
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **ייבוא הריפו** ב-Vercel → New Project → בחירת הריפו הזה (Next.js מזוהה אוטומטית).
+2. **Environment Variables** — הוסיפו לפחות את `NEXT_PUBLIC_SUPABASE_URL` ו-`NEXT_PUBLIC_SUPABASE_ANON_KEY`. להפעלת התזכורות הוסיפו גם `SUPABASE_SERVICE_ROLE_KEY` (מ-Supabase → Project Settings → API → service_role) ו-`CRON_SECRET` (מחרוזת אקראית).
+3. **Deploy**.
+4. **Supabase Auth** → Authentication → URL Configuration: הוסיפו את דומיין הפרודקשן ל-Redirect URLs (`https://<domain>/auth/callback`) ול-Site URL. אם משתמשים ב-Google — הגדירו OAuth ב-Supabase + ב-Google Cloud Console עם ה-redirect של Supabase.
+5. **Cron** — `vercel.json` כבר מגדיר סריקה יומית ב-06:00. ודאו ש-`SUPABASE_SERVICE_ROLE_KEY` + `CRON_SECRET` מוגדרים כדי שתפעל.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> הערה: המידע התוכני מבוסס על מקורות רשמיים (gov.il, רשות המסים, ביטוח לאומי, הרשות להגנת הפרטיות) ונכון לתאריך `last_reviewed` שבכל תבנית. סכומים ותקרות (כמו תקרת עוסק פטור) מנוהלים כערכי תצורה ב-`src/lib/types.ts` ומתעדכנים שנתית. כל תוכן משפטי/מיסויי מלווה בדיסקליימר — אינו מהווה ייעוץ.

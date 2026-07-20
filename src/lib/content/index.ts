@@ -3,6 +3,8 @@ import { CATEGORIES } from "./categories";
 import { LEGAL_TAX_TASKS } from "./tasks-legal-tax";
 import { FINANCE_INSURANCE_TASKS } from "./tasks-finance-insurance";
 import { DIGITAL_MARKETING_OPS_TASKS } from "./tasks-digital-marketing-ops";
+import { EMPLOYMENT_TASKS } from "./tasks-employment";
+import { SPECIFIC_TASKS } from "./tasks-specific";
 
 export { CATEGORIES };
 
@@ -10,6 +12,8 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
   ...LEGAL_TAX_TASKS,
   ...FINANCE_INSURANCE_TASKS,
   ...DIGITAL_MARKETING_OPS_TASKS,
+  ...SPECIFIC_TASKS,
+  ...EMPLOYMENT_TASKS,
 ];
 
 export const TEMPLATES_BY_ID = new Map(TASK_TEMPLATES.map((t) => [t.id, t]));

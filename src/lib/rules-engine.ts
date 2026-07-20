@@ -23,6 +23,25 @@ export function templateApplies(
   return true;
 }
 
+/**
+ * Returns the template's steps/why tailored to the business — the first variant
+ * whose condition matches wins (e.g. attendance shows the app flow for remote
+ * workers, the clock flow on-site). Pure, so the task page can call it directly.
+ */
+export function resolveTemplate(
+  template: TaskTemplate,
+  answers: OnboardingAnswers | Record<string, never>
+): { steps: string; why: string } {
+  if (template.variants && "entity_type" in answers) {
+    for (const variant of template.variants) {
+      if (templateApplies(variant.when, answers as OnboardingAnswers)) {
+        return { steps: variant.steps, why: variant.why ?? template.why };
+      }
+    }
+  }
+  return { steps: template.steps, why: template.why };
+}
+
 export interface PlannedTask {
   template_id: string;
   status: TaskStatus;

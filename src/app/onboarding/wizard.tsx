@@ -36,7 +36,9 @@ const STEPS: Step[] = [
   { id: "revenue", title: "כמה העסק צפוי להכניס בשנה?", subtitle: "הערכה גסה — משפיע על מיסוי והמלצות", isValid: (d) => !!d.expected_revenue },
   { id: "location", title: "מאיפה העסק פועל?", isValid: (d) => !!d.work_location },
   { id: "channels", title: "איך אתם מוכרים ולמי?", isValid: (d) => !!d.sales_channel && !!d.client_type },
+  { id: "product", title: "מה אתם מוכרים?", subtitle: "קובע אם צריך חנות, משלוחים או ניהול מלאי", isValid: (d) => !!d.product_type },
   { id: "details", title: "עוד כמה שאלות קצרות", subtitle: "כן/לא — כל תשובה מדייקת את התכנית", isValid: (d) => d.hosts_clients !== undefined && d.collects_personal_data !== undefined && d.uses_vehicle !== undefined && d.has_website !== undefined && d.plans_employees !== undefined },
+  { id: "employees", title: "איפה העובדים יעבדו?", subtitle: "רלוונטי לרישום נוכחות ולתנאי העסקה", isValid: (d) => !d.plans_employees || !!d.employee_work_mode },
   { id: "already", title: "מה כבר סידרתם?", subtitle: "נסמן כהושלם — הציון שלכם יתחיל מהמקום האמיתי", isValid: () => true },
 ];
 
@@ -54,9 +56,21 @@ export function OnboardingWizard() {
     setDraft((d) => ({ ...d, [key]: value }));
   }
 
+  /** The employees step is only shown when the user plans to hire. */
+  const isVisible = (i: number) =>
+    STEPS[i].id !== "employees" || !!draft.plans_employees;
+
   function next() {
-    if (stepIndex < STEPS.length - 1) setStepIndex((i) => i + 1);
+    let i = stepIndex + 1;
+    while (i < STEPS.length && !isVisible(i)) i++;
+    if (i < STEPS.length) setStepIndex(i);
     else submit();
+  }
+
+  function back() {
+    let i = stepIndex - 1;
+    while (i > 0 && !isVisible(i)) i--;
+    setStepIndex(Math.max(0, i));
   }
 
   function submit() {
@@ -68,11 +82,15 @@ export function OnboardingWizard() {
       work_location: draft.work_location!,
       sales_channel: draft.sales_channel!,
       client_type: draft.client_type!,
+      product_type: draft.product_type!,
       hosts_clients: draft.hosts_clients!,
       collects_personal_data: draft.collects_personal_data!,
       uses_vehicle: draft.uses_vehicle!,
       has_website: draft.has_website!,
       plans_employees: draft.plans_employees!,
+      employee_work_mode: draft.plans_employees
+        ? draft.employee_work_mode ?? "on_site"
+        : "on_site",
       already_done: draft.already_done ?? [],
     };
     startTransition(() => completeOnboarding(draft.businessName!.trim(), answers));
@@ -241,6 +259,32 @@ export function OnboardingWizard() {
               </div>
             )}
 
+            {step.id === "product" && (
+              <ChoiceList
+                value={draft.product_type}
+                onChange={(v) => set("product_type", v)}
+                options={[
+                  { value: "services", label: "שירותים", hint: "ייעוץ, טיפולים, עבודה מקצועית" },
+                  { value: "physical_products", label: "מוצרים פיזיים", hint: "צריך משלוחים ומלאי" },
+                  { value: "digital_products", label: "מוצרים דיגיטליים", hint: "קבצים, קורסים, מנויים" },
+                  { value: "mixed", label: "גם וגם", hint: "שירותים ומוצרים" },
+                ]}
+              />
+            )}
+
+            {step.id === "employees" && (
+              <ChoiceList
+                value={draft.employee_work_mode}
+                onChange={(v) => set("employee_work_mode", v)}
+                options={[
+                  { value: "on_site", label: "במקום העבודה", hint: "שעון נוכחות פיזי / טאבלט" },
+                  { value: "remote", label: "מהבית / מרחוק", hint: "אפליקציית נוכחות" },
+                  { value: "field", label: "בשטח / אצל לקוחות", hint: "דיווח נייד עם מיקום" },
+                  { value: "mixed", label: "משולב", hint: "חלק במקום, חלק מרחוק" },
+                ]}
+              />
+            )}
+
             {step.id === "details" && (
               <div className="flex flex-col gap-3">
                 <YesNo label="מקבלים לקוחות פיזית? (גם בבית)" value={draft.hosts_clients} onChange={(v) => set("hosts_clients", v)} />
@@ -297,7 +341,7 @@ export function OnboardingWizard() {
         <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-3 border-t border-edge bg-surface/95 px-6 py-4 backdrop-blur">
           {stepIndex > 0 && (
             <button
-              onClick={() => setStepIndex((i) => i - 1)}
+              onClick={back}
               className="inline-flex items-center gap-1 rounded-xl px-4 py-3 text-sm font-medium text-ink-muted hover:text-ink"
             >
               <ArrowRight className="h-4 w-4" aria-hidden />

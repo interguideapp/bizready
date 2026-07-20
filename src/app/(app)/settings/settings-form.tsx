@@ -80,7 +80,29 @@ const SELECTS: {
       { value: "both", label: "גם וגם" },
     ],
   },
+  {
+    key: "product_type",
+    label: "מה מוכרים",
+    options: [
+      { value: "services", label: "שירותים" },
+      { value: "physical_products", label: "מוצרים פיזיים" },
+      { value: "digital_products", label: "מוצרים דיגיטליים" },
+      { value: "mixed", label: "גם וגם" },
+    ],
+  },
 ];
+
+/** Shown only when the business plans to hire. */
+const EMPLOYEE_SELECT = {
+  key: "employee_work_mode" as const,
+  label: "איפה העובדים עובדים",
+  options: [
+    { value: "on_site", label: "במקום העבודה" },
+    { value: "remote", label: "מהבית / מרחוק" },
+    { value: "field", label: "בשטח / אצל לקוחות" },
+    { value: "mixed", label: "משולב" },
+  ],
+};
 
 const TOGGLES: { key: keyof OnboardingAnswers; label: string }[] = [
   { key: "hosts_clients", label: "מקבל/ת לקוחות פיזית" },
@@ -109,7 +131,7 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
       <Card className="p-5">
         <h2 className="mb-4 font-bold text-ink">פרופיל העסק</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          {SELECTS.map(({ key, label, options }) => (
+          {[...SELECTS, ...(values.plans_employees ? [EMPLOYEE_SELECT] : [])].map(({ key, label, options }) => (
             <label key={key} className="block">
               <span className="mb-1 block text-sm font-medium text-ink-soft">
                 {label}

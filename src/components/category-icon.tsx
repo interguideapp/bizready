@@ -6,6 +6,7 @@ import {
   ScanEye,
   Settings2,
   Shield,
+  Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +20,7 @@ const ICONS: Record<string, LucideIcon> = {
   Globe,
   Megaphone,
   Settings2,
+  Users,
 };
 
 export function CategoryIcon({

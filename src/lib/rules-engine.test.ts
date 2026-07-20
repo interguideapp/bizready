@@ -6,6 +6,7 @@ import {
   computeScore,
   nextSteps,
   reconcilePlan,
+  resolveTemplate,
 } from "./rules-engine";
 
 /** קוסמטיקאית עוסק פטור מהבית, בלי אתר, לקוחות פרטיים */
@@ -17,11 +18,13 @@ const cosmetician: OnboardingAnswers = {
   work_location: "home",
   sales_channel: "in_person",
   client_type: "private",
+  product_type: "services",
   hosts_clients: true,
   collects_personal_data: true,
   uses_vehicle: false,
   has_website: false,
   plans_employees: false,
+  employee_work_mode: "on_site",
   already_done: [],
 };
 
@@ -35,12 +38,80 @@ const onlineShop: OnboardingAnswers = {
   sales_channel: "online",
   client_type: "both",
   hosts_clients: false,
+  product_type: "physical_products",
   collects_personal_data: true,
   uses_vehicle: true,
   has_website: true,
   plans_employees: false,
+  employee_work_mode: "on_site",
   already_done: ["open-vat-file", "build-website", "buy-domain"],
 };
+
+/** מעצב עוסק מורשה עם עובדים בשטח שמוכר מוצרים פיזיים אונליין */
+const fieldEmployer: OnboardingAnswers = {
+  ...onlineShop,
+  field: "creative",
+  plans_employees: true,
+  employee_work_mode: "field",
+  product_type: "physical_products",
+  sales_channel: "both",
+};
+
+describe("business-type specificity", () => {
+  it("employment tasks appear only when hiring", () => {
+    const withEmp = buildPlan(fieldEmployer, TASK_TEMPLATES).map((t) => t.template_id);
+    const noEmp = buildPlan(cosmetician, TASK_TEMPLATES).map((t) => t.template_id);
+    expect(withEmp).toContain("attendance-tracking");
+    expect(withEmp).toContain("employment-terms-notice");
+    expect(withEmp).toContain("travel-reimbursement");
+    expect(noEmp).not.toContain("attendance-tracking");
+  });
+
+  it("attendance shows the app flow for field workers, the clock flow on-site", () => {
+    const attendance = TEMPLATES_BY_ID.get("attendance-tracking")!;
+    const field = resolveTemplate(attendance, fieldEmployer);
+    const onSite = resolveTemplate(attendance, {
+      ...fieldEmployer,
+      employee_work_mode: "on_site",
+    });
+    expect(field.steps).toContain("אפליקציית נוכחות ניידת");
+    expect(field.steps).toContain("GPS");
+    expect(onSite.steps).toContain("שעון נוכחות");
+    expect(onSite.steps).not.toContain("GPS");
+  });
+
+  it("online store shows only for online sellers of products, with a digital variant", () => {
+    const store = TEMPLATES_BY_ID.get("online-store-setup")!;
+    // cosmetician sells services in person → no store task at all
+    expect(
+      buildPlan(cosmetician, TASK_TEMPLATES).map((t) => t.template_id)
+    ).not.toContain("online-store-setup");
+    // physical online shop → store applies, physical steps
+    expect(
+      buildPlan(onlineShop, TASK_TEMPLATES).map((t) => t.template_id)
+    ).toContain("online-store-setup");
+    // digital-products variant swaps the steps
+    const digital = resolveTemplate(store, {
+      ...onlineShop,
+      product_type: "digital_products",
+    });
+    expect(digital.steps).toContain("אספקה אוטומטית");
+  });
+
+  it("field packages match the activity field", () => {
+    const foodBiz = buildPlan(
+      { ...cosmetician, field: "food" },
+      TASK_TEMPLATES
+    ).map((t) => t.template_id);
+    expect(foodBiz).toContain("food-hygiene-training");
+    expect(foodBiz).not.toContain("construction-insurance-safety");
+  });
+
+  it("resolveTemplate returns default steps when no variant matches", () => {
+    const pricing = TEMPLATES_BY_ID.get("pricing")!;
+    expect(resolveTemplate(pricing, cosmetician).steps).toBe(pricing.steps);
+  });
+});
 
 describe("buildPlan", () => {
   it("gives every business the universal critical basics", () => {

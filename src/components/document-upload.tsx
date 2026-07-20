@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { addDocument } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,13 +9,17 @@ import { createClient } from "@/lib/supabase/client";
 export function DocumentUpload({
   category,
   taskId = null,
+  checklistItemId = null,
   label = "העלאת מסמך",
   compact = false,
+  icon = false,
 }: {
   category: string;
   taskId?: string | null;
+  checklistItemId?: string | null;
   label?: string;
   compact?: boolean;
+  icon?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<"idle" | "uploading" | "error">("idle");
@@ -44,6 +48,7 @@ export function DocumentUpload({
         storage_path: path,
         mime_type: file.type,
         task_id: taskId,
+        checklist_item_id: checklistItemId,
       });
       setState("idle");
     } catch (e) {
@@ -68,18 +73,21 @@ export function DocumentUpload({
       <button
         onClick={() => inputRef.current?.click()}
         disabled={state === "uploading"}
+        aria-label={icon ? "צירוף קובץ" : undefined}
         className={
-          compact
-            ? "inline-flex items-center gap-1.5 rounded-lg border border-edge bg-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-brand-300 hover:text-brand-strong disabled:opacity-60"
-            : "inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+          icon
+            ? "inline-flex items-center justify-center rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-2 hover:text-brand-strong disabled:opacity-60"
+            : compact
+              ? "inline-flex items-center gap-1.5 rounded-lg border border-edge bg-card px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-brand-300 hover:text-brand-strong disabled:opacity-60"
+              : "inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
         }
       >
         {state === "uploading" ? (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         ) : (
-          <Upload className="h-4 w-4" aria-hidden />
+          <Paperclip className="h-4 w-4" aria-hidden />
         )}
-        {state === "uploading" ? "מעלה..." : label}
+        {!icon && (state === "uploading" ? "מעלה..." : label)}
       </button>
       {state === "error" && (
         <p className="mt-1.5 text-xs text-status-overdue">{errorMsg}</p>

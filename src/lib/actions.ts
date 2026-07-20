@@ -216,6 +216,74 @@ export async function completeTask(
   revalidatePath("/", "layout");
 }
 
+/** Set or clear a personal deadline; logs it to the activity feed. */
+export async function setTaskDueDate(taskId: string, dueDate: string | null) {
+  const { supabase } = await requireUser();
+  const { data: current } = await supabase
+    .from("business_tasks")
+    .select("business_id, template_id")
+    .eq("id", taskId)
+    .single();
+  if (!current) throw new Error("task not found");
+
+  const { error } = await supabase
+    .from("business_tasks")
+    .update({ due_date: dueDate })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+
+  await supabase.from("task_events").insert({
+    business_id: current.business_id,
+    task_id: taskId,
+    template_id: current.template_id,
+    kind: "deadline_set",
+    detail: dueDate
+      ? `דדליין נקבע ל-${new Date(dueDate + "T00:00:00").toLocaleDateString("he-IL")}`
+      : "הדדליין הוסר",
+  });
+  revalidatePath("/", "layout");
+}
+
+// ---------- personal checklist inside a task ----------
+
+export async function addChecklistItem(taskId: string, label: string) {
+  const { supabase } = await requireUser();
+  const text = label.trim();
+  if (!text) return;
+  const { data: task } = await supabase
+    .from("business_tasks")
+    .select("business_id")
+    .eq("id", taskId)
+    .single();
+  if (!task) throw new Error("task not found");
+
+  const { count } = await supabase
+    .from("task_checklist_items")
+    .select("id", { count: "exact", head: true })
+    .eq("business_task_id", taskId);
+
+  const { error } = await supabase.from("task_checklist_items").insert({
+    business_id: task.business_id,
+    business_task_id: taskId,
+    label: text.slice(0, 300),
+    sort_order: count ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/tasks", "layout");
+}
+
+export async function toggleChecklistItem(itemId: string, done: boolean) {
+  const { supabase } = await requireUser();
+  await supabase.from("task_checklist_items").update({ done }).eq("id", itemId);
+  revalidatePath("/tasks", "layout");
+}
+
+export async function deleteChecklistItem(itemId: string) {
+  const { supabase } = await requireUser();
+  await supabase.from("task_checklist_items").delete().eq("id", itemId);
+  revalidatePath("/tasks", "layout");
+}
+
 export async function saveTaskNotes(taskId: string, notes: string) {
   const { supabase } = await requireUser();
   const { error } = await supabase
@@ -256,6 +324,7 @@ export async function addDocument(doc: {
   mime_type?: string;
   expires_at?: string | null;
   task_id?: string | null;
+  checklist_item_id?: string | null;
 }) {
   const { supabase, user } = await requireUser();
   const { data: business } = await supabase

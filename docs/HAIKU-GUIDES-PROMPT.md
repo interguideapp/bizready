@@ -113,6 +113,24 @@ guide: `## על מה מדובר, בקצרה
 46. `docs-backup` | גיבוי מסמכים וקבצים בענן
 47. `crm-basic` | ניהול לקוחות בסיסי (CRM)
 48. `vehicle-expenses` | הכרה בהוצאות רכב
+49. `shipping-returns-policy` | מדיניות משלוחים והחזרות
+50. `inventory-basics` | ניהול מלאי בסיסי
+
+### מסחר ותחום ספציפי (בקטגוריות קיימות)
+51. `online-store-setup` | הקמת חנות דיגיטלית (וריאנט למוצרים דיגיטליים)
+52. `food-hygiene-training` | הדרכת היגיינה ובטיחות מזון (מזון)
+53. `ip-usage-agreement` | קניין רוחני וזכויות שימוש (עיצוב/טכנולוגיה)
+54. `construction-insurance-safety` | ביטוח עבודות קבלניות ובטיחות (בנייה)
+
+### ט. העסקת עובדים (employment)
+55. `employer-deductions-file` | פתיחת תיק ניכויים ותיק מעסיק
+56. `employment-terms-notice` | הודעה לעובד על תנאי העסקה
+57. `attendance-tracking` | רישום שעות עבודה (וריאנטים: שעון במקום / אפליקציה מרחוק / נייד בשטח)
+58. `payroll-solution` | פתרון שכר ותלושים כדין
+59. `employee-pension-setup` | ביטוח פנסיוני לעובדים
+60. `employer-liability-insurance` | ביטוח חבות מעבידים
+61. `travel-reimbursement` | החזר הוצאות נסיעה (וריאנט לעובדי שטח)
+62. `employee-rights-basics` | זכויות עובד — חופשה, מחלה, הבראה
 
 ---
 

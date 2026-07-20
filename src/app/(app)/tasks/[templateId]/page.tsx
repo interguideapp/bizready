@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FileText,
   Lightbulb,
+  ListChecks,
   ListTodo,
   Paperclip,
 } from "lucide-react";
@@ -22,10 +23,14 @@ import { PriceList } from "@/components/price-list";
 import { StepsContent } from "@/components/steps-content";
 import { NotesEditor, StatusPicker } from "@/components/task-controls";
 import { Card, Disclaimer } from "@/components/ui";
+import { DueDateControl } from "@/components/due-date-editor";
+import { TaskChecklist } from "@/components/task-checklist";
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
+import { resolveTemplate } from "@/lib/rules-engine";
 import {
   getBusiness,
   getBusinessTasks,
+  getChecklistItems,
   getDocuments,
   getOffersForTemplate,
   getProducts,
@@ -60,12 +65,28 @@ export default async function TaskDetailPage({
   const task = tasks.find((t) => t.template_id === templateId);
   if (!task) notFound();
 
-  const [allDocs, offers] = await Promise.all([
+  const [allDocs, offers, checklist] = await Promise.all([
     getDocuments(business.id),
     getOffersForTemplate(template.id),
+    getChecklistItems(task.id),
   ]);
   const documents = allDocs.filter((d) => d.task_id === task.id);
+  const stepDocs = allDocs.filter((d) => d.checklist_item_id != null);
   const category = CATEGORIES_BY_ID.get(template.category_id)!;
+
+  // signed URLs for files attached to checklist steps
+  const stepDocUrls = new Map<string, string>();
+  if (stepDocs.length > 0) {
+    const supabase = await createClient();
+    const { data } = await supabase.storage
+      .from("documents")
+      .createSignedUrls(stepDocs.map((d) => d.storage_path), 3600);
+    data?.forEach((entry, i) => {
+      if (entry.signedUrl) stepDocUrls.set(stepDocs[i].id, entry.signedUrl);
+    });
+  }
+  // profile-specific steps/why (e.g. attendance app vs. physical clock)
+  const resolved = resolveTemplate(template, business.onboarding_answers);
 
   // smart in-app actions for specific tasks
   let smartAction: React.ReactNode = null;
@@ -134,7 +155,9 @@ export default async function TaskDetailPage({
         <h1 className="text-2xl font-bold text-ink">{template.title}</h1>
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={template.priority} />
-          {task.status !== "done" && <DueBadge dueDate={task.due_date} />}
+          {task.status !== "done" && (
+            <DueDateControl taskId={task.id} dueDate={task.due_date} />
+          )}
           {template.recurrence && (
             <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
               {template.recurrence === "monthly"
@@ -152,7 +175,7 @@ export default async function TaskDetailPage({
         <StatusPicker
           taskId={task.id}
           status={task.status}
-          steps={template.steps
+          steps={resolved.steps
             .split("\n")
             .map((l) => l.trim().replace(/^\d+\.\s*/, "").replace(/\*\*/g, ""))
             .filter(Boolean)}
@@ -219,7 +242,7 @@ export default async function TaskDetailPage({
           <Lightbulb className="h-4.5 w-4.5 text-brand-500" aria-hidden />
           למה זה חשוב
         </h2>
-        <p className="leading-relaxed text-ink-soft">{template.why}</p>
+        <p className="leading-relaxed text-ink-soft">{resolved.why}</p>
       </section>
 
       {/* steps */}
@@ -229,7 +252,7 @@ export default async function TaskDetailPage({
           איך עושים את זה
         </h2>
         <Card className="p-5">
-          <StepsContent text={template.steps} />
+          <StepsContent text={resolved.steps} />
         </Card>
       </section>
 
@@ -239,6 +262,32 @@ export default async function TaskDetailPage({
           <GuideContent text={template.guide} />
         </section>
       )}
+
+      {/* personal checklist — "הדרך שלי" */}
+      <section className="mt-6">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
+          <ListChecks className="h-4.5 w-4.5 text-brand-500" aria-hidden />
+          הדרך שלי
+        </h2>
+        <p className="mb-3 text-sm text-ink-muted">
+          צעדים משלכם לתהליך הזה — סמנו כשמתקדמים, וצרפו קבצים לכל צעד
+        </p>
+        <Card className="p-4">
+          <TaskChecklist
+            taskId={task.id}
+            items={checklist}
+            docs={stepDocs.map((d) => ({
+              id: d.id,
+              name: d.name,
+              checklist_item_id: d.checklist_item_id,
+              url: stepDocUrls.get(d.id),
+            }))}
+            docCategory={
+              DOC_CATEGORY_BY_TASK_CATEGORY[template.category_id] ?? "other"
+            }
+          />
+        </Card>
+      </section>
 
       {/* meta: cost, time, docs needed */}
       {(template.est_cost || template.est_time || template.docs_needed.length > 0) && (

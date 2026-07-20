@@ -31,6 +31,7 @@ export interface DocumentRow {
   id: string;
   business_id: string;
   task_id: string | null;
+  checklist_item_id: string | null;
   category: string;
   name: string;
   storage_path: string;
@@ -75,6 +76,26 @@ export async function getDocuments(businessId: string): Promise<DocumentRow[]> {
     .eq("business_id", businessId)
     .order("created_at", { ascending: false });
   return (data ?? []) as DocumentRow[];
+}
+
+export interface ChecklistItemRow {
+  id: string;
+  label: string;
+  done: boolean;
+  sort_order: number;
+}
+
+export async function getChecklistItems(
+  businessTaskId: string
+): Promise<ChecklistItemRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("task_checklist_items")
+    .select("id, label, done, sort_order")
+    .eq("business_task_id", businessTaskId)
+    .order("sort_order")
+    .order("created_at");
+  return (data ?? []) as ChecklistItemRow[];
 }
 
 export interface NotificationRow {

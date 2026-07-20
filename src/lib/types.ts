@@ -18,6 +18,14 @@ export type ActivityField =
 export type WorkLocation = "home" | "premises" | "mobile" | "online_only";
 export type SalesChannel = "in_person" | "online" | "both";
 export type ClientType = "private" | "business" | "both";
+/** What the business sells — drives store, shipping, inventory. */
+export type ProductType =
+  | "services"
+  | "physical_products"
+  | "digital_products"
+  | "mixed";
+/** Where employees work — drives the attendance-tracking variant. */
+export type EmployeeWorkMode = "on_site" | "remote" | "field" | "mixed";
 
 /** Answers collected by the onboarding wizard. */
 export interface OnboardingAnswers {
@@ -28,11 +36,14 @@ export interface OnboardingAnswers {
   work_location: WorkLocation;
   sales_channel: SalesChannel;
   client_type: ClientType;
+  product_type: ProductType;
   hosts_clients: boolean; // מקבל לקוחות פיזית
   collects_personal_data: boolean;
   uses_vehicle: boolean;
   has_website: boolean;
   plans_employees: boolean;
+  /** Only meaningful when plans_employees is true. */
+  employee_work_mode: EmployeeWorkMode;
   /** Template ids the user marked as already done in "מה כבר יש?" */
   already_done: string[];
 }
@@ -94,6 +105,8 @@ export type AppliesWhen = Partial<{
   work_location: WorkLocation[];
   sales_channel: SalesChannel[];
   client_type: ClientType[];
+  product_type: ProductType[];
+  employee_work_mode: EmployeeWorkMode[];
   expected_revenue: ("under_60k" | "60k_to_ceiling" | "over_ceiling")[];
   hosts_clients: boolean;
   collects_personal_data: boolean;
@@ -102,12 +115,24 @@ export type AppliesWhen = Partial<{
   plans_employees: boolean;
 }>;
 
+/**
+ * A profile-specific override of the task's steps. The first variant whose
+ * `when` matches the answers wins; otherwise the template's default steps show.
+ */
+export interface TemplateVariant {
+  when: AppliesWhen;
+  steps: string;
+  why?: string;
+}
+
 export interface TaskTemplate {
   id: string;
   category_id: string;
   title: string;
   why: string;
   steps: string; // markdown
+  /** Profile-specific step overrides (e.g. attendance app vs. physical clock). */
+  variants?: TemplateVariant[];
   /** Optional long-form guide (markdown) rendered as an expandable section. */
   guide?: string;
   /** Evidence required to close this task. Falls back to a generic confirmation. */

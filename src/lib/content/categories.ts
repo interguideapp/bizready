@@ -57,4 +57,11 @@ export const CATEGORIES: Category[] = [
     icon: "Settings2",
     sort_order: 8,
   },
+  {
+    id: "employment",
+    title: "העסקת עובדים",
+    description: "תיקים, תלושים, נוכחות וזכויות — להעסיק כחוק מהעובד הראשון",
+    icon: "Users",
+    sort_order: 9,
+  },
 ];

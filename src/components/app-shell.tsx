@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Bell,
   Briefcase,
   FolderOpen,
   History,
   LayoutDashboard,
   ListChecks,
+  Plug,
   Settings,
   Store,
 } from "lucide-react";
@@ -18,15 +20,17 @@ const NAV = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tasks", label: "המשימות", icon: ListChecks },
   { href: "/tracking", label: "מעקב", icon: History },
+  { href: "/insights", label: "תובנות", icon: BarChart3 },
   { href: "/business", label: "הפרופיל", icon: Briefcase },
   { href: "/documents", label: "מסמכים", icon: FolderOpen },
+  { href: "/integrations", label: "אינטגרציות", icon: Plug },
   { href: "/shop", label: "חנות", icon: Store },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
 
 /** Bottom-bar items on mobile — the rest live in the sidebar. */
 const MOBILE_NAV = NAV.filter((n) =>
-  ["/dashboard", "/tasks", "/tracking", "/business", "/shop"].includes(n.href)
+  ["/dashboard", "/tasks", "/tracking", "/insights", "/business"].includes(n.href)
 );
 
 function UnreadDot({ count }: { count: number }) {

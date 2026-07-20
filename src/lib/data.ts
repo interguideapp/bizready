@@ -183,6 +183,128 @@ export async function getProducts(businessId: string): Promise<ProductRow[]> {
   return (data ?? []) as ProductRow[];
 }
 
+// ---------- integrations ----------
+
+export interface ConnectionListRow {
+  id: string;
+  provider: string;
+  category: string;
+  mode: string;
+  webhook_token: string;
+  webhook_secret: string | null;
+  status: string;
+  last_sync_at: string | null;
+  last_error: string | null;
+}
+
+export async function getConnections(
+  businessId: string
+): Promise<ConnectionListRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("integration_connections")
+    .select(
+      "id, provider, category, mode, webhook_token, webhook_secret, status, last_sync_at, last_error"
+    )
+    .eq("business_id", businessId)
+    .order("created_at");
+  return (data ?? []) as ConnectionListRow[];
+}
+
+export interface MetricRow {
+  metric_date: string;
+  metric: string;
+  value: number;
+}
+
+export async function getMetrics(
+  businessId: string,
+  sinceIso: string
+): Promise<MetricRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("sync_metrics")
+    .select("metric_date, metric, value")
+    .eq("business_id", businessId)
+    .gte("metric_date", sinceIso)
+    .order("metric_date");
+  return ((data ?? []) as MetricRow[]).map((m) => ({
+    ...m,
+    value: Number(m.value),
+  }));
+}
+
+export interface TopCustomerRow {
+  customer_name: string;
+  total: number;
+  count: number;
+}
+
+export async function getTopCustomers(
+  businessId: string,
+  limit = 5
+): Promise<TopCustomerRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("synced_documents")
+    .select("customer_name, amount, kind")
+    .eq("business_id", businessId)
+    .not("customer_name", "is", null);
+  const byName = new Map<string, { total: number; count: number }>();
+  for (const doc of data ?? []) {
+    if (doc.kind === "quote") continue;
+    const sign = doc.kind === "credit" ? -1 : 1;
+    const entry = byName.get(doc.customer_name) ?? { total: 0, count: 0 };
+    entry.total += sign * Number(doc.amount);
+    entry.count += 1;
+    byName.set(doc.customer_name, entry);
+  }
+  return [...byName.entries()]
+    .map(([customer_name, v]) => ({ customer_name, ...v }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+export interface LeadFunnelRow {
+  stage: string;
+  count: number;
+}
+
+export async function getLeadFunnel(businessId: string): Promise<LeadFunnelRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("synced_contacts")
+    .select("stage")
+    .eq("business_id", businessId);
+  const byStage = new Map<string, number>();
+  for (const row of data ?? []) {
+    byStage.set(row.stage, (byStage.get(row.stage) ?? 0) + 1);
+  }
+  return [...byStage.entries()].map(([stage, count]) => ({ stage, count }));
+}
+
+export interface SyncErrorRow {
+  id: string;
+  code: string;
+  message: string;
+  hint: string | null;
+  occurred_at: string;
+}
+
+export async function getOpenSyncErrors(
+  businessId: string
+): Promise<SyncErrorRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("sync_errors")
+    .select("id, code, message, hint, occurred_at")
+    .eq("business_id", businessId)
+    .is("resolved_at", null)
+    .order("occurred_at", { ascending: false })
+    .limit(20);
+  return (data ?? []) as SyncErrorRow[];
+}
+
 /** All active offers (for the Shop), newest-relevant first. */
 export async function getActiveOffers(): Promise<OfferRow[]> {
   const supabase = await createClient();

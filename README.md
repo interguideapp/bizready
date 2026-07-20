@@ -22,6 +22,8 @@ npm test                            # בדיקות יחידה (vitest) למנו�
 - `src/lib/reminders.ts` — מנוע תזכורות טהור (דדליינים, איחורים, איפוס משימות מחזוריות). נבדק ב-`reminders.test.ts`.
 - `src/app/(app)/` — האזור המחובר: דשבורד, משימות, כרטיס עסק, מסמכים, חנות, התראות, הגדרות.
 - `src/app/api/cron/reminders/` — סריקה יומית (Vercel Cron, `vercel.json`).
+- `src/lib/integrations/` — מרכז האינטגרציות: מחברי API (Green Invoice, iCount), Webhook מתוקנן, CSV, מנוע השמה (`apply.ts`) שממקם כל נתון — אימות משימות, תקרת פטור, בדיקת הקצאות, תובנות. מדריך מלא: `docs/INTEGRATIONS.md`.
+- `src/app/api/hooks/[token]/` — Webhook נכנס; `src/app/api/cron/sync/` — סנכרון לילי.
 - `supabase/migrations/` — סכמת ה-DB + RLS.
 
 ## משתני סביבה

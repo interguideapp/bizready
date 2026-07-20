@@ -1,71 +1,86 @@
-"use client";
-
 import Link from "next/link";
-import { useTransition } from "react";
-import { Check, Loader2 } from "lucide-react";
-import { setTaskStatus } from "@/lib/actions";
-import { DueBadge, PriorityBadge, StatusBadge } from "@/components/badges";
+import { Check, ChevronLeft, CircleDashed, Hourglass } from "lucide-react";
+import { DueBadge, PriorityBadge } from "@/components/badges";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
+/**
+ * A task in the list. Deliberately has no "tick to complete" control — closing a
+ * task happens in the task page through the completion flow.
+ */
 export function TaskRow({
-  taskId,
   templateId,
   title,
   priority,
   status,
   dueDate,
+  waitingFor,
+  followUpDate,
 }: {
-  taskId: string;
   templateId: string;
   title: string;
   priority: TaskPriority;
   status: TaskStatus;
   dueDate: string | null;
+  waitingFor?: string | null;
+  followUpDate?: string | null;
 }) {
-  const [pending, startTransition] = useTransition();
   const done = status === "done";
 
-  function toggle() {
-    startTransition(() => setTaskStatus(taskId, done ? "todo" : "done"));
-  }
-
   return (
-    <div
-      className={`flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface ${
+    <Link
+      href={`/tasks/${templateId}`}
+      className={`flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface/60 ${
         status === "not_relevant" ? "opacity-50" : ""
       }`}
     >
-      <button
-        onClick={toggle}
-        disabled={pending || status === "not_relevant"}
-        aria-label={done ? `סמן את "${title}" כלא הושלם` : `סמן את "${title}" כהושלם`}
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition ${
-          done
-            ? "border-status-done bg-status-done text-white"
-            : "border-edge-strong bg-card hover:border-brand-500"
-        }`}
-      >
-        {pending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-faint" aria-hidden />
-        ) : done ? (
-          <Check className="h-4 w-4" aria-hidden />
-        ) : null}
-      </button>
+      <StatusDot status={status} />
 
-      <Link href={`/tasks/${templateId}`} className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1">
         <p
           className={`truncate font-medium ${
-            done ? "text-ink-faint line-through" : "text-ink"
+            done ? "text-ink-muted line-through" : "text-ink"
           }`}
         >
           {title}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {!done && <PriorityBadge priority={priority} />}
-          {status === "in_progress" && <StatusBadge status="in_progress" />}
-          {!done && <DueBadge dueDate={dueDate} />}
+          {!done && status !== "waiting" && <DueBadge dueDate={dueDate} />}
+          {status === "waiting" && (
+            <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
+              {followUpDate
+                ? `בדיקה ב-${new Date(followUpDate + "T00:00:00").toLocaleDateString("he-IL")}`
+                : waitingFor || "ממתין"}
+            </span>
+          )}
         </div>
-      </Link>
-    </div>
+      </div>
+
+      <ChevronLeft className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
+    </Link>
+  );
+}
+
+function StatusDot({ status }: { status: TaskStatus }) {
+  if (status === "done")
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-status-done text-white">
+        <Check className="h-4 w-4" aria-hidden />
+      </span>
+    );
+  if (status === "in_progress")
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-status-progress-bg text-status-progress">
+        <CircleDashed className="h-4 w-4" aria-hidden />
+      </span>
+    );
+  if (status === "waiting")
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand-strong">
+        <Hourglass className="h-3.5 w-3.5" aria-hidden />
+      </span>
+    );
+  return (
+    <span className="h-6 w-6 shrink-0 rounded-lg border-2 border-edge-strong" />
   );
 }

@@ -7,6 +7,8 @@ export interface ReminderTask {
   is_relevant: boolean;
   due_date: string | null;
   completed_at: string | null;
+  follow_up_date?: string | null;
+  waiting_for?: string | null;
 }
 
 export type NotificationType = "deadline" | "overdue" | "recurring";
@@ -82,6 +84,22 @@ export function computeReminders(
           body: "משימה מחזורית חזרה — כדאי לטפל בה כדי לשמור על הציון.",
           template_id: task.template_id,
           dedupe_key: `recurring:${task.template_id}:${nextDue}`,
+        });
+      }
+      continue;
+    }
+
+    // waiting on a third party: remind on the follow-up date the user picked
+    if (task.status === "waiting") {
+      if (task.follow_up_date && daysBetween(task.follow_up_date, today) <= 0) {
+        notifications.push({
+          type: "deadline",
+          title: `זמן לבדוק: ${template.title}`,
+          body: task.waiting_for
+            ? `ממתין ל: ${task.waiting_for}`
+            : "הגיע מועד הבדיקה שקבעת.",
+          template_id: task.template_id,
+          dedupe_key: `followup:${task.template_id}:${task.follow_up_date}`,
         });
       }
       continue;

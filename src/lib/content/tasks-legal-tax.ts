@@ -22,6 +22,19 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: ["תעודת זהות", "אסמכתא על חשבון בנק (צ'ק מבוטל או אישור ניהול חשבון)", "פרטי העסק: כתובת, תחום פעילות, צפי מחזור"],
     est_cost: "חינם",
     est_time: "כשעה אונליין",
+    completion: {
+      confirm: "פתחתי את התיק במע\"מ וקיבלתי אישור",
+      fields: [
+        {
+          key: "dealer_number",
+          label: "מספר העוסק שקיבלת",
+          placeholder: "9 ספרות",
+          required: true,
+          writesTo: "dealer_number",
+        },
+        { key: "vat_file", label: "מספר תיק מע\"מ (אם שונה)", writesTo: "vat_file" },
+      ],
+    },
     applies_when: {},
     depends_on: [],
     deadline_days: 0,
@@ -45,6 +58,17 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: ["תעודת זהות"],
     est_cost: "חינם",
     est_time: "נכלל בתהליך פתיחת העוסק",
+    completion: {
+      confirm: "יש לי תיק פעיל במס הכנסה",
+      fields: [
+        {
+          key: "income_tax_file",
+          label: "מספר תיק מס הכנסה",
+          required: true,
+          writesTo: "income_tax_file",
+        },
+      ],
+    },
     applies_when: {},
     depends_on: ["open-vat-file"],
     deadline_days: 7,
@@ -69,6 +93,18 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: ["תעודת זהות", "הערכת הכנסה שנתית"],
     est_cost: "חינם (המקדמות עצמן תלויות בהכנסה)",
     est_time: "30–60 דקות",
+    completion: {
+      confirm: "נרשמתי כעצמאי בביטוח לאומי",
+      fields: [
+        {
+          key: "bituach_leumi_file",
+          label: "מספר תיק בביטוח לאומי",
+          required: true,
+          writesTo: "bituach_leumi_file",
+        },
+        { key: "advance", label: "גובה המקדמה החודשית שנקבעה (₪)" },
+      ],
+    },
     applies_when: {},
     depends_on: ["open-vat-file"],
     deadline_days: 14,
@@ -95,6 +131,18 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: ["פרטי בית העסק", "תכנית העסק (לעסקים פיזיים)"],
     est_cost: "אגרה של כמה מאות שקלים (משתנה לפי רשות)",
     est_time: "שבועות עד חודשים — להתחיל מוקדם",
+    completion: {
+      confirm: "בירורתי מול הרשות המקומית וטיפלתי במה שנדרש",
+      fields: [
+        {
+          key: "outcome",
+          label: "מה התשובה שקיבלת?",
+          placeholder: "למשל: לא טעון רישוי / רישיון התקבל / בקשה בטיפול",
+          required: true,
+        },
+        { key: "authority", label: "הרשות המקומית" },
+      ],
+    },
     applies_when: { field: ["beauty_care", "food", "construction"] },
     depends_on: [],
     deadline_days: 14,
@@ -163,6 +211,18 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: [],
     est_cost: "₪0 (עצמאי) עד ₪500/חודש",
     est_time: "שבוע לבחירה",
+    completion: {
+      confirm: "החלטתי איך אני מנהל/ת את הספרים",
+      fields: [
+        {
+          key: "accountant_name",
+          label: "שם הרו\"ח / יועץ המס (או 'ניהול עצמי')",
+          required: true,
+          writesTo: "accountant_name",
+        },
+        { key: "accountant_phone", label: "טלפון", writesTo: "accountant_phone" },
+      ],
+    },
     applies_when: {},
     depends_on: [],
     deadline_days: 30,
@@ -186,6 +246,17 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: ["תעודת עוסק"],
     est_cost: "חינם עד כ-₪50/חודש",
     est_time: "שעה",
+    completion: {
+      confirm: "יש לי תוכנת חשבוניות פעילה והוצאתי מסמך בדיקה",
+      fields: [
+        { key: "software", label: "שם התוכנה", required: true },
+        {
+          key: "allocation",
+          label: "חיברת למערכת חשבוניות ישראל? (מורשה)",
+          placeholder: "כן / לא רלוונטי לי",
+        },
+      ],
+    },
     applies_when: {},
     depends_on: ["open-vat-file"],
     deadline_days: 21,

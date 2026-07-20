@@ -128,6 +128,20 @@ describe("computeScore", () => {
     expect(doneOne("open-vat-file")).toBeGreaterThan(doneOne("business-name-check"));
   });
 
+  it("gives waiting tasks the same partial credit as in-progress", () => {
+    const plan = buildPlan(cosmetician, TASK_TEMPLATES);
+    const score = (status: "in_progress" | "waiting" | "todo") =>
+      computeScore(
+        plan.map((t) => ({
+          ...t,
+          status: t.template_id === "open-vat-file" ? status : ("todo" as const),
+        })),
+        TEMPLATES_BY_ID
+      ).overall;
+    expect(score("waiting")).toBe(score("in_progress"));
+    expect(score("waiting")).toBeGreaterThan(score("todo"));
+  });
+
   it("excludes not_relevant tasks from the score", () => {
     const plan = buildPlan(cosmetician, TASK_TEMPLATES);
     const withIrrelevant = computeScore(

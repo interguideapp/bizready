@@ -4,12 +4,14 @@ import {
   Circle,
   CircleDashed,
   EyeOff,
+  Hourglass,
 } from "lucide-react";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "לא התחלתי",
   in_progress: "בתהליך",
+  waiting: "ממתין לגורם חיצוני",
   done: "הושלם",
   not_relevant: "לא רלוונטי לי",
 };
@@ -26,6 +28,10 @@ export function StatusBadge({ status }: { status: TaskStatus }) {
     in_progress: {
       cls: "bg-status-progress-bg text-status-progress",
       icon: <CircleDashed className="h-3.5 w-3.5" />,
+    },
+    waiting: {
+      cls: "bg-brand-tint text-brand-strong",
+      icon: <Hourglass className="h-3.5 w-3.5" />,
     },
     todo: {
       cls: "bg-status-todo-bg text-status-todo",

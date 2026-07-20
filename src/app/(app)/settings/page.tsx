@@ -17,6 +17,7 @@ export default async function SettingsPage() {
           notifyEmail={business.notify_email}
           notifyWhatsapp={business.notify_whatsapp}
           whatsappPhone={business.whatsapp_phone}
+          vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
         />
       </div>
       <SettingsForm answers={business.onboarding_answers as OnboardingAnswers} />

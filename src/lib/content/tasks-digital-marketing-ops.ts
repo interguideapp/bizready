@@ -138,6 +138,14 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     docs_needed: [],
     est_cost: "כ-₪50–₪100 לשנה",
     est_time: "רבע שעה",
+    completion: {
+      confirm: "רכשתי דומיין שרשום על שמי עם חידוש אוטומטי",
+      fields: [
+        { key: "domain", label: "הדומיין שרכשת", placeholder: "mybiz.co.il", required: true },
+        { key: "registrar", label: "שם הרשם" },
+        { key: "renewal", label: "תאריך חידוש", type: "date" },
+      ],
+    },
     applies_when: {},
     depends_on: ["business-name-check"],
     recurrence: "yearly",
@@ -160,6 +168,12 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     docs_needed: ["טקסטים על העסק", "תמונות", "לוגו"],
     est_cost: "מחינם (בונה עצמאי) עד אלפי ₪",
     est_time: "שבוע-חודש",
+    completion: {
+      confirm: "האתר/דף הנחיתה עלה לאוויר ועובד במובייל",
+      fields: [
+        { key: "url", label: "כתובת האתר", type: "url", placeholder: "https://", required: true },
+      ],
+    },
     applies_when: {},
     depends_on: ["buy-domain"],
     priority: "important",
@@ -203,6 +217,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     docs_needed: ["פרטי העסק", "תמונות"],
     est_cost: "חינם",
     est_time: "שעה + אימות",
+    completion: {
+      confirm: "הפרופיל מאומת ומלא בגוגל",
+      fields: [
+        { key: "url", label: "קישור לפרופיל", type: "url", required: true },
+        { key: "verified", label: "אומת?", placeholder: "כן / בהמתנה לקוד" },
+      ],
+    },
     applies_when: { work_location: ["home", "premises", "mobile"] },
     depends_on: [],
     priority: "critical",
@@ -245,6 +266,12 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     docs_needed: ["לוגו", "רשימת שירותים ומחירים"],
     est_cost: "חינם",
     est_time: "שעה",
+    completion: {
+      confirm: "הפרופיל העסקי בוואטסאפ פעיל",
+      fields: [
+        { key: "phone", label: "המספר העסקי", placeholder: "05X-XXXXXXX", required: true },
+      ],
+    },
     applies_when: {},
     depends_on: [],
     priority: "important",

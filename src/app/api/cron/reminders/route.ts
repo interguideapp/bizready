@@ -7,6 +7,7 @@ import {
   whatsappConfigured,
   type OutboundDigest,
 } from "@/lib/notify/channels";
+import { pushConfigured, sendPush } from "@/lib/notify/push";
 import { computeReminders, type ReminderTask } from "@/lib/reminders";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -30,7 +31,9 @@ export async function GET(request: Request) {
 
   const { data: businesses, error } = await supabase
     .from("businesses")
-    .select("id, owner_id, name, notify_email, notify_whatsapp, whatsapp_phone")
+    .select(
+      "id, owner_id, name, notify_email, notify_whatsapp, whatsapp_phone, notify_push"
+    )
     .not("onboarding_completed_at", "is", null);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -38,11 +41,14 @@ export async function GET(request: Request) {
   let recurringReset = 0;
   let emailsSent = 0;
   let whatsappSent = 0;
+  let pushSent = 0;
 
   for (const biz of businesses ?? []) {
     const { data: tasks } = await supabase
       .from("business_tasks")
-      .select("id, template_id, status, is_relevant, due_date, completed_at")
+      .select(
+        "id, template_id, status, is_relevant, due_date, completed_at, follow_up_date, waiting_for"
+      )
       .eq("business_id", biz.id);
 
     const { notifications, recurringResets } = computeReminders(
@@ -98,6 +104,42 @@ export async function GET(request: Request) {
       }
     }
 
+    // push — one message per registered device
+    if (
+      biz.notify_push &&
+      pushConfigured() &&
+      !(await alreadySent(supabase, biz.id, "push", digestKey))
+    ) {
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .eq("business_id", biz.id);
+
+      let anyDelivered = false;
+      for (const sub of subs ?? []) {
+        const result = await sendPush(sub, {
+          title: `BizReady · ${urgent.length} דברים לטיפול`,
+          body: urgent
+            .slice(0, 3)
+            .map((n) => n.title)
+            .join(" · "),
+          url: "/dashboard",
+          tag: digestKey,
+        });
+        if (result.ok) anyDelivered = true;
+        if (result.gone) {
+          await supabase
+            .from("push_subscriptions")
+            .delete()
+            .eq("endpoint", sub.endpoint);
+        }
+      }
+      if (anyDelivered) {
+        await logSent(supabase, biz.id, "push", digestKey);
+        pushSent++;
+      }
+    }
+
     // whatsapp
     if (
       biz.notify_whatsapp &&
@@ -120,6 +162,7 @@ export async function GET(request: Request) {
     recurringReset,
     emailsSent,
     whatsappSent,
+    pushSent,
   });
 }
 

@@ -5,10 +5,22 @@ import {
   normalizeUsername,
   usernameToInternalEmail,
 } from "@/lib/auth/username";
+import { check, clientIp } from "@/lib/rate-limit";
 
 const MINIMUM_PASSWORD_LENGTH = 12;
+// account creation is expensive and abusable — keep it tight
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export async function POST(request: Request) {
+  const limit = check(`register:${clientIp(request)}`, RATE_LIMIT, RATE_WINDOW_MS);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "יותר מדי נסיונות הרשמה. נסו שוב מאוחר יותר." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     return NextResponse.json({ error: "Invalid request." }, { status: 415 });

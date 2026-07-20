@@ -3,16 +3,19 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { updateNotificationPrefs } from "@/lib/actions";
+import { PushToggle } from "@/components/push-toggle";
 import { Card } from "@/components/ui";
 
 export function NotificationPrefs({
   notifyEmail,
   notifyWhatsapp,
   whatsappPhone,
+  vapidPublicKey,
 }: {
   notifyEmail: boolean;
   notifyWhatsapp: boolean;
   whatsappPhone: string | null;
+  vapidPublicKey: string;
 }) {
   const [email, setEmail] = useState(notifyEmail);
   const [whatsapp, setWhatsapp] = useState(notifyWhatsapp);
@@ -53,6 +56,8 @@ export function NotificationPrefs({
           className="h-5 w-5 accent-brand-600"
         />
       </label>
+
+      {vapidPublicKey && <PushToggle vapidPublicKey={vapidPublicKey} />}
 
       <label className="mt-2.5 flex cursor-pointer items-center justify-between rounded-xl border border-edge-soft px-4 py-3">
         <span className="text-sm font-medium text-ink-soft">תזכורות בוואטסאפ</span>

@@ -74,12 +74,13 @@ export default async function TasksPage({
                   return (
                     <TaskRow
                       key={task.id}
-                      taskId={task.id}
                       templateId={task.template_id}
                       title={template.title}
                       priority={template.priority}
                       status={task.status}
                       dueDate={task.due_date}
+                      waitingFor={task.waiting_for}
+                      followUpDate={task.follow_up_date}
                     />
                   );
                 })}

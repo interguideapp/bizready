@@ -38,8 +38,45 @@ export interface OnboardingAnswers {
 }
 
 export type TaskPriority = "critical" | "important" | "recommended";
-export type TaskStatus = "todo" | "in_progress" | "done" | "not_relevant";
+/** `waiting` = handed off to an authority/third party and we're waiting on them. */
+export type TaskStatus =
+  | "todo"
+  | "in_progress"
+  | "waiting"
+  | "done"
+  | "not_relevant";
 export type Recurrence = "monthly" | "bimonthly" | "yearly" | null;
+
+/** Columns on `businesses` that a completion field may populate. */
+export type BusinessField =
+  | "dealer_number"
+  | "vat_file"
+  | "income_tax_file"
+  | "bituach_leumi_file"
+  | "bank_name"
+  | "bank_account"
+  | "accountant_name"
+  | "accountant_phone";
+
+export interface CompletionField {
+  key: string;
+  label: string;
+  placeholder?: string;
+  type?: "text" | "url" | "date";
+  required?: boolean;
+  /** When set, the answer is also saved onto the business card. */
+  writesTo?: BusinessField;
+}
+
+/**
+ * What the user must supply to mark a task done — the "indication it was really
+ * handled". Every task also requires ticking off its steps; this adds evidence.
+ */
+export interface CompletionSpec {
+  /** Sentence the user confirms, e.g. "פתחתי את התיק וקיבלתי אישור". */
+  confirm: string;
+  fields?: CompletionField[];
+}
 
 export interface OfficialLink {
   label: string;
@@ -73,6 +110,8 @@ export interface TaskTemplate {
   steps: string; // markdown
   /** Optional long-form guide (markdown) rendered as an expandable section. */
   guide?: string;
+  /** Evidence required to close this task. Falls back to a generic confirmation. */
+  completion?: CompletionSpec;
   official_links: OfficialLink[];
   docs_needed: string[];
   est_cost?: string;
@@ -104,12 +143,28 @@ export interface BusinessTask {
   completed_at: string | null;
   notes: string | null;
   is_relevant: boolean;
+  completion_data?: Record<string, string>;
+  follow_up_date?: string | null;
+  waiting_for?: string | null;
 }
 
 export const PRIORITY_WEIGHT: Record<TaskPriority, number> = {
   critical: 3,
   important: 2,
   recommended: 1,
+};
+
+/** Fallback evidence prompt for tasks with no bespoke completion spec. */
+export const DEFAULT_COMPLETION: CompletionSpec = {
+  confirm: "ביצעתי את הצעדים והמשימה מטופלת",
+  fields: [
+    {
+      key: "note",
+      label: "מה עשית בפועל? (משפט קצר — יישמר ביומן)",
+      placeholder: "למשל: נרשמתי אונליין וקיבלתי אישור במייל",
+      required: true,
+    },
+  ],
 };
 
 /** Yearly-updated legal figures, kept in one place (verified 2026-07-18). */

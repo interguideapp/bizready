@@ -18,6 +18,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     docs_needed: ["תעודת זהות", "תעודת עוסק"],
     est_cost: "עמלות שוטפות — השוו לפני",
     est_time: "שעה-שעתיים",
+    completion: {
+      confirm: "יש לי חשבון נפרד שמשמש רק את העסק",
+      fields: [
+        { key: "bank_name", label: "שם הבנק", required: true, writesTo: "bank_name" },
+        { key: "bank_account", label: "מספר חשבון", writesTo: "bank_account" },
+      ],
+    },
     applies_when: {},
     depends_on: [],
     deadline_days: 21,
@@ -82,6 +89,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     docs_needed: ["תעודת זהות", "הערכת הכנסה חודשית"],
     est_cost: "לפי ההכנסה — זו חובה חוקית",
     est_time: "שעה-שעתיים",
+    completion: {
+      confirm: "יש לי קרן פנסיה פעילה עם הפקדות שוטפות",
+      fields: [
+        { key: "fund", label: "שם קרן הפנסיה", required: true },
+        { key: "monthly", label: "סכום ההפקדה החודשי (₪)" },
+      ],
+    },
     applies_when: {},
     depends_on: ["open-bituach-leumi-file"],
     deadline_days: 180,
@@ -146,6 +160,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     docs_needed: ["פירוט הפעילות המקצועית"],
     est_cost: "מאות עד אלפי ₪ בשנה, לפי תחום",
     est_time: "שבוע",
+    completion: {
+      confirm: "יש לי פוליסת אחריות מקצועית בתוקף",
+      fields: [
+        { key: "insurer", label: "חברת הביטוח / הסוכן", required: true },
+        { key: "renewal", label: "תאריך חידוש", type: "date" },
+      ],
+    },
     applies_when: { field: ["beauty_care", "consulting", "professional", "tech", "food", "construction"] },
     depends_on: [],
     deadline_days: 30,

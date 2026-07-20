@@ -35,6 +35,7 @@ npm test                            # בדיקות יחידה (vitest) למנו�
 | `NEXT_PUBLIC_APP_URL` | מומלץ | הדומיין בפרודקשן (לקישורים במיילים) |
 | `RESEND_API_KEY` + `REMINDER_FROM_EMAIL` | לתזכורות מייל | שליחת מיילים דרך Resend |
 | `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` (+ `WHATSAPP_TEMPLATE_NAME`) | לוואטסאפ | Meta Cloud API |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` | להתראות דחיפה | Web Push. ליצירת מפתחות: `npx web-push generate-vapid-keys`. `VAPID_SUBJECT` הוא `mailto:you@example.com` |
 
 ## פריסה ל-Vercel — צ'קליסט
 

@@ -6,6 +6,7 @@ import {
   Bell,
   Briefcase,
   FolderOpen,
+  History,
   LayoutDashboard,
   ListChecks,
   Settings,
@@ -16,11 +17,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tasks", label: "המשימות", icon: ListChecks },
-  { href: "/business", label: "כרטיס העסק", icon: Briefcase },
+  { href: "/tracking", label: "מעקב", icon: History },
+  { href: "/business", label: "הפרופיל", icon: Briefcase },
   { href: "/documents", label: "מסמכים", icon: FolderOpen },
   { href: "/shop", label: "חנות", icon: Store },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
+
+/** Bottom-bar items on mobile — the rest live in the sidebar. */
+const MOBILE_NAV = NAV.filter((n) =>
+  ["/dashboard", "/tasks", "/tracking", "/business", "/shop"].includes(n.href)
+);
 
 function UnreadDot({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -110,9 +117,9 @@ export function AppShell({
       </main>
 
       {/* mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-edge bg-card/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-edge bg-card/95 backdrop-blur-xl md:hidden">
         <div className="flex justify-around">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {MOBILE_NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
             return (
               <Link

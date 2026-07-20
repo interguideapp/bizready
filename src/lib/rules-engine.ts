@@ -129,8 +129,13 @@ export function computeScore(
     if (!template) continue;
 
     const weight = PRIORITY_WEIGHT[template.priority as TaskPriority];
+    // in-flight work earns partial credit; waiting on a third party counts too
     const credit =
-      task.status === "done" ? 1 : task.status === "in_progress" ? 0.5 : 0;
+      task.status === "done"
+        ? 1
+        : task.status === "in_progress" || task.status === "waiting"
+          ? 0.5
+          : 0;
 
     const bucket = perCategory.get(template.category_id) ?? {
       earned: 0,

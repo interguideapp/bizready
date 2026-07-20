@@ -119,16 +119,100 @@ export async function updateAnswers(answers: OnboardingAnswers) {
   revalidatePath("/", "layout");
 }
 
-export async function setTaskStatus(taskId: string, status: TaskStatus) {
+/**
+ * Move a task between the non-done statuses. Completing a task goes through
+ * `completeTask` instead — it requires evidence.
+ */
+export async function setTaskStatus(
+  taskId: string,
+  status: Exclude<TaskStatus, "done">,
+  extra?: { waitingFor?: string | null; followUpDate?: string | null }
+) {
   const { supabase } = await requireUser();
+
+  const { data: current } = await supabase
+    .from("business_tasks")
+    .select("id, business_id, template_id, status")
+    .eq("id", taskId)
+    .single();
+  if (!current) throw new Error("task not found");
+
   const { error } = await supabase
     .from("business_tasks")
     .update({
       status,
-      completed_at: status === "done" ? new Date().toISOString() : null,
+      completed_at: null,
+      waiting_for: extra?.waitingFor ?? (status === "waiting" ? undefined : null),
+      follow_up_date: extra?.followUpDate ?? (status === "waiting" ? undefined : null),
     })
     .eq("id", taskId);
   if (error) throw new Error(error.message);
+
+  await supabase.from("task_events").insert({
+    business_id: current.business_id,
+    task_id: taskId,
+    template_id: current.template_id,
+    kind: current.status === "done" ? "reopened" : "status_change",
+    from_status: current.status,
+    to_status: status,
+    detail: extra?.waitingFor ?? null,
+  });
+
+  revalidatePath("/", "layout");
+}
+
+/**
+ * Close a task. Requires the user to confirm the steps and supply evidence;
+ * fields flagged `writesTo` also populate the business card.
+ */
+export async function completeTask(
+  taskId: string,
+  completionData: Record<string, string>,
+  businessFields: Record<string, string>
+) {
+  const { supabase } = await requireUser();
+
+  const { data: current } = await supabase
+    .from("business_tasks")
+    .select("id, business_id, template_id, status")
+    .eq("id", taskId)
+    .single();
+  if (!current) throw new Error("task not found");
+
+  const { error } = await supabase
+    .from("business_tasks")
+    .update({
+      status: "done",
+      completed_at: new Date().toISOString(),
+      completion_data: completionData,
+      waiting_for: null,
+      follow_up_date: null,
+    })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+
+  // evidence that belongs on the business card gets copied there
+  const cleaned = Object.fromEntries(
+    Object.entries(businessFields).filter(([, v]) => v && v.trim())
+  );
+  if (Object.keys(cleaned).length > 0) {
+    await supabase
+      .from("businesses")
+      .update(cleaned)
+      .eq("id", current.business_id);
+  }
+
+  const summary = Object.values(completionData).find((v) => v && v.trim()) ?? null;
+  await supabase.from("task_events").insert({
+    business_id: current.business_id,
+    task_id: taskId,
+    template_id: current.template_id,
+    kind: "completed",
+    from_status: current.status,
+    to_status: "done",
+    detail: summary,
+  });
+
   revalidatePath("/", "layout");
 }
 

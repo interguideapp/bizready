@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowRight,
   Banknote,
+  Check,
   Clock,
   ExternalLink,
   FileText,
@@ -148,7 +149,17 @@ export default async function TaskDetailPage({
 
       {/* status */}
       <Card className="p-4">
-        <StatusPicker taskId={task.id} status={task.status} />
+        <StatusPicker
+          taskId={task.id}
+          status={task.status}
+          steps={template.steps
+            .split("\n")
+            .map((l) => l.trim().replace(/^\d+\.\s*/, "").replace(/\*\*/g, ""))
+            .filter(Boolean)}
+          completion={template.completion}
+          waitingFor={task.waiting_for ?? null}
+          followUpDate={task.follow_up_date ?? null}
+        />
       </Card>
 
       {openDeps.length > 0 && (
@@ -170,6 +181,37 @@ export default async function TaskDetailPage({
           </ul>
         </Card>
       )}
+
+      {/* recorded evidence */}
+      {task.status === "done" &&
+        Object.keys(task.completion_data ?? {}).length > 0 && (
+          <Card className="mt-4 border-status-done/30 bg-status-done-bg/40 p-4">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-status-done">
+              <Check className="h-4 w-4" aria-hidden />
+              מה תועד בסיום
+            </p>
+            <dl className="grid gap-1.5 text-sm">
+              {Object.entries(task.completion_data ?? {}).map(([k, v]) =>
+                v ? (
+                  <div key={k} className="flex gap-2">
+                    <dt className="text-ink-muted">
+                      {template.completion?.fields?.find((f) => f.key === k)
+                        ?.label ?? k}
+                      :
+                    </dt>
+                    <dd className="font-medium text-ink">{v}</dd>
+                  </div>
+                ) : null
+              )}
+            </dl>
+            {task.completed_at && (
+              <p className="mt-2 text-xs text-ink-muted">
+                הושלם ב-
+                {new Date(task.completed_at).toLocaleDateString("he-IL")}
+              </p>
+            )}
+          </Card>
+        )}
 
       {/* why */}
       <section className="mt-6">

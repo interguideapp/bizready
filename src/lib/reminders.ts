@@ -1,3 +1,4 @@
+import { REMINDER_WINDOWS_FREE, REMINDER_WINDOWS_PRO } from "@/lib/compliance";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
 export interface ReminderTask {
@@ -27,8 +28,6 @@ export interface RecurringReset {
   newDueDate: string;
 }
 
-const DEADLINE_WINDOW_DAYS = 7;
-
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -55,8 +54,11 @@ function addRecurrence(fromIso: string, recurrence: Recurrence): string {
 export function computeReminders(
   tasks: ReminderTask[],
   templates: Map<string, TaskTemplate>,
-  today: Date = new Date()
+  today: Date = new Date(),
+  isPro = false
 ): { notifications: NotificationDraft[]; recurringResets: RecurringReset[] } {
+  // Pro gets the full escalating runway; free gets a single 7-day nudge.
+  const windows = isPro ? REMINDER_WINDOWS_PRO : REMINDER_WINDOWS_FREE;
   const notifications: NotificationDraft[] = [];
   const recurringResets: RecurringReset[] = [];
 
@@ -119,17 +121,25 @@ export function computeReminders(
           template_id: task.template_id,
           dedupe_key: `overdue:${task.template_id}:${task.due_date}`,
         });
-      } else if (daysLeft <= DEADLINE_WINDOW_DAYS) {
-        notifications.push({
-          type: "deadline",
-          title:
-            daysLeft === 0
-              ? `להיום: ${template.title}`
-              : `בעוד ${daysLeft} ימים: ${template.title}`,
-          body: "דדליין מתקרב.",
-          template_id: task.template_id,
-          dedupe_key: `deadline:${task.template_id}:${task.due_date}`,
-        });
+      } else {
+        // fire once per crossed window (30/14/7/1 for Pro; just 7 for free),
+        // deduped per window so the same milestone never repeats.
+        const window = windows.find((w) => daysLeft <= w);
+        if (window !== undefined) {
+          notifications.push({
+            type: "deadline",
+            title:
+              daysLeft === 0
+                ? `להיום: ${template.title}`
+                : `בעוד ${daysLeft} ימים: ${template.title}`,
+            body:
+              window >= 14
+                ? "דדליין מתקרב — יש עוד זמן להתארגן."
+                : "דדליין מתקרב.",
+            template_id: task.template_id,
+            dedupe_key: `deadline:${task.template_id}:${task.due_date}:${window}`,
+          });
+        }
       }
     }
   }

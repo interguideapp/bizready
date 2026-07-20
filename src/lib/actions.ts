@@ -458,6 +458,35 @@ export async function markAllNotificationsRead() {
   revalidatePath("/", "layout");
 }
 
+/**
+ * Starts a Pro trial (placeholder for real billing).
+ *
+ * NOTE: this grants Pro WITHOUT taking payment — it exists so the Guardian can
+ * be built and demoed. Before launch, replace the body with a real checkout
+ * (Stripe/Paddle) and only flip the flag on a verified `checkout.completed`
+ * webhook. Never ship self-serve free Pro to production.
+ */
+export async function startProTrial() {
+  const { supabase, user } = await requireUser();
+  const until = new Date();
+  until.setDate(until.getDate() + 14);
+  const { error } = await supabase
+    .from("businesses")
+    .update({ subscription_tier: "pro", subscription_until: until.toISOString() })
+    .eq("owner_id", user.id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function cancelPro() {
+  const { supabase, user } = await requireUser();
+  await supabase
+    .from("businesses")
+    .update({ subscription_tier: "free", subscription_until: null })
+    .eq("owner_id", user.id);
+  revalidatePath("/", "layout");
+}
+
 export async function signOut() {
   const { supabase } = await requireUser();
   await supabase.auth.signOut();

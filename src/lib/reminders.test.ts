@@ -24,7 +24,20 @@ describe("computeReminders", () => {
     );
     expect(notifications).toHaveLength(1);
     expect(notifications[0].type).toBe("deadline");
-    expect(notifications[0].dedupe_key).toBe("deadline:open-vat-file:2026-07-23");
+    // free plan: the 7-day window
+    expect(notifications[0].dedupe_key).toBe("deadline:open-vat-file:2026-07-23:7");
+  });
+
+  it("Pro gets an earlier (30-day) reminder that free does not", () => {
+    // 21 days out → within Pro's 30 window, outside free's 7
+    const mkTasks = () => [
+      task({ template_id: "open-vat-file", due_date: "2026-08-10" }),
+    ];
+    const free = computeReminders(mkTasks(), TEMPLATES_BY_ID, today, false);
+    const pro = computeReminders(mkTasks(), TEMPLATES_BY_ID, today, true);
+    expect(free.notifications).toHaveLength(0);
+    expect(pro.notifications).toHaveLength(1);
+    expect(pro.notifications[0].dedupe_key).toBe("deadline:open-vat-file:2026-08-10:30");
   });
 
   it("raises an overdue notification for past due dates", () => {

@@ -6,6 +6,7 @@ import {
   BarChart3,
   Bell,
   Briefcase,
+  CalendarClock,
   FolderOpen,
   History,
   LayoutDashboard,
@@ -19,6 +20,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tasks", label: "המשימות", icon: ListChecks },
+  { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
   { href: "/tracking", label: "מעקב", icon: History },
   { href: "/insights", label: "תובנות", icon: BarChart3 },
   { href: "/business", label: "הפרופיל", icon: Briefcase },
@@ -30,7 +32,7 @@ const NAV = [
 
 /** Bottom-bar items on mobile — the rest live in the sidebar. */
 const MOBILE_NAV = NAV.filter((n) =>
-  ["/dashboard", "/tasks", "/tracking", "/insights", "/business"].includes(n.href)
+  ["/dashboard", "/tasks", "/calendar", "/insights", "/business"].includes(n.href)
 );
 
 function UnreadDot({ count }: { count: number }) {

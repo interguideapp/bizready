@@ -14,6 +14,8 @@ export interface BusinessRow {
   notify_whatsapp: boolean;
   notify_push: boolean;
   whatsapp_phone: string | null;
+  subscription_tier: string;
+  subscription_until: string | null;
   logo_path: string | null;
   dealer_number: string | null;
   vat_file: string | null;

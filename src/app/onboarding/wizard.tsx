@@ -34,6 +34,7 @@ const STEPS: Step[] = [
   { id: "entity", title: "איזה סוג עוסק?", subtitle: "לא בטוחים? נעזור להחליט", isValid: (d) => !!d.entity_type },
   { id: "field", title: "מה תחום הפעילות?", isValid: (d) => !!d.field },
   { id: "revenue", title: "כמה העסק צפוי להכניס בשנה?", subtitle: "הערכה גסה — משפיע על מיסוי והמלצות", isValid: (d) => !!d.expected_revenue },
+  { id: "vat", title: "כל כמה זמן תדווחו למע\"מ?", subtitle: "נקבע ע\"י רשות המסים לפי המחזור — וקובע את תאריכי ההגשה שנזכיר לכם", isValid: (d) => d.entity_type !== "osek_murshe" || !!d.vat_frequency },
   { id: "location", title: "מאיפה העסק פועל?", isValid: (d) => !!d.work_location },
   { id: "channels", title: "איך אתם מוכרים ולמי?", isValid: (d) => !!d.sales_channel && !!d.client_type },
   { id: "product", title: "מה אתם מוכרים?", subtitle: "קובע אם צריך חנות, משלוחים או ניהול מלאי", isValid: (d) => !!d.product_type },
@@ -56,9 +57,13 @@ export function OnboardingWizard() {
     setDraft((d) => ({ ...d, [key]: value }));
   }
 
-  /** The employees step is only shown when the user plans to hire. */
-  const isVisible = (i: number) =>
-    STEPS[i].id !== "employees" || !!draft.plans_employees;
+  /** Some steps are conditional on earlier answers. */
+  const isVisible = (i: number) => {
+    const id = STEPS[i].id;
+    if (id === "employees") return !!draft.plans_employees;
+    if (id === "vat") return draft.entity_type === "osek_murshe";
+    return true;
+  };
 
   function next() {
     let i = stepIndex + 1;
@@ -83,6 +88,10 @@ export function OnboardingWizard() {
       sales_channel: draft.sales_channel!,
       client_type: draft.client_type!,
       product_type: draft.product_type!,
+      vat_frequency:
+        draft.entity_type === "osek_murshe"
+          ? draft.vat_frequency ?? "bimonthly"
+          : undefined,
       hosts_clients: draft.hosts_clients!,
       collects_personal_data: draft.collects_personal_data!,
       uses_vehicle: draft.uses_vehicle!,
@@ -213,6 +222,17 @@ export function OnboardingWizard() {
                   { value: "under_60k", label: "עד ₪60,000", hint: "עסק צדדי או התחלה רגועה" },
                   { value: "60k_to_ceiling", label: `₪60,000 – ₪${YEARLY_FIGURES.osekPaturCeiling.toLocaleString()}`, hint: "בתוך תקרת עוסק פטור" },
                   { value: "over_ceiling", label: `מעל ₪${YEARLY_FIGURES.osekPaturCeiling.toLocaleString()}`, hint: "מעל התקרה — עוסק מורשה" },
+                ]}
+              />
+            )}
+
+            {step.id === "vat" && (
+              <ChoiceList
+                value={draft.vat_frequency}
+                onChange={(v) => set("vat_frequency", v)}
+                options={[
+                  { value: "bimonthly", label: "אחת לחודשיים", hint: "הנפוץ לעסקים קטנים — הגשה עד ה-15 בחודש שאחרי כל תקופה" },
+                  { value: "monthly", label: "כל חודש", hint: "למחזור גבוה יותר — הגשה עד ה-15 בכל חודש" },
                 ]}
               />
             )}

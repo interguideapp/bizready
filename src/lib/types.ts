@@ -44,6 +44,12 @@ export interface OnboardingAnswers {
   plans_employees: boolean;
   /** Only meaningful when plans_employees is true. */
   employee_work_mode: EmployeeWorkMode;
+  /**
+   * VAT / income-tax-advances reporting frequency. Drives the real filing
+   * dates in the Compliance Guardian. Only meaningful for osek_murshe;
+   * defaults to bimonthly when unset. Set by the tax authority per turnover.
+   */
+  vat_frequency?: "monthly" | "bimonthly";
   /** Template ids the user marked as already done in "מה כבר יש?" */
   already_done: string[];
 }

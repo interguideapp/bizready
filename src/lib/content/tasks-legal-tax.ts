@@ -306,7 +306,7 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     est_time: "חצי שעה",
     applies_when: {},
     depends_on: ["open-income-tax-file"],
-    deadline_days: 45,
+    recurrence: "bimonthly",
     priority: "important",
     source_url: "https://www.gov.il/he/departments/israel_tax_authority",
     last_reviewed: REVIEWED,

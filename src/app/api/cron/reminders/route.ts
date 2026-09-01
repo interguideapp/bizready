@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   const { data: businesses, error } = await supabase
     .from("businesses")
     .select(
-      "id, owner_id, name, notify_email, notify_whatsapp, whatsapp_phone, notify_push, subscription_tier, subscription_until"
+      "id, owner_id, name, entity_type, onboarding_answers, notify_email, notify_whatsapp, whatsapp_phone, notify_push, subscription_tier, subscription_until"
     )
     .not("onboarding_completed_at", "is", null);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -54,11 +54,15 @@ export async function GET(request: Request) {
     const isPro =
       biz.subscription_tier === "pro" &&
       (!biz.subscription_until || new Date(biz.subscription_until) > today);
+    const answers = (biz.onboarding_answers ?? {}) as {
+      vat_frequency?: "monthly" | "bimonthly";
+    };
     const { notifications, recurringResets } = computeReminders(
       (tasks ?? []) as ReminderTask[],
       TEMPLATES_BY_ID,
       today,
-      isPro
+      isPro,
+      { entityType: biz.entity_type, vatFrequency: answers.vat_frequency }
     );
 
     // reset recurring tasks that came due again

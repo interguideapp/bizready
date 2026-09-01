@@ -1,7 +1,9 @@
 import {
   AlertTriangle,
   CalendarClock,
+  ExternalLink,
   FileClock,
+  HelpCircle,
   Landmark,
   Receipt,
   RefreshCw,
@@ -17,6 +19,7 @@ import {
   type ObligationKind,
 } from "@/lib/compliance";
 import { isPro } from "@/lib/subscription";
+import type { OnboardingAnswers } from "@/lib/types";
 
 const KIND_META: Record<
   ObligationKind,
@@ -27,10 +30,6 @@ const KIND_META: Record<
   annual_report: {
     label: "דוח שנתי",
     icon: <Landmark className="h-4 w-4" aria-hidden />,
-  },
-  recurring: {
-    label: "משימה מחזורית",
-    icon: <RefreshCw className="h-4 w-4" aria-hidden />,
   },
   renewal: { label: "חידוש", icon: <RefreshCw className="h-4 w-4" aria-hidden /> },
   document_expiry: {
@@ -63,6 +62,7 @@ export default async function CalendarPage() {
     getDocuments(business.id),
   ]);
 
+  const answers = business.onboarding_answers as OnboardingAnswers;
   const obligations = computeUpcomingObligations(
     tasks.map((t) => ({
       template_id: t.template_id,
@@ -72,7 +72,12 @@ export default async function CalendarPage() {
     })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
-    new Date()
+    new Date(),
+    {
+      entityType: business.entity_type,
+      vatFrequency: answers?.vat_frequency,
+      hasAccountant: Boolean(business.accountant_name),
+    }
   );
 
   // group by month for the timeline
@@ -152,9 +157,10 @@ export default async function CalendarPage() {
       )}
 
       <p className="mt-8 text-center text-xs leading-relaxed text-ink-faint">
-        מועדים הם הערכה על בסיס כללי המס הרגילים (מע"מ ומקדמות עד ה-15 בחודש
-        העוקב, דוח שנתי עד 30.4). מועדים מדויקים תלויים בסיווג שלכם — ודאו מול
-        רו"ח או האזור האישי ברשות המסים.
+        התאריכים מחושבים מלוח הדיווח הרשמי ומותאמים לתדירות הדיווח שלכם (חודשי /
+        דו-חודשי — נקבע ב״הגדרות״). ליד כל מועד אפשר לראות בדיוק מאיזה כלל הוא
+        נגזר. עדיין — סיווג חריג או ארכת רו״ח יכולים לשנות; ודאו באזור האישי ברשות
+        המסים.
       </p>
     </div>
   );
@@ -166,45 +172,77 @@ function ObligationRow({ ob }: { ob: Obligation }) {
   const soon = ob.daysUntil >= 0 && ob.daysUntil <= 7;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-          overdue
-            ? "bg-status-overdue-bg text-status-overdue"
-            : "bg-brand-tint text-brand-strong"
-        }`}
-      >
-        {meta.icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink">{ob.title}</p>
-        <p className="text-xs text-ink-muted">{meta.label}</p>
-      </div>
-      <div className="shrink-0 text-left">
-        <p className="text-sm font-semibold text-ink">
-          {new Date(ob.dueDate + "T00:00:00").toLocaleDateString("he-IL")}
-        </p>
-        <p
-          className={`text-xs font-medium ${
+    <div className="px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
             overdue
-              ? "text-status-overdue"
-              : soon
-                ? "text-status-progress"
-                : "text-ink-muted"
+              ? "bg-status-overdue-bg text-status-overdue"
+              : "bg-brand-tint text-brand-strong"
           }`}
         >
-          {overdue ? (
-            <span className="inline-flex items-center gap-0.5">
-              <AlertTriangle className="h-3 w-3" aria-hidden />
-              באיחור
-            </span>
-          ) : ob.daysUntil === 0 ? (
-            "היום"
-          ) : (
-            `בעוד ${ob.daysUntil} ימים`
+          {meta.icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-ink">{ob.title}</p>
+          <p className="text-xs text-ink-muted">
+            {meta.label}
+            {ob.periodLabel && (
+              <>
+                {" · "}
+                <span className="text-ink-soft">{ob.periodLabel}</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="shrink-0 text-left">
+          <p className="text-sm font-semibold text-ink">
+            {new Date(ob.dueDate + "T00:00:00").toLocaleDateString("he-IL")}
+          </p>
+          <p
+            className={`text-xs font-medium ${
+              overdue
+                ? "text-status-overdue"
+                : soon
+                  ? "text-status-progress"
+                  : "text-ink-muted"
+            }`}
+          >
+            {overdue ? (
+              <span className="inline-flex items-center gap-0.5">
+                <AlertTriangle className="h-3 w-3" aria-hidden />
+                עבר המועד
+              </span>
+            ) : ob.daysUntil === 0 ? (
+              "היום"
+            ) : (
+              `בעוד ${ob.daysUntil} ימים`
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* transparency: why is this the date? — native disclosure, no JS */}
+      <details className="group mt-2 pr-12">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-ink-muted transition hover:text-brand-strong">
+          <HelpCircle className="h-3.5 w-3.5" aria-hidden />
+          למה התאריך הזה?
+        </summary>
+        <p className="mt-1.5 rounded-lg bg-surface px-3 py-2 text-xs leading-relaxed text-ink-soft">
+          {ob.ruleText}
+          {ob.sourceUrl && (
+            <a
+              href={ob.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mr-1 inline-flex items-center gap-0.5 font-medium text-brand-strong hover:underline"
+            >
+              מקור רשמי
+              <ExternalLink className="h-3 w-3" aria-hidden />
+            </a>
           )}
         </p>
-      </div>
+      </details>
     </div>
   );
 }

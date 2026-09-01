@@ -70,14 +70,19 @@ export function DueDateEditor({
 export function DueDateControl({
   taskId,
   dueDate,
+  basis = "recommended",
 }: {
   taskId: string;
   dueDate: string | null;
+  basis?: "statutory" | "recommended";
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <DueBadge dueDate={dueDate} />
-      <DueDateEditor taskId={taskId} dueDate={dueDate} />
+      <DueBadge dueDate={dueDate} basis={basis} />
+      {/* statutory dates are fixed by law — only personal/recommended dates are editable */}
+      {basis !== "statutory" && (
+        <DueDateEditor taskId={taskId} dueDate={dueDate} />
+      )}
     </span>
   );
 }

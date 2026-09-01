@@ -75,20 +75,40 @@ export function PriorityBadge({ priority }: { priority: TaskPriority }) {
   );
 }
 
-export function DueBadge({ dueDate }: { dueDate: string | null }) {
+/**
+ * `statutory` = a real filing deadline (may show a red "עבר המועד").
+ * `recommended` = a suggested date (never red — a slipped recommendation is
+ * not an "איחור"). This is the honest framing the whole product rests on.
+ */
+export function DueBadge({
+  dueDate,
+  basis = "recommended",
+}: {
+  dueDate: string | null;
+  basis?: "statutory" | "recommended";
+}) {
   if (!dueDate) return null;
   const due = new Date(dueDate + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  const dateStr = due.toLocaleDateString("he-IL");
 
-  if (days < 0)
+  if (days < 0) {
+    if (basis === "statutory")
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-status-overdue-bg px-2.5 py-1 text-xs font-medium text-status-overdue">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          עבר המועד
+        </span>
+      );
+    // a recommendation that slipped — neutral, no alarm
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-status-overdue-bg px-2.5 py-1 text-xs font-medium text-status-overdue">
-        <AlertTriangle className="h-3.5 w-3.5" />
-        באיחור
+      <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
+        היה מומלץ עד {dateStr}
       </span>
     );
+  }
   if (days <= 7)
     return (
       <span className="rounded-full bg-status-progress-bg px-2.5 py-1 text-xs font-medium text-status-progress">
@@ -97,7 +117,7 @@ export function DueBadge({ dueDate }: { dueDate: string | null }) {
     );
   return (
     <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
-      עד {due.toLocaleDateString("he-IL")}
+      {basis === "statutory" ? "עד" : "מומלץ עד"} {dateStr}
     </span>
   );
 }

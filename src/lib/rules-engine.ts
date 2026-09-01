@@ -6,6 +6,19 @@ import type {
   TaskTemplate,
 } from "@/lib/types";
 import { PRIORITY_WEIGHT } from "@/lib/types";
+import {
+  isStatutoryFiling,
+  nextStatutoryDueDate,
+  type ComplianceProfile,
+} from "@/lib/compliance";
+
+/** The handful of real facts that drive statutory dates, pulled from answers. */
+export function profileFromAnswers(answers: OnboardingAnswers): ComplianceProfile {
+  return {
+    entityType: answers.entity_type,
+    vatFrequency: answers.vat_frequency,
+  };
+}
 
 /** True when a template's applies_when conditions match the given answers. */
 export function templateApplies(
@@ -59,13 +72,19 @@ export function buildPlan(
   today: Date = new Date()
 ): PlannedTask[] {
   const alreadyDone = new Set(answers.already_done ?? []);
+  const profile = profileFromAnswers(answers);
   return templates
     .filter((t) => templateApplies(t.applies_when, answers))
     .map((t) => ({
       template_id: t.id,
       status: alreadyDone.has(t.id) ? ("done" as const) : ("todo" as const),
-      due_date:
-        t.deadline_days != null ? addDays(today, t.deadline_days) : null,
+      // statutory filings get their real, anchored next date; everything else
+      // keeps a soft recommended date (X days from now = from business start).
+      due_date: isStatutoryFiling(t.id)
+        ? nextStatutoryDueDate(t.id, today, profile)
+        : t.deadline_days != null
+          ? addDays(today, t.deadline_days)
+          : null,
       is_relevant: true,
     }));
 }

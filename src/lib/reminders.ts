@@ -1,4 +1,10 @@
-import { REMINDER_WINDOWS_FREE, REMINDER_WINDOWS_PRO } from "@/lib/compliance";
+import {
+  isStatutoryFiling,
+  nextStatutoryDueDate,
+  REMINDER_WINDOWS_FREE,
+  REMINDER_WINDOWS_PRO,
+  type ComplianceProfile,
+} from "@/lib/compliance";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
 export interface ReminderTask {
@@ -55,7 +61,8 @@ export function computeReminders(
   tasks: ReminderTask[],
   templates: Map<string, TaskTemplate>,
   today: Date = new Date(),
-  isPro = false
+  isPro = false,
+  profile: ComplianceProfile = {}
 ): { notifications: NotificationDraft[]; recurringResets: RecurringReset[] } {
   // Pro gets the full escalating runway; free gets a single 7-day nudge.
   const windows = isPro ? REMINDER_WINDOWS_PRO : REMINDER_WINDOWS_FREE;
@@ -73,8 +80,13 @@ export function computeReminders(
       task.status === "done" &&
       task.completed_at
     ) {
-      const nextDue = addRecurrence(task.completed_at, template.recurrence);
-      if (daysBetween(nextDue, today) <= 0) {
+      // completion + one cycle decides WHEN to reopen; but a statutory filing's
+      // next date is the real anchored deadline, not "two months from filing".
+      const trigger = addRecurrence(task.completed_at, template.recurrence);
+      if (daysBetween(trigger, today) <= 0) {
+        const nextDue = isStatutoryFiling(task.template_id)
+          ? nextStatutoryDueDate(task.template_id, today, profile)
+          : trigger;
         recurringResets.push({
           taskId: task.id,
           templateId: task.template_id,
@@ -114,13 +126,18 @@ export function computeReminders(
     ) {
       const daysLeft = daysBetween(task.due_date, today);
       if (daysLeft < 0) {
-        notifications.push({
-          type: "overdue",
-          title: `באיחור: ${template.title}`,
-          body: "המשימה הזו חרגה מהמועד — שווה לטפל בהקדם.",
-          template_id: task.template_id,
-          dedupe_key: `overdue:${task.template_id}:${task.due_date}`,
-        });
+        // A red "overdue" is only honest for a real statutory deadline. A
+        // recommended one-off (open your files, get insurance…) that slipped
+        // past its suggested date is never an "איחור" — we stay quiet.
+        if (isStatutoryFiling(task.template_id)) {
+          notifications.push({
+            type: "overdue",
+            title: `באיחור: ${template.title}`,
+            body: "חרגתם מהמועד החוקי — כדאי לטפל בהקדם כדי לא לצבור קנסות.",
+            template_id: task.template_id,
+            dedupe_key: `overdue:${task.template_id}:${task.due_date}`,
+          });
+        }
       } else {
         // fire once per crossed window (30/14/7/1 for Pro; just 7 for free),
         // deduped per window so the same milestone never repeats.

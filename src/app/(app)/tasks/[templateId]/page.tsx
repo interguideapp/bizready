@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowRight,
   Banknote,
+  CalendarClock,
   Check,
   Clock,
   ExternalLink,
@@ -27,6 +28,11 @@ import { DueDateControl } from "@/components/due-date-editor";
 import { TaskChecklist } from "@/components/task-checklist";
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { resolveTemplate } from "@/lib/rules-engine";
+import {
+  computeUpcomingObligations,
+  isStatutoryFiling,
+} from "@/lib/compliance";
+import type { OnboardingAnswers } from "@/lib/types";
 import {
   getBusiness,
   getBusinessTasks,
@@ -87,6 +93,31 @@ export default async function TaskDetailPage({
   }
   // profile-specific steps/why (e.g. attendance app vs. physical clock)
   const resolved = resolveTemplate(template, business.onboarding_answers);
+
+  // statutory filings carry a real, sourced deadline; everything else is a
+  // recommendation. Compute the rule text so we can show "why this date".
+  const statutory = isStatutoryFiling(template.id);
+  const answers = business.onboarding_answers as OnboardingAnswers;
+  const obligation = statutory
+    ? computeUpcomingObligations(
+        [
+          {
+            template_id: template.id,
+            status: task.status,
+            is_relevant: task.is_relevant,
+            completion_data: task.completion_data,
+          },
+        ],
+        TEMPLATES_BY_ID,
+        [],
+        new Date(),
+        {
+          entityType: business.entity_type,
+          vatFrequency: answers?.vat_frequency,
+          hasAccountant: Boolean(business.accountant_name),
+        }
+      )[0] ?? null
+    : null;
 
   // smart in-app actions for specific tasks
   let smartAction: React.ReactNode = null;
@@ -156,7 +187,13 @@ export default async function TaskDetailPage({
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={template.priority} />
           {task.status !== "done" && (
-            <DueDateControl taskId={task.id} dueDate={task.due_date} />
+            <DueDateControl
+              taskId={task.id}
+              dueDate={
+                statutory && obligation ? obligation.dueDate : task.due_date
+              }
+              basis={statutory ? "statutory" : "recommended"}
+            />
           )}
           {template.recurrence && (
             <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
@@ -169,6 +206,55 @@ export default async function TaskDetailPage({
           )}
         </div>
       </header>
+
+      {/* statutory deadline reasoning — the credibility of the date, shown openly */}
+      {statutory && obligation && (
+        <Card className="mb-4 border-brand-edge bg-brand-tint/40 p-4">
+          <div className="flex items-start gap-3">
+            <CalendarClock
+              className="mt-0.5 h-5 w-5 shrink-0 text-brand-strong"
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ink">
+                מועד חוקי הבא:{" "}
+                {new Date(obligation.dueDate + "T00:00:00").toLocaleDateString(
+                  "he-IL"
+                )}
+                {obligation.periodLabel && (
+                  <span className="font-normal text-ink-muted">
+                    {" "}
+                    · {obligation.periodLabel}
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                {obligation.ruleText}
+              </p>
+              {obligation.sourceUrl && (
+                <a
+                  href={obligation.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-strong hover:underline"
+                >
+                  מקור רשמי — רשות המסים
+                  <ExternalLink className="h-3 w-3" aria-hidden />
+                </a>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* recommended (non-statutory) framing — honest: a suggestion, not a law */}
+      {!statutory && task.due_date && task.status !== "done" && (
+        <p className="mb-4 text-xs leading-relaxed text-ink-faint">
+          התאריך הזה הוא <b className="text-ink-muted">המלצה</b> שלנו (בערך{" "}
+          {template.deadline_days} ימים מפתיחת העסק), לא מועד חוקי — קבעו לעצמכם
+          יעד שנוח לכם, ותוכלו לשנות אותו בכל רגע.
+        </p>
+      )}
 
       {/* status */}
       <Card className="p-4">

@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { TASK_TEMPLATES } from "@/lib/content";
-import { buildPlan, reconcilePlan } from "@/lib/rules-engine";
+import { buildPlan, profileFromAnswers, reconcilePlan } from "@/lib/rules-engine";
+import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
 
@@ -114,6 +115,19 @@ export async function updateAnswers(answers: OnboardingAnswers) {
       .update({ is_relevant: true })
       .eq("business_id", business.id)
       .in("template_id", toFlagRelevant);
+  }
+
+  // reporting frequency (or entity) may have changed — re-anchor the real
+  // statutory deadlines on the open filing tasks so the dates stay correct.
+  const profile = profileFromAnswers(answers);
+  const today = new Date();
+  for (const templateId of STATUTORY_FILINGS) {
+    await supabase
+      .from("business_tasks")
+      .update({ due_date: nextStatutoryDueDate(templateId, today, profile) })
+      .eq("business_id", business.id)
+      .eq("template_id", templateId)
+      .neq("status", "done");
   }
 
   revalidatePath("/", "layout");

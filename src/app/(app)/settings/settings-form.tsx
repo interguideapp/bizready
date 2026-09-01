@@ -104,6 +104,16 @@ const EMPLOYEE_SELECT = {
   ],
 };
 
+/** Shown only for עוסק מורשה — drives the real VAT/advances filing dates. */
+const VAT_FREQUENCY_SELECT = {
+  key: "vat_frequency" as const,
+  label: "תדירות דיווח מע\"מ ומקדמות",
+  options: [
+    { value: "bimonthly", label: "אחת לחודשיים" },
+    { value: "monthly", label: "כל חודש" },
+  ],
+};
+
 const TOGGLES: { key: keyof OnboardingAnswers; label: string }[] = [
   { key: "hosts_clients", label: "מקבל/ת לקוחות פיזית" },
   { key: "collects_personal_data", label: "שומר/ת פרטים אישיים של לקוחות" },
@@ -131,13 +141,22 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
       <Card className="p-5">
         <h2 className="mb-4 font-bold text-ink">פרופיל העסק</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          {[...SELECTS, ...(values.plans_employees ? [EMPLOYEE_SELECT] : [])].map(({ key, label, options }) => (
+          {[
+            ...SELECTS,
+            ...(values.entity_type === "osek_murshe"
+              ? [VAT_FREQUENCY_SELECT]
+              : []),
+            ...(values.plans_employees ? [EMPLOYEE_SELECT] : []),
+          ].map(({ key, label, options }) => (
             <label key={key} className="block">
               <span className="mb-1 block text-sm font-medium text-ink-soft">
                 {label}
               </span>
               <select
-                value={values[key] as string}
+                value={
+                  (values[key] as string | undefined) ??
+                  (key === "vat_frequency" ? "bimonthly" : "")
+                }
                 onChange={(e) =>
                   setValues((v) => ({ ...v, [key]: e.target.value }))
                 }

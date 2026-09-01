@@ -40,13 +40,25 @@ describe("computeReminders", () => {
     expect(pro.notifications[0].dedupe_key).toBe("deadline:open-vat-file:2026-08-10:30");
   });
 
-  it("raises an overdue notification for past due dates", () => {
+  it("raises an overdue notification only for a statutory filing past its date", () => {
+    const { notifications } = computeReminders(
+      [task({ template_id: "vat-reporting", due_date: "2026-07-10" })],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications[0].type).toBe("overdue");
+    expect(notifications[0].dedupe_key).toBe("overdue:vat-reporting:2026-07-10");
+  });
+
+  it("never cries 'overdue' about a slipped recommendation (non-statutory)", () => {
+    // open-vat-file is a one-off recommendation, not a statutory filing —
+    // a passed date is honest silence, not a red alarm.
     const { notifications } = computeReminders(
       [task({ template_id: "open-vat-file", due_date: "2026-07-10" })],
       TEMPLATES_BY_ID,
       today
     );
-    expect(notifications[0].type).toBe("overdue");
+    expect(notifications).toHaveLength(0);
   });
 
   it("ignores due dates further than a week away", () => {

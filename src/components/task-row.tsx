@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check, ChevronLeft, CircleDashed, Hourglass } from "lucide-react";
 import { DueBadge, PriorityBadge } from "@/components/badges";
+import { isStatutoryFiling } from "@/lib/compliance";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
 /**
@@ -45,7 +46,12 @@ export function TaskRow({
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {!done && <PriorityBadge priority={priority} />}
-          {!done && status !== "waiting" && <DueBadge dueDate={dueDate} />}
+          {!done && status !== "waiting" && (
+            <DueBadge
+              dueDate={dueDate}
+              basis={isStatutoryFiling(templateId) ? "statutory" : "recommended"}
+            />
+          )}
           {status === "waiting" && (
             <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
               {followUpDate

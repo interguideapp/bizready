@@ -20,6 +20,7 @@ import {
 } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore, nextSteps } from "@/lib/rules-engine";
+import { isStatutoryFiling } from "@/lib/compliance";
 
 export default async function DashboardPage() {
   const business = (await getBusiness())!;
@@ -40,11 +41,14 @@ export default async function DashboardPage() {
   const relevant = tasks.filter((t) => t.is_relevant);
   const doneCount = relevant.filter((t) => t.status === "done").length;
   const today = new Date().toISOString().slice(0, 10);
+  // "overdue" is only honest for a real statutory filing — a slipped
+  // recommendation is not an איחור (see the obligations engine, Pillar 1).
   const overdueCount = relevant.filter(
     (t) =>
       (t.status === "todo" || t.status === "in_progress") &&
       t.due_date &&
-      t.due_date < today
+      t.due_date < today &&
+      isStatutoryFiling(t.template_id)
   ).length;
 
   const upcoming = relevant
@@ -176,7 +180,12 @@ export default async function DashboardPage() {
                       </p>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <PriorityBadge priority={template.priority} />
-                        <DueBadge dueDate={task.due_date} />
+                        <DueBadge
+                          dueDate={task.due_date}
+                          basis={
+                            isStatutoryFiling(id) ? "statutory" : "recommended"
+                          }
+                        />
                       </div>
                     </div>
                     <ArrowLeft
@@ -211,7 +220,14 @@ export default async function DashboardPage() {
                   <span className="truncate text-sm font-medium text-ink">
                     {template.title}
                   </span>
-                  <DueBadge dueDate={t.due_date} />
+                  <DueBadge
+                    dueDate={t.due_date}
+                    basis={
+                      isStatutoryFiling(t.template_id)
+                        ? "statutory"
+                        : "recommended"
+                    }
+                  />
                 </Link>
               );
             })}

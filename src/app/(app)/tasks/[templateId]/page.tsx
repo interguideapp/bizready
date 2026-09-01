@@ -34,8 +34,10 @@ import {
 } from "@/lib/compliance";
 import { GENERATOR_BY_TEMPLATE } from "@/lib/documents/generators";
 import { DocumentGenerator } from "@/components/document-generator";
+import { CeilingMeter } from "@/components/kits/ceiling-meter";
+import { PricingCalculator } from "@/components/kits/pricing-calculator";
 import { isPro } from "@/lib/subscription";
-import type { OnboardingAnswers } from "@/lib/types";
+import { YEARLY_FIGURES, type OnboardingAnswers } from "@/lib/types";
 import {
   getBusiness,
   getBusinessTasks,
@@ -143,13 +145,22 @@ export default async function TaskDetailPage({
     if (template.id === "pricing") {
       const products = await getProducts(business.id);
       smartAction = (
-        <Card className="p-5">
-          <h3 className="mb-1 font-bold text-ink">המחירון שלי</h3>
-          <p className="mb-4 text-sm text-ink-muted">
-            בנו את המחירון ישירות כאן — הוא נשמר בפרופיל העסקי שלכם
-          </p>
-          <PriceList products={products} />
-        </Card>
+        <div className="flex flex-col gap-4">
+          <Card className="p-5">
+            <h3 className="mb-1 font-bold text-ink">מחשבון תמחור</h3>
+            <p className="mb-4 text-sm text-ink-muted">
+              כמה לגבות לשעה כדי שהעסק יהיה רווחי? בואו נחשב אחורה מהיעדים שלכם
+            </p>
+            <PricingCalculator />
+          </Card>
+          <Card className="p-5">
+            <h3 className="mb-1 font-bold text-ink">המחירון שלי</h3>
+            <p className="mb-4 text-sm text-ink-muted">
+              בנו את המחירון ישירות כאן — הוא נשמר בפרופיל העסקי שלכם
+            </p>
+            <PriceList products={products} />
+          </Card>
+        </div>
       );
     } else if (template.id === "basic-branding") {
       let logoUrl: string | null = null;
@@ -474,6 +485,19 @@ export default async function TaskDetailPage({
 
       {/* smart in-app action */}
       {smartAction && <section className="mt-6">{smartAction}</section>}
+
+      {/* task kit: live עוסק-פטור ceiling meter */}
+      {template.id === "patur-ceiling-watch" && (
+        <section className="mt-6">
+          <Card className="p-5">
+            <h3 className="mb-1 font-bold text-ink">מד תקרת עוסק פטור</h3>
+            <p className="mb-4 text-sm text-ink-muted">
+              עדכנו את המחזור וראו כמה נשאר עד התקרה — וכמה זמן
+            </p>
+            <CeilingMeter ceiling={YEARLY_FIGURES.osekPaturCeiling} />
+          </Card>
+        </section>
+      )}
 
       {/* partner offers / advertise slot */}
       <section className="mt-6">

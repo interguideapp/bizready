@@ -1,11 +1,19 @@
-import { ArrowLeft, Tag } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Link2, Tag } from "lucide-react";
 import type { OfferRow } from "@/lib/data";
 
 /**
  * A partner offer. Always clearly labeled "הצעת שותף" — trust is the asset.
  * The free guidance always stands next to it; the offer is a shortcut, never a gate.
+ * `helpsTask` shows which task the offer advances, so the value is explicit.
  */
-export function OfferCard({ offer }: { offer: OfferRow }) {
+export function OfferCard({
+  offer,
+  helpsTask,
+}: {
+  offer: OfferRow;
+  helpsTask?: { id: string; title: string } | null;
+}) {
   return (
     <div className="rounded-2xl border border-brand-edge bg-gradient-to-l from-brand-tint/70 to-card p-4">
       <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-strong">
@@ -13,6 +21,15 @@ export function OfferCard({ offer }: { offer: OfferRow }) {
         הצעת שותף
       </div>
       <p className="font-semibold text-ink">{offer.title}</p>
+      {helpsTask && (
+        <Link
+          href={`/tasks/${helpsTask.id}`}
+          className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-strong hover:underline"
+        >
+          <Link2 className="h-3 w-3" aria-hidden />
+          עוזר במשימה: {helpsTask.title}
+        </Link>
+      )}
       {offer.description && (
         <p className="mt-0.5 text-sm leading-relaxed text-ink-soft">
           {offer.description}

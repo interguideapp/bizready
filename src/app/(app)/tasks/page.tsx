@@ -4,6 +4,7 @@ import { TaskRow } from "@/components/task-row";
 import { Card, Disclaimer, PageTitle } from "@/components/ui";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { getBusiness, getBusinessTasks } from "@/lib/data";
+import { LIFE_STAGES, type BusinessTask, type Category } from "@/lib/types";
 
 export default async function TasksPage({
   searchParams,
@@ -48,50 +49,98 @@ export default async function TasksPage({
         ))}
       </div>
 
-      <div className="flex flex-col gap-6">
-        {shownCategories.map((category) => {
-          const list = byCategory.get(category.id)!;
-          const doneCount = list.filter((t) => t.status === "done").length;
-          const sorted = [...list].sort((a, b) => {
-            const ta = TEMPLATES_BY_ID.get(a.template_id)!;
-            const tb = TEMPLATES_BY_ID.get(b.template_id)!;
-            return ta.sort_order - tb.sort_order;
-          });
-          return (
-            <section key={category.id}>
-              <div className="mb-2.5 flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-tint text-brand-strong">
-                  <CategoryIcon name={category.icon} className="h-4 w-4" />
+      {/* When filtering to one category, show it flat; otherwise group the
+          whole plan into life stages so it reads as a journey, not a pile. */}
+      {activeCategory ? (
+        <div className="flex flex-col gap-6">
+          {shownCategories.map((category) => (
+            <CategorySection
+              key={category.id}
+              category={category}
+              list={byCategory.get(category.id)!}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {LIFE_STAGES.map((stage) => {
+            const cats = shownCategories.filter((c) => c.stage === stage.id);
+            if (cats.length === 0) return null;
+            const stageTasks = cats.flatMap((c) => byCategory.get(c.id)!);
+            const stageDone = stageTasks.filter((t) => t.status === "done").length;
+            return (
+              <div key={stage.id}>
+                <div className="mb-3 border-b border-edge-soft pb-2">
+                  <div className="flex items-baseline justify-between">
+                    <h2 className="text-lg font-bold text-ink">{stage.title}</h2>
+                    <span className="text-xs font-medium text-ink-faint">
+                      {stageDone}/{stageTasks.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-ink-muted">{stage.subtitle}</p>
                 </div>
-                <h2 className="font-bold text-ink">{category.title}</h2>
-                <span className="mr-auto text-xs font-medium text-ink-faint">
-                  {doneCount}/{list.length}
-                </span>
-              </div>
-              <Card className="divide-y divide-edge-soft">
-                {sorted.map((task) => {
-                  const template = TEMPLATES_BY_ID.get(task.template_id)!;
-                  return (
-                    <TaskRow
-                      key={task.id}
-                      templateId={task.template_id}
-                      title={template.title}
-                      priority={template.priority}
-                      status={task.status}
-                      dueDate={task.due_date}
-                      waitingFor={task.waiting_for}
-                      followUpDate={task.follow_up_date}
+                <div className="flex flex-col gap-6">
+                  {cats.map((category) => (
+                    <CategorySection
+                      key={category.id}
+                      category={category}
+                      list={byCategory.get(category.id)!}
                     />
-                  );
-                })}
-              </Card>
-            </section>
-          );
-        })}
-      </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <Disclaimer />
     </div>
+  );
+}
+
+function CategorySection({
+  category,
+  list,
+}: {
+  category: Category;
+  list: BusinessTask[];
+}) {
+  const doneCount = list.filter((t) => t.status === "done").length;
+  const sorted = [...list].sort((a, b) => {
+    const ta = TEMPLATES_BY_ID.get(a.template_id)!;
+    const tb = TEMPLATES_BY_ID.get(b.template_id)!;
+    return ta.sort_order - tb.sort_order;
+  });
+  return (
+    <section>
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-tint text-brand-strong">
+          <CategoryIcon name={category.icon} className="h-4 w-4" />
+        </div>
+        <h3 className="font-bold text-ink">{category.title}</h3>
+        <span className="mr-auto text-xs font-medium text-ink-faint">
+          {doneCount}/{list.length}
+        </span>
+      </div>
+      <Card className="divide-y divide-edge-soft">
+        {sorted.map((task) => {
+          const template = TEMPLATES_BY_ID.get(task.template_id)!;
+          return (
+            <TaskRow
+              key={task.id}
+              templateId={task.template_id}
+              title={template.title}
+              priority={template.priority}
+              status={task.status}
+              dueDate={task.due_date}
+              waitingFor={task.waiting_for}
+              followUpDate={task.follow_up_date}
+            />
+          );
+        })}
+      </Card>
+    </section>
   );
 }
 

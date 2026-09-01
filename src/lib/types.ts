@@ -157,11 +157,21 @@ export interface TaskTemplate {
   sort_order: number;
 }
 
+/** The lifecycle band a category belongs to — turns a flat pile into a journey. */
+export type LifeStage = "setup" | "operating" | "growth";
+
+export const LIFE_STAGES: { id: LifeStage; title: string; subtitle: string }[] = [
+  { id: "setup", title: "הקמה", subtitle: "הבסיס החוקי — לפתוח נכון" },
+  { id: "operating", title: "תפעול שוטף", subtitle: "לעמוד בחובות ולנהל את השוטף" },
+  { id: "growth", title: "צמיחה", subtitle: "להביא לקוחות ולגדול" },
+];
+
 export interface Category {
   id: string;
   title: string;
   description: string;
   icon: string; // lucide icon name
+  stage: LifeStage;
   sort_order: number;
 }
 

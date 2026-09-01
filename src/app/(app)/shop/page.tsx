@@ -33,6 +33,12 @@ export default async function ShopPage() {
     byCategory.set(categoryId, list);
   }
 
+  const helpsTaskFor = (templateId: string | null) => {
+    if (!templateId) return null;
+    const t = TEMPLATES_BY_ID.get(templateId);
+    return t ? { id: t.id, title: t.title } : null;
+  };
+
   return (
     <div>
       <PageTitle
@@ -60,7 +66,11 @@ export default async function ShopPage() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {byCategory.get(category.id)!.map((offer) => (
-                  <OfferCard key={offer.id} offer={offer} />
+                  <OfferCard
+                    key={offer.id}
+                    offer={offer}
+                    helpsTask={helpsTaskFor(offer.template_id)}
+                  />
                 ))}
               </div>
             </section>
@@ -70,7 +80,11 @@ export default async function ShopPage() {
               <h2 className="mb-2.5 font-bold text-ink">כללי</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 {byCategory.get("other")!.map((offer) => (
-                  <OfferCard key={offer.id} offer={offer} />
+                  <OfferCard
+                    key={offer.id}
+                    offer={offer}
+                    helpsTask={helpsTaskFor(offer.template_id)}
+                  />
                 ))}
               </div>
             </section>

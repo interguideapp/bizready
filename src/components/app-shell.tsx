@@ -25,7 +25,7 @@ const NAV = [
   { href: "/insights", label: "תובנות", icon: BarChart3 },
   { href: "/business", label: "הפרופיל", icon: Briefcase },
   { href: "/documents", label: "מסמכים", icon: FolderOpen },
-  { href: "/integrations", label: "אינטגרציות", icon: Plug },
+  { href: "/integrations", label: "חיבורים", icon: Plug },
   { href: "/shop", label: "חנות", icon: Store },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];

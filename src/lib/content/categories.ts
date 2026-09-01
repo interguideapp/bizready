@@ -6,6 +6,7 @@ export const CATEGORIES: Category[] = [
     title: "הקמה ורישום",
     description: "פתיחת תיקים ברשויות, רישוי והסמכות — הבסיס החוקי של העסק",
     icon: "Landmark",
+    stage: "setup",
     sort_order: 1,
   },
   {
@@ -13,6 +14,7 @@ export const CATEGORIES: Category[] = [
     title: "מיסים והנהלת חשבונות",
     description: "דיווחים, חשבוניות וניהול ספרים — לעמוד בדרישות רשות המסים",
     icon: "Receipt",
+    stage: "operating",
     sort_order: 2,
   },
   {
@@ -20,6 +22,7 @@ export const CATEGORIES: Category[] = [
     title: "פיננסים",
     description: "בנק, סליקה, פנסיה ותזרים — הכסף של העסק מסודר",
     icon: "Wallet",
+    stage: "operating",
     sort_order: 3,
   },
   {
@@ -27,6 +30,7 @@ export const CATEGORIES: Category[] = [
     title: "ביטוח ומשפט",
     description: "ביטוחים, הסכמים ומסמכים משפטיים שמגנים עליך",
     icon: "Shield",
+    stage: "operating",
     sort_order: 4,
   },
   {
@@ -34,6 +38,7 @@ export const CATEGORIES: Category[] = [
     title: "רגולציה דיגיטלית",
     description: "נגישות, פרטיות וחוק הספאם — החובות של העסק ברשת",
     icon: "ScanEye",
+    stage: "operating",
     sort_order: 5,
   },
   {
@@ -41,6 +46,7 @@ export const CATEGORIES: Category[] = [
     title: "נוכחות דיגיטלית",
     description: "אתר, גוגל ורשתות — שהלקוחות ימצאו אותך",
     icon: "Globe",
+    stage: "growth",
     sort_order: 6,
   },
   {
@@ -48,6 +54,7 @@ export const CATEGORIES: Category[] = [
     title: "שיווק",
     description: "מיתוג, קהל יעד ותכנית — להביא לקוחות",
     icon: "Megaphone",
+    stage: "growth",
     sort_order: 7,
   },
   {
@@ -55,6 +62,7 @@ export const CATEGORIES: Category[] = [
     title: "תפעול",
     description: "תמחור, תהליך מכירה וניהול לקוחות — עסק שעובד חלק",
     icon: "Settings2",
+    stage: "growth",
     sort_order: 8,
   },
   {
@@ -62,6 +70,7 @@ export const CATEGORIES: Category[] = [
     title: "העסקת עובדים",
     description: "תיקים, תלושים, נוכחות וזכויות — להעסיק כחוק מהעובד הראשון",
     icon: "Users",
+    stage: "operating",
     sort_order: 9,
   },
 ];

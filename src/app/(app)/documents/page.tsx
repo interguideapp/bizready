@@ -1,8 +1,11 @@
-import { FolderOpen } from "lucide-react";
+import Link from "next/link";
+import { FolderOpen, Sparkles } from "lucide-react";
 import { DocumentUpload } from "@/components/document-upload";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { getBusiness, getDocuments } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { DOC_GENERATORS } from "@/lib/documents/generators";
+import type { OnboardingAnswers } from "@/lib/types";
 import { DocumentRowItem } from "./document-row";
 
 const DOC_CATEGORIES: { id: string; label: string }[] = [
@@ -32,12 +35,46 @@ export default async function DocumentsPage() {
     });
   }
 
+  const genCtx = {
+    businessName: business.name,
+    entityType: business.entity_type,
+    dealerNumber: business.dealer_number,
+    field: business.field,
+    answers: business.onboarding_answers as OnboardingAnswers,
+  };
+  const generators = DOC_GENERATORS.filter(
+    (g) => !g.isRelevant || g.isRelevant(genCtx)
+  );
+
   return (
     <div>
       <PageTitle
         title="ארכיון המסמכים"
         subtitle="תעודות, אישורים ופוליסות — מתויקים ובמרחק קליק"
       />
+
+      {generators.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-ink-soft">
+            <Sparkles className="h-4 w-4 text-brand-strong" aria-hidden />
+            מחוללי מסמכים — הפקה מוכנה מפרטי העסק
+          </h2>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {generators.map((g) => (
+              <Link
+                key={g.id}
+                href={`/tasks/${g.templateId}`}
+                className="rounded-2xl border border-brand-edge bg-brand-tint/40 p-4 transition hover:border-brand-300 hover:bg-brand-tint/70"
+              >
+                <p className="font-semibold text-ink">{g.title}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+                  {g.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {documents.length === 0 ? (
         <Card>

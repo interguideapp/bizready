@@ -32,6 +32,9 @@ import {
   computeUpcomingObligations,
   isStatutoryFiling,
 } from "@/lib/compliance";
+import { GENERATOR_BY_TEMPLATE } from "@/lib/documents/generators";
+import { DocumentGenerator } from "@/components/document-generator";
+import { isPro } from "@/lib/subscription";
 import type { OnboardingAnswers } from "@/lib/types";
 import {
   getBusiness,
@@ -93,6 +96,21 @@ export default async function TaskDetailPage({
   }
   // profile-specific steps/why (e.g. attendance app vs. physical clock)
   const resolved = resolveTemplate(template, business.onboarding_answers);
+  const pro = isPro(business);
+
+  // document generator for this task (privacy policy, accessibility, etc.)
+  const generator = GENERATOR_BY_TEMPLATE.get(template.id);
+  const genCtx = {
+    businessName: business.name,
+    entityType: business.entity_type,
+    dealerNumber: business.dealer_number,
+    field: business.field,
+    answers: business.onboarding_answers as OnboardingAnswers,
+    today: new Date(),
+  };
+  const showGenerator =
+    generator && (!generator.isRelevant || generator.isRelevant(genCtx));
+  const generatedDoc = showGenerator ? generator!.build(genCtx) : null;
 
   // statutory filings carry a real, sourced deadline; everything else is a
   // recommendation. Compute the rule text so we can show "why this date".
@@ -341,6 +359,22 @@ export default async function TaskDetailPage({
           <StepsContent text={resolved.steps} />
         </Card>
       </section>
+
+      {/* document generator — the painkiller: a real, ready document */}
+      {showGenerator && generatedDoc && (
+        <section className="mt-6">
+          <DocumentGenerator
+            generatorId={generator!.id}
+            title={generator!.title}
+            description={generator!.description}
+            doc={generatedDoc}
+            businessName={business.name}
+            category={generator!.category}
+            taskId={task.id}
+            isPro={pro}
+          />
+        </section>
+      )}
 
       {/* extended guide, when available */}
       {template.guide && (

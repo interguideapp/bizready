@@ -54,6 +54,20 @@ export interface OnboardingAnswers {
   already_done: string[];
 }
 
+/**
+ * The real-world workflow a task follows. Drives which purpose-built experience
+ * renders on the task page, so each task feels made for its actual process.
+ */
+export type TaskArchetype =
+  | "registration" // open a file / register with an authority
+  | "filing" // recurring statutory report + payment
+  | "decision" // check whether an obligation applies, then act
+  | "provider" // choose a provider / set up a service
+  | "document" // generate a real document from the profile
+  | "presence" // set up a digital asset, then verify it
+  | "calculator" // an interactive tool / worksheet
+  | "routine"; // set up an ongoing habit
+
 export type TaskPriority = "critical" | "important" | "recommended";
 /** `waiting` = handed off to an authority/third party and we're waiting on them. */
 export type TaskStatus =

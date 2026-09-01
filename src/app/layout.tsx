@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
 import { PwaSetup } from "@/components/pwa-setup";
+import { MotionProvider } from "@/components/motion";
+import { Toaster } from "@/components/toaster";
 import "./globals.css";
 
 const heebo = Heebo({
@@ -41,7 +43,8 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        {children}
+        <MotionProvider>{children}</MotionProvider>
+        <Toaster />
         <PwaSetup />
       </body>
     </html>

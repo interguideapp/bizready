@@ -1,18 +1,108 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+// re-exported primitives so "@/components/ui" is the single barrel
+export {
+  Button,
+  SegmentedControl,
+  Sheet,
+  AccordionRoot,
+  AccordionItem,
+  InfoPopover,
+  Hint,
+  ProgressRing,
+} from "@/components/primitives";
+export { FadeIn, Stagger, AnimatedNumber, MotionProvider } from "@/components/motion";
 
 export function Card({
   children,
   className = "",
+  elevated = false,
+  interactive = false,
 }: {
   children: ReactNode;
   className?: string;
+  elevated?: boolean;
+  interactive?: boolean;
 }) {
   return (
     <div
-      className={`rounded-2xl border border-edge/80 bg-card shadow-sm backdrop-blur-xl ${className}`}
+      className={cn(
+        "rounded-2xl border border-edge/80 bg-card backdrop-blur-xl",
+        elevated ? "shadow-e2" : "shadow-e1",
+        interactive &&
+          "transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-e2",
+        className
+      )}
     >
       {children}
     </div>
+  );
+}
+
+/** A small labeled pill. Presentational; pass tone for color. */
+export function Chip({
+  children,
+  tone = "neutral",
+  icon,
+  className,
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "brand" | "done" | "progress" | "overdue";
+  icon?: ReactNode;
+  className?: string;
+}) {
+  const tones: Record<string, string> = {
+    neutral: "bg-surface-2 text-ink-muted",
+    brand: "bg-brand-tint text-brand-strong",
+    done: "bg-status-done-bg text-status-done",
+    progress: "bg-status-progress-bg text-status-progress",
+    overdue: "bg-status-overdue-bg text-status-overdue",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
+        tones[tone],
+        className
+      )}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+/** Loading placeholder. */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("skeleton rounded-xl", className)} />;
+}
+
+/** A compact stat block: big value + label. */
+export function Stat({
+  value,
+  label,
+  icon,
+  tone,
+}: {
+  value: ReactNode;
+  label: string;
+  icon?: ReactNode;
+  tone?: "overdue";
+}) {
+  return (
+    <Card
+      className={cn(
+        "flex flex-col items-center gap-0.5 px-2 py-3 text-center",
+        tone === "overdue" && "ring-1 ring-status-overdue/30"
+      )}
+    >
+      <span className="flex items-center gap-1.5 text-lg font-bold text-ink">
+        {icon}
+        {value}
+      </span>
+      <span className="text-[11px] font-medium text-ink-muted">{label}</span>
+    </Card>
   );
 }
 

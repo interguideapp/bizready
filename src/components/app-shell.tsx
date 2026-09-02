@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import {
   BarChart3,
   Bell,
@@ -16,6 +17,7 @@ import {
   Store,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { pageTransition, spring } from "@/lib/motion";
 
 const NAV = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
@@ -30,7 +32,6 @@ const NAV = [
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
 
-/** Bottom-bar items on mobile — the rest live in the sidebar. */
 const MOBILE_NAV = NAV.filter((n) =>
   ["/dashboard", "/tasks", "/calendar", "/insights", "/business"].includes(n.href)
 );
@@ -56,7 +57,7 @@ export function AppShell({
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* desktop sidebar */}
-      <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-edge md:bg-card">
+      <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-edge md:bg-card/60 md:backdrop-blur-xl">
         <Link href="/dashboard" className="px-6 py-5">
           <span className="text-xl font-bold text-brand-strong">BizReady</span>
         </Link>
@@ -67,12 +68,17 @@ export function AppShell({
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-brand-tint text-brand-strong"
-                    : "text-ink-soft hover:bg-surface hover:text-ink"
+                className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active ? "text-brand-strong" : "text-ink-soft hover:bg-surface hover:text-ink"
                 }`}
               >
+                {active && (
+                  <motion.span
+                    layoutId="nav-active-desktop"
+                    transition={spring}
+                    className="absolute inset-0 -z-10 rounded-xl bg-brand-tint"
+                  />
+                )}
                 <Icon className="h-5 w-5" aria-hidden />
                 {label}
               </Link>
@@ -80,12 +86,19 @@ export function AppShell({
           })}
           <Link
             href="/notifications"
-            className={`mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+            className={`relative mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
               pathname.startsWith("/notifications")
-                ? "bg-brand-tint text-brand-strong"
+                ? "text-brand-strong"
                 : "text-ink-soft hover:bg-surface hover:text-ink"
             }`}
           >
+            {pathname.startsWith("/notifications") && (
+              <motion.span
+                layoutId="nav-active-desktop"
+                transition={spring}
+                className="absolute inset-0 -z-10 rounded-xl bg-brand-tint"
+              />
+            )}
             <span className="relative">
               <Bell className="h-5 w-5" aria-hidden />
               <UnreadDot count={unreadCount} />
@@ -117,9 +130,15 @@ export function AppShell({
       </header>
 
       <main className="flex-1 pb-24 md:pb-8">
-        <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8">
+        <motion.div
+          key={pathname}
+          variants={pageTransition}
+          initial="hidden"
+          animate="show"
+          className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8"
+        >
           {children}
-        </div>
+        </motion.div>
       </main>
 
       {/* mobile bottom nav */}
@@ -131,10 +150,17 @@ export function AppShell({
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center gap-0.5 px-2 py-2 text-[11px] font-medium ${
+                className={`relative flex flex-col items-center gap-0.5 px-2 py-2 text-[11px] font-medium ${
                   active ? "text-brand-strong" : "text-ink-muted"
                 }`}
               >
+                {active && (
+                  <motion.span
+                    layoutId="nav-active-mobile"
+                    transition={spring}
+                    className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-brand-600"
+                  />
+                )}
                 <Icon className="h-5 w-5" aria-hidden />
                 {label}
               </Link>

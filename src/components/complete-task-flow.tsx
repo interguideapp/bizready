@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Check, CheckCircle2, Loader2, X } from "lucide-react";
 import { completeTask } from "@/lib/actions";
+import { toast } from "@/components/toaster";
 import type { CompletionSpec } from "@/lib/types";
 import { DEFAULT_COMPLETION } from "@/lib/types";
 
@@ -49,8 +50,10 @@ export function CompleteTaskFlow({
     startTransition(async () => {
       try {
         await completeTask(taskId, values, businessFields);
+        toast.success("המשימה נסגרה — כל הכבוד! 🎉");
       } catch (e) {
         setError(e instanceof Error ? e.message : "השמירה נכשלה");
+        toast.error("השמירה נכשלה");
       }
     });
   }

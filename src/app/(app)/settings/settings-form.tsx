@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2, LogOut } from "lucide-react";
 import { signOut, updateAnswers } from "@/lib/actions";
+import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
 import type { OnboardingAnswers } from "@/lib/types";
 
@@ -132,6 +133,7 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
     startTransition(async () => {
       await updateAnswers(values);
       setSaved(true);
+      toast.success("התכנית עודכנה לפי התשובות החדשות");
       setTimeout(() => setSaved(false), 2500);
     });
   }

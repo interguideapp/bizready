@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Copy, Loader2, Pencil, X } from "lucide-react";
 import { updateBusinessCard } from "@/lib/actions";
+import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
 import type { BusinessRow } from "@/lib/data";
 
@@ -83,6 +84,7 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
     startTransition(async () => {
       await updateBusinessCard(values);
       setEditing(false);
+      toast.success("הפרטים נשמרו");
     });
   }
 

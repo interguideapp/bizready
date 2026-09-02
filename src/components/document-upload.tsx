@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Loader2, Paperclip } from "lucide-react";
 import { addDocument } from "@/lib/actions";
+import { toast } from "@/components/toaster";
 import { createClient } from "@/lib/supabase/client";
 
 /** Uploads a file to storage under the user's folder, then records metadata. */
@@ -51,9 +52,11 @@ export function DocumentUpload({
         checklist_item_id: checklistItemId,
       });
       setState("idle");
+      toast.success("הקובץ נשמר בארכיון");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "ההעלאה נכשלה");
       setState("error");
+      toast.error("ההעלאה נכשלה");
     }
   }
 

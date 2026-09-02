@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { addDocument } from "@/lib/actions";
+import { toast } from "@/components/toaster";
 import { createClient } from "@/lib/supabase/client";
 import { renderDocHtml, type GeneratedDoc } from "@/lib/documents/generators";
 import { UpgradeCta } from "@/components/upgrade-cta";
@@ -73,9 +74,11 @@ export function DocumentGenerator({
         task_id: taskId,
       });
       setSaveState("saved");
+      toast.success("המסמך נשמר בארכיון");
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "השמירה נכשלה");
       setSaveState("error");
+      toast.error("שמירת המסמך נכשלה");
     }
   }
 

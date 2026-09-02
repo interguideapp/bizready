@@ -10,7 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
-import { Card, EmptyState, PageTitle } from "@/components/ui";
+import { Card, EmptyState, FadeIn, InfoPopover, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { getBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
 import {
@@ -130,20 +130,22 @@ export default async function CalendarPage() {
               const isFirst = key === [...byMonth.keys()][0];
               const gated = !pro && !isFirst;
               return (
-                <section key={key}>
-                  <h2 className="mb-2.5 flex items-center gap-2 text-sm font-bold text-ink-soft">
-                    <span className="rounded-lg bg-brand-tint px-2.5 py-1 text-brand-strong">
-                      {MONTHS[month]} {year}
-                    </span>
-                  </h2>
-                  <Card
-                    className={`divide-y divide-edge-soft ${gated ? "pointer-events-none select-none blur-sm" : ""}`}
-                  >
-                    {list.map((ob) => (
-                      <ObligationRow key={ob.id} ob={ob} />
-                    ))}
-                  </Card>
-                </section>
+                <FadeIn key={key} whenInView>
+                  <section>
+                    <h2 className="mb-2.5 flex items-center gap-2 text-sm font-bold text-ink-soft">
+                      <span className="rounded-lg bg-brand-tint px-2.5 py-1 text-brand-strong">
+                        {MONTHS[month]} {year}
+                      </span>
+                    </h2>
+                    <Card
+                      className={`divide-y divide-edge-soft ${gated ? "pointer-events-none select-none blur-sm" : ""}`}
+                    >
+                      {list.map((ob) => (
+                        <ObligationRow key={ob.id} ob={ob} />
+                      ))}
+                    </Card>
+                  </section>
+                </FadeIn>
               );
             })}
           </div>
@@ -222,27 +224,30 @@ function ObligationRow({ ob }: { ob: Obligation }) {
         </div>
       </div>
 
-      {/* transparency: why is this the date? — native disclosure, no JS */}
-      <details className="group mt-2 pr-12">
-        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-ink-muted transition hover:text-brand-strong">
-          <HelpCircle className="h-3.5 w-3.5" aria-hidden />
-          למה התאריך הזה?
-        </summary>
-        <p className="mt-1.5 rounded-lg bg-surface px-3 py-2 text-xs leading-relaxed text-ink-soft">
+      {/* transparency: why is this the date? — accessible popover */}
+      <div className="mt-1.5 pr-12">
+        <InfoPopover
+          trigger={
+            <button className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-ink-muted outline-none transition hover:text-brand-strong">
+              <HelpCircle className="h-3.5 w-3.5" aria-hidden />
+              למה התאריך הזה?
+            </button>
+          }
+        >
           {ob.ruleText}
           {ob.sourceUrl && (
             <a
               href={ob.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mr-1 inline-flex items-center gap-0.5 font-medium text-brand-strong hover:underline"
+              className="mr-1 mt-2 inline-flex items-center gap-0.5 font-medium text-brand-strong hover:underline"
             >
               מקור רשמי
               <ExternalLink className="h-3 w-3" aria-hidden />
             </a>
           )}
-        </p>
-      </details>
+        </InfoPopover>
+      </div>
     </div>
   );
 }

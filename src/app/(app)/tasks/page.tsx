@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CategoryIcon } from "@/components/category-icon";
 import { TaskRow } from "@/components/task-row";
-import { Card, Disclaimer, PageTitle } from "@/components/ui";
+import { Card, Disclaimer, FadeIn, PageTitle } from "@/components/ui";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { getBusiness, getBusinessTasks } from "@/lib/data";
 import { LIFE_STAGES, type BusinessTask, type Category } from "@/lib/types";
@@ -69,7 +69,7 @@ export default async function TasksPage({
             const stageTasks = cats.flatMap((c) => byCategory.get(c.id)!);
             const stageDone = stageTasks.filter((t) => t.status === "done").length;
             return (
-              <div key={stage.id}>
+              <FadeIn key={stage.id} whenInView>
                 <div className="mb-3 border-b border-edge-soft pb-2">
                   <div className="flex items-baseline justify-between">
                     <h2 className="text-lg font-bold text-ink">{stage.title}</h2>
@@ -88,7 +88,7 @@ export default async function TasksPage({
                     />
                   ))}
                 </div>
-              </div>
+              </FadeIn>
             );
           })}
         </div>

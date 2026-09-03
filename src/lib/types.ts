@@ -157,6 +157,12 @@ export interface TaskTemplate {
   guide?: string;
   /** "מה משתבש לרוב" — the common, costly mistakes people make on this task. */
   pitfalls?: string[];
+  /**
+   * "מה קורה אחרי שמגישים" — the honest follow-up: what you receive, how long
+   * it takes, whether you wait on an authority, or what future obligation this
+   * opens. A task rarely ends at "submit"; this makes the real next step visible.
+   */
+  after_submit?: string;
   /** Evidence required to close this task. Falls back to a generic confirmation. */
   completion?: CompletionSpec;
   official_links: OfficialLink[];

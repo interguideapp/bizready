@@ -23,6 +23,8 @@ export interface TaskView {
   steps: string[];
   guide?: string;
   pitfalls: string[];
+  /** What happens after you submit — the real bureaucratic follow-up. */
+  afterSubmit: string | null;
 
   /** statutory = a real legal deadline; recommended = a suggestion. */
   basis: "statutory" | "recommended";

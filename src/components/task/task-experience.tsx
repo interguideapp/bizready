@@ -325,6 +325,16 @@ function UnderstandPhase({ view }: { view: TaskView }) {
 function FinishPhase({ view }: { view: TaskView }) {
   return (
     <div className="flex flex-col gap-6">
+      {view.afterSubmit && (
+        <Card className="border-brand-edge bg-brand-tint/30 p-4">
+          <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-brand-strong">
+            <Clock className="h-4 w-4" aria-hidden />
+            מה קורה אחרי שמגישים
+          </p>
+          <p className="text-sm leading-relaxed text-ink-soft">{view.afterSubmit}</p>
+        </Card>
+      )}
+
       <Card className="p-4">
         <StatusPicker
           taskId={view.taskDbId}

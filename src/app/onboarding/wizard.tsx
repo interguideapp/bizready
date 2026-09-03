@@ -111,14 +111,14 @@ export function OnboardingWizard() {
       <div className="sticky top-0 z-10 bg-surface/95 px-6 pt-6 pb-3 backdrop-blur">
         <div className="mx-auto max-w-lg">
           <div className="mb-2 flex items-center justify-between text-xs text-ink-muted">
-            <span className="font-bold text-brand-strong">BizReady</span>
+            <span className="font-bold text-gradient">BizReady</span>
             <span>
               שאלה {stepIndex + 1} מתוך {STEPS.length}
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
             <div
-              className="h-full rounded-full bg-brand-600 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-l from-brand-600 to-accent-to transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -127,7 +127,7 @@ export function OnboardingWizard() {
 
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-6 py-6">
         <div key={step.id} className="animate-fade-up flex-1">
-          <h1 className="text-2xl font-bold text-ink">{step.title}</h1>
+          <h1 className="text-title text-ink">{step.title}</h1>
           {step.subtitle && (
             <p className="mt-1 text-ink-muted">{step.subtitle}</p>
           )}
@@ -371,7 +371,7 @@ export function OnboardingWizard() {
           <button
             onClick={next}
             disabled={!canNext || pending}
-            className="mr-auto inline-flex items-center gap-2 rounded-xl bg-brand-600 px-8 py-3 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-40"
+            className="mr-auto inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-8 py-3 font-semibold text-white shadow-e-brand transition hover:opacity-95 disabled:opacity-40"
           >
             {pending ? (
               <>

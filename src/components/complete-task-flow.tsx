@@ -15,11 +15,13 @@ export function CompleteTaskFlow({
   taskId,
   steps,
   completion,
+  unlocks = [],
   onCancel,
 }: {
   taskId: string;
   steps: string[];
   completion?: CompletionSpec;
+  unlocks?: string[];
   onCancel: () => void;
 }) {
   const spec = completion ?? DEFAULT_COMPLETION;
@@ -51,6 +53,19 @@ export function CompleteTaskFlow({
       try {
         await completeTask(taskId, values, businessFields);
         toast.success("המשימה נסגרה — כל הכבוד! 🎉");
+        // the payoff: show what finishing this just opened up
+        if (unlocks.length > 0) {
+          setTimeout(() => {
+            toast("נפתחו עכשיו משימות חדשות", {
+              description:
+                unlocks.length <= 3
+                  ? unlocks.join(" · ")
+                  : `${unlocks.slice(0, 3).join(" · ")} ועוד ${unlocks.length - 3}`,
+              icon: "🔓",
+              duration: 6000,
+            });
+          }, 900);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "השמירה נכשלה");
         toast.error("השמירה נכשלה");

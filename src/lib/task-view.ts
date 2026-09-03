@@ -62,6 +62,8 @@ export interface TaskView {
   pro: boolean;
   businessName: string;
   dealerNumber: string | null;
+  /** Titles of tasks this one unlocks — shown as a reward on completion. */
+  unlocks: string[];
 
   // archetype-specific extras
   generator: { id: string; title: string; description: string; category: string } | null;

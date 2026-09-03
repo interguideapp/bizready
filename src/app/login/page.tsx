@@ -92,11 +92,11 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6">
-      <Link href="/" className="mb-8 text-2xl font-bold text-brand-strong">
+      <Link href="/" className="mb-8 text-2xl font-bold text-gradient">
         BizReady
       </Link>
 
-      <div className="w-full max-w-sm rounded-2xl border border-edge/80 bg-card p-8 shadow-sm">
+      <div className="panel w-full max-w-sm rounded-card p-8 shadow-e2">
         {state === "sent" ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-status-done-bg text-status-done">
@@ -140,7 +140,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={state === "sending"}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-4 py-3 font-semibold text-white shadow-e-brand transition hover:opacity-95 disabled:opacity-60"
               >
                 {state === "sending" ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -170,7 +170,7 @@ export default function LoginPage() {
               <form onSubmit={submitUsernamePassword} className="flex flex-col gap-3">
                 <input type="text" required minLength={3} maxLength={30} autoComplete="username" dir="ltr" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
                 <input type="password" required minLength={12} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder="סיסמה (12 תווים לפחות)" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
-                <button type="submit" disabled={passwordState === "submitting"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60">
+                <button type="submit" disabled={passwordState === "submitting"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-4 py-3 font-semibold text-white shadow-e-brand transition hover:opacity-95 disabled:opacity-60">
                   {passwordState === "submitting" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <KeyRound className="h-4 w-4" aria-hidden />}
                   {mode === "register" ? "יצירת חשבון" : "כניסה"}
                 </button>

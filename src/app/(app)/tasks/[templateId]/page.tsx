@@ -106,6 +106,13 @@ export default async function TaskDetailPage({
   };
   const showGenerator = gen && (!gen.isRelevant || gen.isRelevant(genRelevantCtx));
 
+  // tasks this one unlocks (relevant tasks that depend on it) — the completion reward
+  const relevantIds = new Set(tasks.filter((t) => t.is_relevant).map((t) => t.template_id));
+  const unlocks = [...relevantIds]
+    .map((id) => TEMPLATES_BY_ID.get(id))
+    .filter((tpl) => tpl && tpl.id !== template.id && tpl.depends_on.includes(template.id))
+    .map((tpl) => tpl!.title);
+
   const view: TaskView = {
     taskDbId: task.id,
     templateId: template.id,
@@ -153,6 +160,7 @@ export default async function TaskDetailPage({
     pro: isPro(business),
     businessName: business.name,
     dealerNumber: business.dealer_number,
+    unlocks,
     generator:
       showGenerator && gen
         ? { id: gen.id, title: gen.title, description: gen.description, category: gen.category }

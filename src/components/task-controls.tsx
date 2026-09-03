@@ -25,6 +25,7 @@ export function StatusPicker({
   completion,
   waitingFor,
   followUpDate,
+  unlocks = [],
 }: {
   taskId: string;
   status: TaskStatus;
@@ -32,6 +33,7 @@ export function StatusPicker({
   completion?: CompletionSpec;
   waitingFor: string | null;
   followUpDate: string | null;
+  unlocks?: string[];
 }) {
   const [pending, startTransition] = useTransition();
   const [target, setTarget] = useState<TaskStatus | null>(null);
@@ -66,6 +68,7 @@ export function StatusPicker({
         taskId={taskId}
         steps={steps}
         completion={completion}
+        unlocks={unlocks}
         onCancel={() => setShowFlow(false)}
       />
     );

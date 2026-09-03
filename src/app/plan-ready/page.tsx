@@ -24,8 +24,8 @@ export default async function PlanReadyPage() {
   return (
     <div className="flex min-h-screen flex-col items-center bg-surface px-6 py-10">
       <div className="w-full max-w-lg text-center">
-        <p className="text-sm font-semibold text-brand-strong">התכנית של {business.name} מוכנה 🎉</p>
-        <h1 className="mt-1 text-3xl font-bold text-ink">
+        <p className="text-sm font-semibold text-gradient">התכנית של {business.name} מוכנה 🎉</p>
+        <h1 className="mt-1 text-display text-ink">
           זה המצב — ומכאן רק עולים
         </h1>
 
@@ -43,7 +43,7 @@ export default async function PlanReadyPage() {
           {CATEGORIES.filter((c) => byCategory.has(c.id)).map((c, i) => (
             <div
               key={c.id}
-              className="animate-fade-up flex items-center gap-3 rounded-2xl border border-edge/80 bg-card p-3.5"
+              className="animate-fade-up panel flex items-center gap-3 rounded-card p-3.5"
               style={{ animationDelay: `${i * 70}ms` }}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
@@ -59,7 +59,7 @@ export default async function PlanReadyPage() {
 
         <Link
           href="/dashboard"
-          className="mt-10 inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700"
+          className="mt-10 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand-600 to-brand-500 px-8 py-4 text-lg font-semibold text-white shadow-e-brand transition hover:opacity-95"
         >
           קדימה לעבודה
           <ArrowLeft className="h-5 w-5" aria-hidden />

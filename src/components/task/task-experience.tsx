@@ -333,6 +333,7 @@ function FinishPhase({ view }: { view: TaskView }) {
           completion={view.completion}
           waitingFor={view.waitingFor}
           followUpDate={view.followUpDate}
+          unlocks={view.unlocks}
         />
       </Card>
 

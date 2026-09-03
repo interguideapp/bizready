@@ -206,6 +206,21 @@ export async function getProducts(businessId: string): Promise<ProductRow[]> {
   return (data ?? []) as ProductRow[];
 }
 
+// ---------- cost ledger ----------
+import type { CostRow } from "@/lib/costs";
+
+/** Resilient: returns [] if the business_costs table isn't there yet. */
+export async function getCosts(businessId: string): Promise<CostRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("business_costs")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []) as CostRow[];
+}
+
 // ---------- integrations ----------
 
 export interface ConnectionListRow {

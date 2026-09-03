@@ -28,10 +28,10 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-edge/80 bg-card backdrop-blur-xl",
-        elevated ? "shadow-e2" : "shadow-e1",
+        "panel rounded-card",
+        elevated && "shadow-e2",
         interactive &&
-          "transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-e2",
+          "transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-brand-edge hover:shadow-e-brand",
         className
       )}
     >

@@ -501,6 +501,47 @@ export async function cancelPro() {
   revalidatePath("/", "layout");
 }
 
+// ---------- cost ledger ----------
+
+async function requireBusinessId() {
+  const { supabase, user } = await requireUser();
+  const { data } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", user.id)
+    .single();
+  if (!data) redirect("/onboarding");
+  return { supabase, businessId: data.id as string };
+}
+
+export async function addCost(input: {
+  name: string;
+  amount: number;
+  cadence: string;
+  templateId?: string | null;
+  renewalDate?: string | null;
+  note?: string | null;
+}) {
+  const { supabase, businessId } = await requireBusinessId();
+  const { error } = await supabase.from("business_costs").insert({
+    business_id: businessId,
+    name: input.name,
+    amount: input.amount,
+    cadence: input.cadence,
+    template_id: input.templateId ?? null,
+    renewal_date: input.renewalDate ?? null,
+    note: input.note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function deleteCost(costId: string) {
+  const { supabase, businessId } = await requireBusinessId();
+  await supabase.from("business_costs").delete().eq("id", costId).eq("business_id", businessId);
+  revalidatePath("/", "layout");
+}
+
 export async function signOut() {
   const { supabase } = await requireUser();
   await supabase.auth.signOut();

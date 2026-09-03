@@ -20,12 +20,11 @@ const BTN_BASE =
 
 const BTN_VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-600 text-white shadow-e-brand hover:bg-brand-700",
+    "bg-gradient-to-l from-brand-600 to-brand-500 text-white shadow-e-brand hover:from-brand-500 hover:to-brand-400",
   secondary:
-    "border border-edge bg-card text-ink-soft backdrop-blur-xl hover:border-brand-300 hover:text-brand-strong",
+    "border border-edge bg-card text-ink-soft backdrop-blur-xl hover:border-brand-edge hover:text-brand-strong",
   ghost: "text-ink-soft hover:bg-surface-2 hover:text-ink",
-  danger:
-    "bg-status-overdue text-white hover:opacity-90",
+  danger: "bg-status-overdue text-white hover:opacity-90",
   success: "bg-status-done text-white hover:opacity-90",
 };
 

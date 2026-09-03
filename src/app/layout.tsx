@@ -29,8 +29,8 @@ export const viewport: Viewport = {
   ],
 };
 
-// applied before paint so the saved theme never flashes
-const themeInit = `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})()`;
+// Command Deck is dark-first: default to dark unless the user explicitly chose light.
+const themeInit = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light")document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}})()`;
 
 export default function RootLayout({
   children,

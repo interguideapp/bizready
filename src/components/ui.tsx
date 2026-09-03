@@ -97,7 +97,7 @@ export function Stat({
         tone === "overdue" && "ring-1 ring-status-overdue/30"
       )}
     >
-      <span className="flex items-center gap-1.5 text-lg font-bold text-ink">
+      <span className="tnum flex items-center gap-1.5 text-lg font-bold text-ink">
         {icon}
         {value}
       </span>
@@ -109,14 +109,17 @@ export function Stat({
 export function PageTitle({
   title,
   subtitle,
+  eyebrow,
 }: {
   title: string;
   subtitle?: string;
+  eyebrow?: string;
 }) {
   return (
     <header className="mb-6">
-      <h1 className="text-2xl font-bold text-ink">{title}</h1>
-      {subtitle && <p className="mt-1 text-ink-muted">{subtitle}</p>}
+      {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
+      <h1 className="text-title text-ink">{title}</h1>
+      {subtitle && <p className="mt-1.5 text-ink-muted">{subtitle}</p>}
     </header>
   );
 }

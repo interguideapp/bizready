@@ -29,8 +29,9 @@ export const viewport: Viewport = {
   ],
 };
 
-// Command Deck is dark-first: default to dark unless the user explicitly chose light.
-const themeInit = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light")document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}})()`;
+// Command Deck is the identity of the product — the app is locked to the dark
+// deck so every user gets the futuristic look (no light "same as before" theme).
+const themeInit = `document.documentElement.classList.add("dark")`;
 
 export default function RootLayout({
   children,

@@ -17,7 +17,6 @@ import {
   Settings,
   Store,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { pageTransition, spring } from "@/lib/motion";
 
 // A short, clear primary nav — the five things that matter day to day.
@@ -132,17 +131,13 @@ export function AppShell({
             התראות
           </Link>
         </nav>
-        <div className="border-t border-edge-soft px-3 py-3">
-          <ThemeToggle />
-        </div>
       </aside>
 
       {/* mobile top bar */}
       <header className="sticky top-0 z-20 border-b border-edge bg-card/90 backdrop-blur-xl md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
-          <span className="text-lg font-bold text-brand-strong">BizReady</span>
+          <span className="text-lg font-bold text-gradient">BizReady</span>
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <Link
               href="/notifications"
               aria-label={`התראות${unreadCount > 0 ? `, ${unreadCount} חדשות` : ""}`}

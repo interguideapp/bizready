@@ -7,7 +7,6 @@ import {
   ListChecks,
   Sparkles,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Disclaimer } from "@/components/ui";
 
 const FEATURES = [
@@ -37,9 +36,8 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
-        <span className="text-xl font-bold text-brand-strong">BizReady</span>
+        <span className="text-xl font-bold text-gradient">BizReady</span>
         <div className="flex items-center gap-1">
-          <ThemeToggle />
           <Link
             href="/login"
             className="rounded-xl px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink"

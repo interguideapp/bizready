@@ -2,8 +2,9 @@ import Link from "next/link";
 import { FolderOpen, Sparkles } from "lucide-react";
 import { DocumentUpload } from "@/components/document-upload";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
-import { getBusiness, getDocuments } from "@/lib/data";
+import { getBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { TEMPLATES_BY_ID } from "@/lib/content";
 import { DOC_GENERATORS } from "@/lib/documents/generators";
 import type { OnboardingAnswers } from "@/lib/types";
 import { DocumentRowItem } from "./document-row";
@@ -18,8 +19,18 @@ const DOC_CATEGORIES: { id: string; label: string }[] = [
 
 export default async function DocumentsPage() {
   const business = (await getBusiness())!;
-  const documents = await getDocuments(business.id);
+  const [documents, tasks] = await Promise.all([
+    getDocuments(business.id),
+    getBusinessTasks(business.id),
+  ]);
   const supabase = await createClient();
+
+  // task association: options + a lookup for the current link
+  const taskOptions = tasks
+    .filter((t) => t.is_relevant && TEMPLATES_BY_ID.has(t.template_id))
+    .map((t) => ({ id: t.id, title: TEMPLATES_BY_ID.get(t.template_id)!.title }))
+    .sort((a, b) => a.title.localeCompare(b.title, "he"));
+  const taskTitleById = new Map(taskOptions.map((t) => [t.id, t.title]));
 
   // signed URLs for viewing (1 hour)
   const signedUrls = new Map<string, string>();
@@ -111,6 +122,8 @@ export default async function DocumentsPage() {
                         key={doc.id}
                         doc={doc}
                         signedUrl={signedUrls.get(doc.id)}
+                        taskTitle={doc.task_id ? taskTitleById.get(doc.task_id) : null}
+                        tasks={taskOptions}
                       />
                     ))}
                   </Card>

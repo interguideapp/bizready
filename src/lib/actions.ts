@@ -357,6 +357,24 @@ export async function addDocument(doc: {
   revalidatePath("/tasks", "layout");
 }
 
+export async function updateDocument(
+  documentId: string,
+  patch: { taskId?: string | null; category?: string }
+) {
+  const { supabase } = await requireUser();
+  const update: Record<string, unknown> = {};
+  if ("taskId" in patch) update.task_id = patch.taskId;
+  if (patch.category) update.category = patch.category;
+  if (Object.keys(update).length === 0) return;
+  const { error } = await supabase
+    .from("documents")
+    .update(update)
+    .eq("id", documentId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/documents");
+  revalidatePath("/tasks", "layout");
+}
+
 export async function deleteDocument(documentId: string) {
   const { supabase } = await requireUser();
   const { data: doc } = await supabase

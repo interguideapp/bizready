@@ -11,6 +11,7 @@ import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
 import { buildJourney } from "@/lib/journey";
+import { computeAttention } from "@/lib/priority";
 import {
   computeBadges,
   computeStreak,
@@ -78,12 +79,11 @@ export default async function DashboardPage() {
     streak,
   }).filter((b) => b.earned);
 
-  // journey → next best action
+  // journey graph (done/next/available/locked + unlocks)
   const journey = buildJourney(
     tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant })),
     TEMPLATES_BY_ID
   );
-  const nextTpl = journey.nextTemplateId ? TEMPLATES_BY_ID.get(journey.nextTemplateId) : null;
 
   // stage progress
   const stages = STAGES.map((s) => {
@@ -99,7 +99,23 @@ export default async function DashboardPage() {
     new Date(),
     { entityType: business.entity_type, vatFrequency: answers?.vat_frequency, hasAccountant: Boolean(business.accountant_name) }
   );
-  const urgent = obligations[0] ?? null;
+  // unified attention: the single most pressing dated item + the most important next task
+  const dueByTemplate = new Map(tasks.map((t) => [t.template_id, t.due_date]));
+  const attention = computeAttention(
+    obligations.map((o) => ({
+      templateId: o.templateId,
+      title: o.title,
+      dueDate: o.dueDate,
+      daysUntil: o.daysUntil,
+      basis: o.basis,
+      periodLabel: o.periodLabel,
+    })),
+    journey.nodes,
+    dueByTemplate,
+    today
+  );
+  const urgent = attention.urgent;
+  const nextTpl = attention.nextTemplateId ? TEMPLATES_BY_ID.get(attention.nextTemplateId) : null;
 
   const data: DashboardData = {
     businessName: business.name,

@@ -20,23 +20,26 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { pageTransition, spring } from "@/lib/motion";
 
+// A short, clear primary nav — the five things that matter day to day.
 const NAV = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tasks", label: "המשימות", icon: ListChecks },
   { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
   { href: "/passport", label: "תיק העסק", icon: IdCard },
   { href: "/insights", label: "תובנות", icon: BarChart3 },
-  { href: "/tracking", label: "מעקב", icon: History },
-  { href: "/business", label: "הפרופיל", icon: Briefcase },
+];
+
+// Secondary — grouped under "עוד" so the main nav stays short.
+const MORE_NAV = [
   { href: "/documents", label: "מסמכים", icon: FolderOpen },
-  { href: "/integrations", label: "חיבורים", icon: Plug },
+  { href: "/business", label: "הפרופיל", icon: Briefcase },
+  { href: "/tracking", label: "מעקב", icon: History },
   { href: "/shop", label: "חנות", icon: Store },
+  { href: "/integrations", label: "חיבורים", icon: Plug },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
 
-const MOBILE_NAV = NAV.filter((n) =>
-  ["/dashboard", "/tasks", "/calendar", "/insights", "/business"].includes(n.href)
-);
+const MOBILE_NAV = NAV;
 
 function UnreadDot({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -86,6 +89,27 @@ export function AppShell({
               </Link>
             );
           })}
+
+          <p className="mt-4 mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">עוד</p>
+          {MORE_NAV.map(({ href, label, icon: Icon }) => {
+            const active = pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
+                  active ? "text-brand-strong" : "text-ink-muted hover:bg-surface hover:text-ink"
+                }`}
+              >
+                {active && (
+                  <motion.span layoutId="nav-active-desktop" transition={spring} className="absolute inset-0 -z-10 rounded-xl bg-brand-tint" />
+                )}
+                <Icon className="h-4 w-4" aria-hidden />
+                {label}
+              </Link>
+            );
+          })}
+
           <Link
             href="/notifications"
             className={`relative mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${

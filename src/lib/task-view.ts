@@ -22,6 +22,7 @@ export interface TaskView {
   why: string;
   steps: string[];
   guide?: string;
+  pitfalls: string[];
 
   /** statutory = a real legal deadline; recommended = a suggestion. */
   basis: "statutory" | "recommended";

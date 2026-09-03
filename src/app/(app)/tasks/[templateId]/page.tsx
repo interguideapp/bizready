@@ -118,6 +118,7 @@ export default async function TaskDetailPage({
     why: resolved.why,
     steps,
     guide: template.guide,
+    pitfalls: template.pitfalls ?? [],
     basis: statutory ? "statutory" : "recommended",
     dueDate: task.due_date,
     obligation: obligation

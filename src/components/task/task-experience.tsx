@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
+  AlertTriangle,
   ArrowRight,
   Banknote,
   Check,
@@ -12,7 +13,6 @@ import {
   ExternalLink,
   FileText,
   Lightbulb,
-  Paperclip,
 } from "lucide-react";
 import {
   Button,
@@ -280,6 +280,23 @@ function UnderstandPhase({ view }: { view: TaskView }) {
               <ExternalLink className="h-3 w-3" aria-hidden />
             </a>
           )}
+        </Card>
+      )}
+
+      {view.pitfalls.length > 0 && (
+        <Card className="border-status-progress/25 bg-status-progress-bg/40 p-4">
+          <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-status-progress">
+            <AlertTriangle className="h-4 w-4" aria-hidden />
+            מה משתבש לרוב
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {view.pitfalls.map((p) => (
+              <li key={p} className="flex items-start gap-2 text-sm leading-relaxed text-ink-soft">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-status-progress" />
+                {p}
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 

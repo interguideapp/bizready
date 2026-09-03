@@ -155,6 +155,8 @@ export interface TaskTemplate {
   variants?: TemplateVariant[];
   /** Optional long-form guide (markdown) rendered as an expandable section. */
   guide?: string;
+  /** "מה משתבש לרוב" — the common, costly mistakes people make on this task. */
+  pitfalls?: string[];
   /** Evidence required to close this task. Falls back to a generic confirmation. */
   completion?: CompletionSpec;
   official_links: OfficialLink[];

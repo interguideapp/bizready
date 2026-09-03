@@ -15,6 +15,22 @@ const PRIORITY_SCORE: Record<TaskPriority, number> = {
   recommended: 70,
 };
 
+/**
+ * The business lifecycle stage dominates raw priority: you register and open the
+ * business (setup) before tax/privacy obligations (operating), and both before a
+ * website or marketing (growth). Without this a "critical" website outranks the
+ * actual registration. The gap is wide enough that a setup task always leads a
+ * growth task of equal priority, but narrow enough that a real overdue statutory
+ * filing (which also carries the statutory + overdue bonuses) still wins.
+ */
+export type Stage = "setup" | "operating" | "growth";
+const STAGE_WEIGHT: Record<Stage, number> = {
+  setup: 400,
+  operating: 150,
+  growth: 0,
+};
+export const STAGE_RANK: Record<Stage, number> = { setup: 0, operating: 1, growth: 2 };
+
 export interface AttentionObligation {
   templateId: string | null;
   title: string;
@@ -36,10 +52,12 @@ export function obligationUrgency(o: AttentionObligation): number {
 export function taskImportance(
   node: JourneyNode,
   dueDate: string | null,
-  today: string
+  today: string,
+  stage?: Stage
 ): number {
   if (node.state === "done" || node.state === "locked") return 0;
   let s = PRIORITY_SCORE[node.priority];
+  if (stage) s += STAGE_WEIGHT[stage];
   if (isStatutoryFiling(node.templateId)) s += 220;
   s += node.unlocks.length * 30; // unblocking others matters
   if (dueDate && dueDate < today) {
@@ -64,7 +82,8 @@ export function computeAttention(
   obligations: AttentionObligation[],
   nodes: JourneyNode[],
   dueByTemplate: Map<string, string | null>,
-  today: string
+  today: string,
+  stageOf?: (categoryId: string) => Stage
 ): Attention {
   // urgent = the highest-urgency dated obligation, only if it's actually urgent
   const rankedOb = obligations
@@ -76,7 +95,10 @@ export function computeAttention(
   // next best = the most important available task, excluding whatever is urgent
   const urgentTpl = urgent?.templateId ?? null;
   const rankedTasks = nodes
-    .map((n) => ({ n, s: taskImportance(n, dueByTemplate.get(n.templateId) ?? null, today) }))
+    .map((n) => ({
+      n,
+      s: taskImportance(n, dueByTemplate.get(n.templateId) ?? null, today, stageOf?.(n.categoryId)),
+    }))
     .filter((x) => x.s > 0 && x.n.templateId !== urgentTpl)
     .sort((a, b) => b.s - a.s);
 

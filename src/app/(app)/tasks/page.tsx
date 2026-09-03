@@ -7,7 +7,7 @@ import { Card, Disclaimer, FadeIn, PageTitle } from "@/components/ui";
 import { CATEGORIES, CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { getBusiness, getBusinessTasks } from "@/lib/data";
 import { buildJourney, type Journey, type JourneyNode } from "@/lib/journey";
-import { taskImportance } from "@/lib/priority";
+import { taskImportance, type Stage } from "@/lib/priority";
 import { LIFE_STAGES, type BusinessTask, type Category } from "@/lib/types";
 
 export default async function TasksPage({
@@ -33,15 +33,21 @@ export default async function TasksPage({
     (c) => byCategory.has(c.id) && (!activeCategory || c.id === activeCategory)
   );
 
-  // journey (states + unlocks) + importance ranking
+  // journey (states + unlocks) + importance ranking, weighted by lifecycle stage
+  const stageOf = (categoryId: string): Stage =>
+    (CATEGORIES_BY_ID.get(categoryId)?.stage as Stage) ?? "operating";
   const journey = buildJourney(
     tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant })),
-    TEMPLATES_BY_ID
+    TEMPLATES_BY_ID,
+    stageOf
   );
   const today = new Date().toISOString().slice(0, 10);
   const dueByTemplate = new Map(tasks.map((t) => [t.template_id, t.due_date]));
   const ranked = journey.nodes
-    .map((n) => ({ n, s: taskImportance(n, dueByTemplate.get(n.templateId) ?? null, today) }))
+    .map((n) => ({
+      n,
+      s: taskImportance(n, dueByTemplate.get(n.templateId) ?? null, today, stageOf(n.categoryId)),
+    }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s);
   const importantNow = ranked.slice(0, 4).map((x) => x.n);

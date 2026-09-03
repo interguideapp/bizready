@@ -32,6 +32,9 @@ const priorityRank: Record<TaskPriority, number> = {
   recommended: 2,
 };
 
+/** Lifecycle stage ordering — setup before operating before growth. */
+const stageRank: Record<string, number> = { setup: 0, operating: 1, growth: 2 };
+
 export interface Journey {
   nodes: JourneyNode[];
   byId: Map<string, JourneyNode>;
@@ -40,7 +43,8 @@ export interface Journey {
 
 export function buildJourney(
   tasks: JourneyTask[],
-  templates: Map<string, TaskTemplate>
+  templates: Map<string, TaskTemplate>,
+  stageOf?: (categoryId: string) => string
 ): Journey {
   const relevant = tasks.filter((t) => t.is_relevant && templates.has(t.template_id));
   const statusById = new Map(relevant.map((t) => [t.template_id, t.status]));
@@ -78,10 +82,16 @@ export function buildJourney(
     };
   });
 
-  // the single next best move: available (not done/locked), by priority then order
+  // the single next best move: available (not done/locked), by lifecycle stage
+  // first (setup→operating→growth), then priority, then list order — so a
+  // "critical" website never leads before the business is even registered.
   const next = [...nodes]
     .filter((n) => n.state === "available")
     .sort((a, b) => {
+      if (stageOf) {
+        const byS = (stageRank[stageOf(a.categoryId)] ?? 1) - (stageRank[stageOf(b.categoryId)] ?? 1);
+        if (byS !== 0) return byS;
+      }
       const byP = priorityRank[a.priority] - priorityRank[b.priority];
       if (byP !== 0) return byP;
       return (

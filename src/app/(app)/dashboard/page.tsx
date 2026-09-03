@@ -11,7 +11,7 @@ import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
 import { buildJourney } from "@/lib/journey";
-import { computeAttention } from "@/lib/priority";
+import { computeAttention, type Stage } from "@/lib/priority";
 import {
   computeBadges,
   computeStreak,
@@ -24,6 +24,7 @@ import { DashboardView, type DashboardData } from "@/components/dashboard/dashbo
 import type { OnboardingAnswers } from "@/lib/types";
 
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
+const stageOf = (categoryId: string): Stage => (STAGE_OF.get(categoryId) as Stage) ?? "operating";
 const STAGES = [
   { id: "setup", title: "הקמה" },
   { id: "operating", title: "תפעול שוטף" },
@@ -82,7 +83,8 @@ export default async function DashboardPage() {
   // journey graph (done/next/available/locked + unlocks)
   const journey = buildJourney(
     tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant })),
-    TEMPLATES_BY_ID
+    TEMPLATES_BY_ID,
+    stageOf
   );
 
   // stage progress
@@ -112,7 +114,8 @@ export default async function DashboardPage() {
     })),
     journey.nodes,
     dueByTemplate,
-    today
+    today,
+    stageOf
   );
   const urgent = attention.urgent;
   const nextTpl = attention.nextTemplateId ? TEMPLATES_BY_ID.get(attention.nextTemplateId) : null;

@@ -8,6 +8,7 @@ import {
   Bell,
   Briefcase,
   CalendarClock,
+  Command,
   FolderOpen,
   History,
   IdCard,
@@ -62,8 +63,11 @@ export function AppShell({
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* desktop sidebar */}
       <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-edge md:bg-card/60 md:backdrop-blur-xl">
-        <Link href="/dashboard" className="px-6 py-5">
-          <span className="text-xl font-bold text-brand-strong">BizReady</span>
+        <Link href="/dashboard" className="flex items-center gap-2.5 px-5 py-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
+            <Command className="h-4.5 w-4.5" aria-hidden />
+          </span>
+          <span className="text-xl font-bold text-gradient">BizReady</span>
         </Link>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           {NAV.map(({ href, label, icon: Icon }) => {
@@ -80,7 +84,7 @@ export function AppShell({
                   <motion.span
                     layoutId="nav-active-desktop"
                     transition={spring}
-                    className="absolute inset-0 -z-10 rounded-xl bg-brand-tint"
+                    className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-l from-brand-tint to-brand-tint/30 ring-1 ring-inset ring-brand-edge/50"
                   />
                 )}
                 <Icon className="h-5 w-5" aria-hidden />
@@ -136,7 +140,12 @@ export function AppShell({
       {/* mobile top bar */}
       <header className="sticky top-0 z-20 border-b border-edge bg-card/90 backdrop-blur-xl md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
-          <span className="text-lg font-bold text-gradient">BizReady</span>
+          <span className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
+              <Command className="h-4 w-4" aria-hidden />
+            </span>
+            <span className="text-lg font-bold text-gradient">BizReady</span>
+          </span>
           <div className="flex items-center gap-1">
             <Link
               href="/notifications"

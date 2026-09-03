@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo } from "next/font/google";
+import { Heebo, JetBrains_Mono } from "next/font/google";
 import { PwaSetup } from "@/components/pwa-setup";
 import { MotionProvider } from "@/components/motion";
 import { Toaster } from "@/components/toaster";
@@ -8,6 +8,14 @@ import "./globals.css";
 const heebo = Heebo({
   variable: "--font-heebo",
   subsets: ["hebrew", "latin"],
+});
+
+// Mono for data readouts (scores, counts, dates, money) — the "instrument panel"
+// numerals that give the deck its precise, systems-grade feel.
+const mono = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -39,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className={`${heebo.variable} h-full`} suppressHydrationWarning>
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${mono.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>

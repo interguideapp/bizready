@@ -140,6 +140,7 @@
   --color-status-todo-bg: var(--status-todo-bg);
 
   --font-sans: var(--font-heebo), "Heebo", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --radius-card: 1.15rem;
   --radius-field: 0.75rem;
@@ -158,19 +159,34 @@ body {
     radial-gradient(48rem 32rem at -12% 110%, var(--glow-b), transparent 60%),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+  background-size: 100% 100%, 100% 100%, 46px 46px, 46px 46px;
   background-attachment: fixed;
   transition: background-color 0.3s ease;
 }
+/* fine film grain over the whole deck — the subtle texture that reads "crafted",
+   not a flat web page. Sits on top, imperceptible, never intercepts input. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.02;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
 
 /* ---------- command-deck utilities ---------- */
-/* a luminous glass panel */
+/* a luminous glass panel — top-lit sheen over the tinted glass for real depth */
 .panel {
-  background: var(--card);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 42%),
+    var(--card);
   border: 1px solid var(--edge);
   box-shadow: var(--elev-1), var(--inner-glow);
-  backdrop-filter: blur(20px) saturate(1.3);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
 }
 /* gradient accent text */
 .text-gradient {
@@ -184,11 +200,21 @@ body {
   box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent),
     0 0 12px currentColor;
 }
-/* tabular numerals for data readouts */
+/* instrument-panel numerals — mono, tabular, tightly tracked */
 .tnum {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+}
+/* micro eyebrow label — the small tracked uppercase caption above a value */
+.eyebrow {
+  font-size: 0.66rem;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }
 /* a faint hairline divider */
 .hairline {
@@ -207,6 +233,14 @@ body {
 }
 
 /* ---------- typography scale (Hebrew-tuned) ---------- */
+/* the single trusted number a view leads with (Mercury/Ramp pattern) */
+.text-hero {
+  font-family: var(--font-mono);
+  font-size: clamp(2.9rem, 2.2rem + 3.4vw, 4.4rem);
+  line-height: 0.95;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
 .text-display {
   font-size: clamp(1.9rem, 1.4rem + 2vw, 2.7rem);
   line-height: 1.12;

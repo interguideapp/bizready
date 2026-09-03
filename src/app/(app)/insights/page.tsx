@@ -1,266 +1,189 @@
 import Link from "next/link";
 import {
-  BarChart3,
-  FileText,
+  BadgeCheck,
+  CalendarClock,
+  CheckCircle2,
+  FileCheck2,
+  Flame,
+  FolderCheck,
+  Footprints,
   Gauge,
+  Landmark,
+  Lock,
+  Rocket,
+  ShieldCheck,
+  Sparkles,
   TrendingUp,
-  Users,
+  Trophy,
 } from "lucide-react";
-import { RevenueChart, type MonthPoint } from "@/components/revenue-chart";
-import { Card, EmptyState, PageTitle } from "@/components/ui";
+import { Card, FadeIn, PageTitle } from "@/components/ui";
+import { CostsManager } from "@/components/costs-manager";
+import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
   getBusiness,
-  getConnections,
-  getLeadFunnel,
-  getMetrics,
-  getOpenSyncErrors,
-  getTopCustomers,
+  getBusinessTasks,
+  getCosts,
+  getDocuments,
+  getProducts,
+  getTaskEvents,
 } from "@/lib/data";
-import { computeForecast } from "@/lib/integrations/forecast";
-import { YEARLY_FIGURES } from "@/lib/types";
-import { ErrorsList } from "./errors-list";
+import { computeScore } from "@/lib/rules-engine";
+import { computeProfileCompleteness } from "@/lib/profile-score";
+import { computeUpcomingObligations } from "@/lib/compliance";
+import {
+  computeBadges,
+  computeStreak,
+  computeWins,
+  computeXp,
+  levelFromXp,
+} from "@/lib/gamification";
+import type { OnboardingAnswers } from "@/lib/types";
 
-const STAGE_LABELS: Record<string, string> = {
-  lead: "לידים חדשים",
-  prospect: "בתהליך",
-  customer: "לקוחות",
-  lost: "אבודים",
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Footprints, Landmark, Rocket, FileCheck2, FolderCheck, BadgeCheck,
+  ShieldCheck, Flame, TrendingUp, Trophy, Sparkles,
 };
+const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
 export default async function InsightsPage() {
   const business = (await getBusiness())!;
-  const now = new Date();
-  const yearStart = `${now.getUTCFullYear()}-01-01`;
-  const twelveMonthsAgo = new Date(now);
-  twelveMonthsAgo.setUTCMonth(twelveMonthsAgo.getUTCMonth() - 11);
-  const sinceIso = `${twelveMonthsAgo.toISOString().slice(0, 7)}-01`;
-
-  const [metrics, customers, funnel, errors, connections] = await Promise.all([
-    getMetrics(business.id, sinceIso),
-    getTopCustomers(business.id),
-    getLeadFunnel(business.id),
-    getOpenSyncErrors(business.id),
-    getConnections(business.id),
+  const [tasks, documents, costs, products, events] = await Promise.all([
+    getBusinessTasks(business.id),
+    getDocuments(business.id),
+    getCosts(business.id),
+    getProducts(business.id),
+    getTaskEvents(business.id, 200),
   ]);
 
-  const hasData = metrics.length > 0 || connections.length > 0;
+  const answers = business.onboarding_answers as OnboardingAnswers;
+  const score = computeScore(tasks, TEMPLATES_BY_ID);
+  const scoreByCat = new Map(score.byCategory.map((c) => [c.category_id, c]));
+  const profile = computeProfileCompleteness(business, { products: products.length, documents: documents.length });
 
-  // monthly revenue buckets, oldest → newest
-  const points: MonthPoint[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-    points.push({ year: d.getUTCFullYear(), month: d.getUTCMonth(), value: 0 });
-  }
-  const pointByKey = new Map(points.map((p) => [`${p.year}-${p.month}`, p]));
-  let ytd = 0;
-  let monthRevenue = 0;
-  let monthDocs = 0;
-  const thisMonthKey = `${now.getUTCFullYear()}-${now.getUTCMonth()}`;
-  for (const m of metrics) {
-    const d = new Date(m.metric_date + "T00:00:00Z");
-    const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
-    if (m.metric === "revenue") {
-      const point = pointByKey.get(key);
-      if (point) point.value += m.value;
-      if (m.metric_date >= yearStart) ytd += m.value;
-      if (key === thisMonthKey) monthRevenue += m.value;
-    }
-    if (m.metric === "documents" && key === thisMonthKey) monthDocs += m.value;
-  }
+  const gamiTasks = tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant, completed_at: t.completed_at }));
+  const level = levelFromXp(computeXp(gamiTasks, TEMPLATES_BY_ID));
+  const streak = computeStreak(events.map((e) => ({ kind: e.kind, created_at: e.created_at })));
+  const wins = computeWins(gamiTasks, TEMPLATES_BY_ID);
+  const badges = computeBadges({
+    tasks: gamiTasks,
+    templates: TEMPLATES_BY_ID,
+    stageOf: (cid) => STAGE_OF.get(cid) ?? "operating",
+    profilePercent: profile.percent,
+    documentsCount: documents.length,
+    streak,
+  });
+  const earnedCount = badges.filter((b) => b.earned).length;
 
-  const forecast = computeForecast(ytd, now);
-  const isPatur = business.entity_type === "osek_patur";
-  const openLeads = funnel
-    .filter((f) => f.stage === "lead" || f.stage === "prospect")
-    .reduce((sum, f) => sum + f.count, 0);
-
-  return (
-    <div>
-      <PageTitle
-        title="תובנות"
-        subtitle="המספרים האמיתיים של העסק — מתוך המערכות המחוברות"
-      />
-
-      {!hasData ? (
-        <Card>
-          <EmptyState
-            icon={<BarChart3 className="h-6 w-6" aria-hidden />}
-            title="עוד אין נתונים מסונכרנים"
-            subtitle="חברו את תוכנת החשבוניות, הסליקה או ה-CRM — והמחזור, הצפי והסטטיסטיקות יופיעו כאן לבד"
-            action={
-              <Link
-                href="/integrations"
-                className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-              >
-                לחיבור מערכות
-              </Link>
-            }
-          />
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {/* KPI row */}
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-            <Kpi
-              icon={<TrendingUp className="h-4 w-4 text-brand-500" aria-hidden />}
-              label="מחזור החודש"
-              value={`₪${Math.round(monthRevenue).toLocaleString()}`}
-            />
-            <Kpi
-              icon={<Gauge className="h-4 w-4 text-brand-500" aria-hidden />}
-              label={isPatur ? "מחזור שנתי מול תקרה" : "מחזור שנתי"}
-              value={`₪${Math.round(ytd).toLocaleString()}`}
-              sub={isPatur ? `${forecast.pctOfCeiling}% מהתקרה` : undefined}
-              warn={isPatur && forecast.pctOfCeiling >= 80}
-            />
-            <Kpi
-              icon={<FileText className="h-4 w-4 text-brand-500" aria-hidden />}
-              label="מסמכים החודש"
-              value={String(Math.round(monthDocs))}
-            />
-            <Kpi
-              icon={<Users className="h-4 w-4 text-brand-500" aria-hidden />}
-              label="לידים פתוחים"
-              value={String(openLeads)}
-            />
-          </div>
-
-          {/* ceiling progress for patur */}
-          {isPatur && ytd > 0 && (
-            <Card className="p-5">
-              <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="font-semibold text-ink">תקרת עוסק פטור {now.getUTCFullYear()}</span>
-                <span className="text-ink-muted">
-                  ₪{Math.round(ytd).toLocaleString()} / ₪
-                  {YEARLY_FIGURES.osekPaturCeiling.toLocaleString()}
-                </span>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-surface-3">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    forecast.pctOfCeiling >= 95
-                      ? "bg-status-overdue"
-                      : forecast.pctOfCeiling >= 80
-                        ? "bg-status-progress"
-                        : "bg-brand-600"
-                  }`}
-                  style={{ width: `${Math.min(100, forecast.pctOfCeiling)}%` }}
-                />
-              </div>
-              {forecast.reliable && (
-                <p className="mt-2 text-xs text-ink-muted">
-                  צפי לסוף השנה בקצב הנוכחי: ₪
-                  {forecast.runRateYearEnd.toLocaleString()} (
-                  {forecast.projectedPctOfCeiling}% מהתקרה)
-                  {forecast.projectedPctOfCeiling >= 100 &&
-                    " — כדאי להתחיל לתכנן מעבר לעוסק מורשה"}
-                </p>
-              )}
-            </Card>
-          )}
-
-          {/* revenue chart */}
-          <Card className="p-5">
-            <h2 className="mb-3 font-bold text-ink">מחזור חודשי</h2>
-            <RevenueChart points={points} />
-          </Card>
-
-          {/* customers + funnel */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {customers.length > 0 && (
-              <Card className="p-5">
-                <h2 className="mb-3 font-bold text-ink">לקוחות מובילים</h2>
-                <ul className="divide-y divide-edge-soft">
-                  {customers.map((c) => (
-                    <li key={c.customer_name} className="flex items-center gap-2 py-2">
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink">
-                        {c.customer_name}
-                      </span>
-                      <span className="text-sm font-semibold text-ink">
-                        ₪{Math.round(c.total).toLocaleString()}
-                      </span>
-                      <span className="text-xs text-ink-muted">({c.count})</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-            {funnel.length > 0 && (
-              <Card className="p-5">
-                <h2 className="mb-3 font-bold text-ink">משפך לידים</h2>
-                <ul className="flex flex-col gap-2">
-                  {["lead", "prospect", "customer", "lost"]
-                    .filter((s) => funnel.some((f) => f.stage === s))
-                    .map((stage) => {
-                      const count = funnel.find((f) => f.stage === stage)?.count ?? 0;
-                      const max = Math.max(...funnel.map((f) => f.count), 1);
-                      return (
-                        <li key={stage} className="flex items-center gap-2">
-                          <span className="w-24 shrink-0 text-xs text-ink-muted">
-                            {STAGE_LABELS[stage]}
-                          </span>
-                          <div className="h-4 flex-1 overflow-hidden rounded-md bg-surface-2">
-                            <div
-                              className="h-full rounded-md bg-brand-400/75"
-                              style={{ width: `${(count / max) * 100}%` }}
-                            />
-                          </div>
-                          <span className="w-8 shrink-0 text-left text-sm font-semibold text-ink">
-                            {count}
-                          </span>
-                        </li>
-                      );
-                    })}
-                </ul>
-              </Card>
-            )}
-          </div>
-
-          {/* errors */}
-          {errors.length > 0 && <ErrorsList errors={errors} />}
-
-          <p className="text-xs text-ink-faint">
-            הנתונים מגיעים מהמערכות שחיברת ב
-            <Link href="/integrations" className="text-brand-strong underline">
-              מסך האינטגרציות
-            </Link>
-            . ניהול שוטף של העסק נשאר במערכות המקור.
-          </p>
-        </div>
-      )}
-    </div>
+  const obligations = computeUpcomingObligations(
+    tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant, completion_data: t.completion_data })),
+    TEMPLATES_BY_ID,
+    documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
+    new Date(),
+    { entityType: business.entity_type, vatFrequency: answers?.vat_frequency, hasAccountant: Boolean(business.accountant_name) }
   );
-}
 
-function Kpi({
-  icon,
-  label,
-  value,
-  sub,
-  warn,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  warn?: boolean;
-}) {
   return (
-    <Card
-      className={`flex flex-col gap-0.5 px-3 py-3 ${warn ? "ring-1 ring-status-progress/40" : ""}`}
-    >
-      <span className="flex items-center gap-1.5 text-lg font-bold text-ink">
-        {icon}
-        {value}
-      </span>
-      <span className="text-[11px] font-medium text-ink-muted">{label}</span>
-      {sub && (
-        <span
-          className={`text-[11px] font-semibold ${warn ? "text-status-progress" : "text-ink-muted"}`}
-        >
-          {sub}
-        </span>
-      )}
-    </Card>
+    <div className="pb-24 md:pb-8">
+      <PageTitle title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
+
+      <div className="flex flex-col gap-4">
+        {/* readiness breakdown */}
+        <FadeIn>
+          <Card className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-section text-ink"><Gauge className="h-4.5 w-4.5 text-brand-400" aria-hidden />מוכנות לפי תחום</h2>
+              <span className="tnum text-sm text-ink-muted">ציון כולל <b className="text-ink">{score.overall}</b></span>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {CATEGORIES.filter((c) => scoreByCat.has(c.id)).map((c) => {
+                const s = scoreByCat.get(c.id)!;
+                return (
+                  <div key={c.id}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="text-ink-soft">{c.title}</span>
+                      <span className="tnum text-xs text-ink-muted">{s.done}/{s.total}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-3">
+                      <div className="h-full rounded-full bg-gradient-to-l from-brand-600 to-brand-400" style={{ width: `${s.score}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </FadeIn>
+
+        {/* trophy wall */}
+        <FadeIn>
+          <Card className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-section text-ink"><Trophy className="h-4.5 w-4.5 text-status-progress" aria-hidden />קיר ההישגים</h2>
+              <span className="tnum text-sm text-ink-muted">{earnedCount}/{badges.length}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {badges.map((b) => {
+                const Ic = ICONS[b.icon] ?? Sparkles;
+                return (
+                  <div
+                    key={b.id}
+                    className={`flex items-start gap-2.5 rounded-xl border p-3 ${
+                      b.earned ? "border-brand-edge bg-brand-tint/40" : "border-edge-soft bg-surface/30 opacity-60"
+                    }`}
+                  >
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${b.earned ? "bg-gradient-to-br from-brand-600 to-brand-400 text-white" : "bg-surface-2 text-ink-faint"}`}>
+                      {b.earned ? <Ic className="h-4 w-4" /> : <Lock className="h-3.5 w-3.5" />}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-ink">{b.title}</p>
+                      <p className="text-[11px] leading-tight text-ink-muted">{b.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {wins.length > 0 && (
+              <>
+                <p className="mb-2 mt-4 text-xs font-semibold text-ink-muted">נצחונות אחרונים</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {wins.slice(0, 10).map((w) => (
+                    <Link key={w.templateId} href={`/tasks/${w.templateId}`} className="inline-flex items-center gap-1 rounded-full border border-edge-soft bg-surface/40 px-2.5 py-1 text-xs text-ink-soft transition hover:border-brand-edge">
+                      <CheckCircle2 className="h-3 w-3 text-status-done" aria-hidden />
+                      {w.title}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </Card>
+        </FadeIn>
+
+        {/* costs */}
+        <FadeIn><CostsManager costs={costs} /></FadeIn>
+
+        {/* compliance timeline */}
+        {obligations.length > 0 && (
+          <FadeIn>
+            <Card className="p-5">
+              <h2 className="mb-3 flex items-center gap-2 text-section text-ink"><CalendarClock className="h-4.5 w-4.5 text-brand-400" aria-hidden />מה מתי — ציר המועדים</h2>
+              <div className="relative pr-4">
+                <span className="absolute bottom-1 right-[7px] top-1 w-px bg-edge" aria-hidden />
+                <div className="flex flex-col gap-3">
+                  {obligations.slice(0, 8).map((o) => (
+                    <div key={o.id} className="relative flex items-center gap-3">
+                      <span className={`absolute right-[-4px] h-2.5 w-2.5 rounded-full led ${o.daysUntil < 0 ? "text-status-overdue bg-status-overdue" : o.daysUntil <= 7 ? "text-status-progress bg-status-progress" : "text-brand-400 bg-brand-400"}`} />
+                      <div className="mr-4 flex min-w-0 flex-1 items-center justify-between gap-3">
+                        <span className="min-w-0 truncate text-sm text-ink-soft">{o.title}{o.periodLabel && <span className="text-ink-faint"> · {o.periodLabel}</span>}</span>
+                        <span className="tnum shrink-0 text-xs font-semibold text-ink">{new Date(o.dueDate + "T00:00:00").toLocaleDateString("he-IL")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Link href="/calendar" className="mt-3 inline-block text-xs font-medium text-brand-strong hover:opacity-80">ללוח החובות המלא ←</Link>
+            </Card>
+          </FadeIn>
+        )}
+      </div>
+    </div>
   );
 }

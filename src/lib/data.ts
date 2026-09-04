@@ -144,19 +144,26 @@ export interface OfferRow {
   url: string | null;
   coupon_code: string | null;
   commission_type: string | null;
+  is_featured?: boolean;
+  is_active?: boolean;
   sort_order: number;
 }
 
-/** Offers attached to a specific task template (shown inside the task screen). */
+const OFFER_COLS =
+  "id, template_id, category_id, title, description, cta_label, url, coupon_code, commission_type, is_featured, is_active, sort_order";
+
+/** Offers attached to a specific task template (shown inside the task screen).
+ *  Featured (paid) offers surface first. */
 export async function getOffersForTemplate(
   templateId: string
 ): Promise<OfferRow[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("offers")
-    .select("id, template_id, category_id, title, description, cta_label, url, coupon_code, commission_type, sort_order")
+    .select(OFFER_COLS)
     .eq("is_active", true)
     .eq("template_id", templateId)
+    .order("is_featured", { ascending: false })
     .order("sort_order");
   return (data ?? []) as OfferRow[];
 }
@@ -343,13 +350,64 @@ export async function getOpenSyncErrors(
   return (data ?? []) as SyncErrorRow[];
 }
 
-/** All active offers (for the Shop), newest-relevant first. */
+/** All active offers (for the Shop), featured first. */
 export async function getActiveOffers(): Promise<OfferRow[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("offers")
-    .select("id, template_id, category_id, title, description, cta_label, url, coupon_code, commission_type, sort_order")
+    .select(OFFER_COLS)
     .eq("is_active", true)
+    .order("is_featured", { ascending: false })
+    .order("sort_order");
+  return (data ?? []) as OfferRow[];
+}
+
+// ============ admin / marketplace management ============
+
+/** Is the current signed-in user on the admin allowlist? */
+export async function isAdmin(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export interface PartnerApplicationRow {
+  id: string;
+  created_at: string;
+  business_name: string;
+  contact_name: string;
+  email: string;
+  phone: string | null;
+  service_type: string;
+  tier: string;
+  website: string | null;
+  message: string | null;
+  status: string;
+}
+
+/** All partner applications (admin only — RLS enforces). */
+export async function getPartnerApplications(): Promise<PartnerApplicationRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("partner_applications")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data ?? []) as PartnerApplicationRow[];
+}
+
+/** Every offer regardless of active state (admin management view). */
+export async function getAllOffers(): Promise<OfferRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("offers")
+    .select(OFFER_COLS)
+    .order("is_active", { ascending: false })
     .order("sort_order");
   return (data ?? []) as OfferRow[];
 }

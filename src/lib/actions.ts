@@ -565,3 +565,94 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+// ============ partner marketplace ============
+
+/** Public: a business/professional applies to be listed. No auth required. */
+export async function submitPartnerApplication(input: {
+  businessName: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  serviceType: string;
+  tier: "free" | "featured";
+  website?: string;
+  message?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const businessName = input.businessName?.trim();
+  const contactName = input.contactName?.trim();
+  const email = input.email?.trim();
+  if (!businessName || !contactName || !email || !input.serviceType) {
+    return { ok: false, error: "נא למלא שם עסק, איש קשר, אימייל ותחום." };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("partner_applications").insert({
+    business_name: businessName,
+    contact_name: contactName,
+    email,
+    phone: input.phone?.trim() || null,
+    service_type: input.serviceType,
+    tier: input.tier === "featured" ? "featured" : "free",
+    website: input.website?.trim() || null,
+    message: input.message?.trim() || null,
+  });
+  if (error) return { ok: false, error: "השליחה נכשלה. נסו שוב." };
+  return { ok: true };
+}
+
+async function requireAdmin() {
+  const { supabase, user } = await requireUser();
+  const { data } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!data) redirect("/dashboard");
+  return { supabase, user };
+}
+
+export async function setApplicationStatus(id: string, status: "new" | "approved" | "rejected") {
+  const { supabase } = await requireAdmin();
+  await supabase.from("partner_applications").update({ status }).eq("id", id);
+  revalidatePath("/admin");
+}
+
+export async function setOfferActive(id: string, isActive: boolean) {
+  const { supabase } = await requireAdmin();
+  await supabase.from("offers").update({ is_active: isActive }).eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/", "layout");
+}
+
+export async function createOffer(input: {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  url?: string;
+  couponCode?: string;
+  templateId?: string;
+  categoryId?: string;
+  commissionType?: string;
+  isFeatured: boolean;
+  isActive: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { supabase } = await requireAdmin();
+  const title = input.title?.trim();
+  if (!title) return { ok: false, error: "כותרת חובה." };
+  const { error } = await supabase.from("offers").insert({
+    title,
+    description: input.description?.trim() || "",
+    cta_label: input.ctaLabel?.trim() || "לפרטים",
+    url: input.url?.trim() || null,
+    coupon_code: input.couponCode?.trim() || null,
+    template_id: input.templateId?.trim() || null,
+    category_id: input.categoryId?.trim() || null,
+    commission_type: input.commissionType?.trim() || null,
+    is_featured: input.isFeatured,
+    is_active: input.isActive,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

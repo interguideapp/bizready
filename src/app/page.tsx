@@ -52,7 +52,7 @@ export default function LandingPage() {
           <h1 className="text-4xl font-extrabold leading-tight text-ink md:text-5xl">
             פותחים עסק בישראל?
             <br />
-            <span className="text-brand-strong">אנחנו נדאג שלא תפספסו כלום.</span>
+            <span className="text-gradient">אנחנו נדאג שלא תפספסו כלום.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
             רישום ברשויות, מיסים, ביטוחים, נוכחות דיגיטלית — כל מה שעסק חדש
@@ -60,7 +60,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/login"
-            className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700"
+            className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand-600 to-brand-500 px-8 py-4 text-lg font-semibold text-white shadow-e-brand transition hover:opacity-95"
           >
             בנו לי תכנית לעסק — חינם
             <ArrowLeft className="h-5 w-5" aria-hidden />
@@ -74,7 +74,7 @@ export default function LandingPage() {
           {FEATURES.map(({ icon: Icon, title, text }) => (
             <div
               key={title}
-              className="rounded-2xl border border-edge/80 bg-surface/60 p-6"
+              className="panel rounded-card p-6"
             >
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
                 <Icon className="h-5 w-5" aria-hidden />
@@ -110,6 +110,12 @@ export default function LandingPage() {
       </main>
 
       <footer className="px-6 py-8">
+        <p className="mb-4 text-center text-sm text-ink-muted">
+          בעלי מקצוע ועסקים —{" "}
+          <Link href="/partners" className="font-semibold text-brand-strong hover:underline">
+            פרסמו את השירות שלכם ב-BizReady ←
+          </Link>
+        </p>
         <Disclaimer />
       </footer>
     </div>

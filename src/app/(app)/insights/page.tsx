@@ -84,12 +84,13 @@ export default async function InsightsPage() {
 
   return (
     <div className="pb-24 md:pb-8">
-      <PageTitle title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
+      <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
 
       <div className="flex flex-col gap-4">
+        <div className="grid gap-4 lg:grid-cols-2">
         {/* readiness breakdown */}
         <FadeIn>
-          <Card className="p-5">
+          <Card className="h-full p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-section text-ink"><Gauge className="h-4.5 w-4.5 text-brand-400" aria-hidden />מוכנות לפי תחום</h2>
               <span className="tnum text-sm text-ink-muted">ציון כולל <b className="text-ink">{score.overall}</b></span>
@@ -115,7 +116,7 @@ export default async function InsightsPage() {
 
         {/* trophy wall */}
         <FadeIn>
-          <Card className="p-5">
+          <Card className="h-full p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-section text-ink"><Trophy className="h-4.5 w-4.5 text-status-progress" aria-hidden />קיר ההישגים</h2>
               <span className="tnum text-sm text-ink-muted">{earnedCount}/{badges.length}</span>
@@ -156,6 +157,7 @@ export default async function InsightsPage() {
             )}
           </Card>
         </FadeIn>
+        </div>
 
         {/* costs */}
         <FadeIn><CostsManager costs={costs} /></FadeIn>
@@ -163,7 +165,7 @@ export default async function InsightsPage() {
         {/* compliance timeline */}
         {obligations.length > 0 && (
           <FadeIn>
-            <Card className="p-5">
+            <Card className="h-full p-5">
               <h2 className="mb-3 flex items-center gap-2 text-section text-ink"><CalendarClock className="h-4.5 w-4.5 text-brand-400" aria-hidden />מה מתי — ציר המועדים</h2>
               <div className="relative pr-4">
                 <span className="absolute bottom-1 right-[7px] top-1 w-px bg-edge" aria-hidden />

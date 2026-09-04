@@ -55,7 +55,7 @@ export default async function TasksPage({
 
   return (
     <div>
-      <PageTitle title="המשימות שלך" subtitle="לפי סדר החשיבות — מה לעשות עכשיו, ומה נפתח בהמשך" />
+      <PageTitle eyebrow="מפת הפעולה" title="המשימות שלך" subtitle="לפי סדר החשיבות — מה לעשות עכשיו, ומה נפתח בהמשך" />
 
       {/* what's important now */}
       {!activeCategory && importantNow.length > 0 && (

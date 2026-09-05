@@ -656,3 +656,33 @@ export async function createOffer(input: {
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+/** In-app lead: the business asks a partner to reach out. Logs a billable lead
+ *  with a snapshot of the business's own contact details. */
+export async function requestOfferLead(
+  offerId: string,
+  note?: string
+): Promise<{ ok: boolean }> {
+  const { supabase, user } = await requireUser();
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id, name, whatsapp_phone")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  if (!biz) return { ok: false };
+  const { data: offer } = await supabase
+    .from("offers")
+    .select("title")
+    .eq("id", offerId)
+    .maybeSingle();
+  const { error } = await supabase.from("partner_leads").insert({
+    business_id: biz.id,
+    offer_id: offerId,
+    partner_hint: offer?.title ?? null,
+    contact_name: biz.name,
+    contact_email: user.email ?? null,
+    contact_phone: biz.whatsapp_phone ?? null,
+    note: note?.trim() || null,
+  });
+  return { ok: !error };
+}

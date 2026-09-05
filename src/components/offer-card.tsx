@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Link2, Sparkles, Tag } from "lucide-react";
+import { OfferLeadButton } from "@/components/offer-lead-button";
 import type { OfferRow } from "@/lib/data";
 
 /**
@@ -54,17 +55,20 @@ export function OfferCard({
           </span>
         </p>
       )}
-      {offer.url && (
-        <a
-          href={`/api/offers/${offer.id}/click`}
-          target="_blank"
-          rel="noopener noreferrer sponsored"
-          className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
-        >
-          {offer.cta_label || "לפרטים"}
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-        </a>
-      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {offer.url && (
+          <a
+            href={`/api/offers/${offer.id}/click`}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-e-brand transition hover:opacity-95"
+          >
+            {offer.cta_label || "לפרטים"}
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+          </a>
+        )}
+        <OfferLeadButton offerId={offer.id} />
+      </div>
     </div>
   );
 }

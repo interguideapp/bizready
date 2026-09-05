@@ -401,6 +401,28 @@ export async function getPartnerApplications(): Promise<PartnerApplicationRow[]>
   return (data ?? []) as PartnerApplicationRow[];
 }
 
+export interface PartnerLeadRow {
+  id: string;
+  created_at: string;
+  offer_id: string | null;
+  partner_hint: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  note: string | null;
+  status: string;
+}
+
+/** All in-app partner leads (admin only — RLS enforces), newest first. */
+export async function getPartnerLeads(): Promise<PartnerLeadRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("partner_leads")
+    .select("id, created_at, offer_id, partner_hint, contact_name, contact_email, contact_phone, note, status")
+    .order("created_at", { ascending: false });
+  return (data ?? []) as PartnerLeadRow[];
+}
+
 /** Every offer regardless of active state (admin management view). */
 export async function getAllOffers(): Promise<OfferRow[]> {
   const supabase = await createClient();

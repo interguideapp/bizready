@@ -3,12 +3,15 @@ import { CalendarClock, Gauge } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
 import { TrophyWall } from "@/components/insights/trophy-wall";
+import { FinancePanels } from "@/components/finance/finance-panels";
+import type { MonthPoint } from "@/components/revenue-chart";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
   getBusiness,
   getBusinessTasks,
   getCosts,
   getDocuments,
+  getMetrics,
   getProducts,
   getTaskEvents,
 } from "@/lib/data";
@@ -20,7 +23,8 @@ import {
   computeStreak,
   computeWins,
 } from "@/lib/gamification";
-import type { OnboardingAnswers } from "@/lib/types";
+import { monthlyTotal } from "@/lib/costs";
+import { YEARLY_FIGURES, type OnboardingAnswers } from "@/lib/types";
 
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
@@ -59,6 +63,41 @@ export default async function InsightsPage() {
     { entityType: business.entity_type, vatFrequency: answers?.vat_frequency, hasAccountant: Boolean(business.accountant_name) }
   );
 
+  // finance panels — appear once real revenue is synced from invoicing
+  const now = new Date();
+  const year = now.getFullYear();
+  const metrics = await getMetrics(business.id, `${year - 1}-01-01`);
+  const revByMonth = new Map<string, number>();
+  for (const m of metrics) {
+    if (m.metric !== "revenue") continue;
+    const dt = new Date(m.metric_date + "T00:00:00");
+    const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+    revByMonth.set(key, (revByMonth.get(key) ?? 0) + m.value);
+  }
+  const monthly: MonthPoint[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthly.push({ year: dt.getFullYear(), month: dt.getMonth(), value: revByMonth.get(`${dt.getFullYear()}-${dt.getMonth()}`) ?? 0 });
+  }
+  const revenueYtd = metrics
+    .filter((m) => m.metric === "revenue" && m.metric_date.startsWith(String(year)))
+    .reduce((s, m) => s + m.value, 0);
+  const hasFinance = revenueYtd > 0;
+  const financeData = hasFinance
+    ? {
+        monthly,
+        entityType: business.entity_type,
+        ceiling: YEARLY_FIGURES.osekPaturCeiling,
+        revenueYtd,
+        latestMonthRevenue: revByMonth.get(`${now.getFullYear()}-${now.getMonth()}`) ?? 0,
+        monthlyCosts: costs.length ? monthlyTotal(costs) : 0,
+        nextPayments: obligations.slice(0, 3).map((o) => ({
+          title: o.title,
+          date: new Date(o.dueDate + "T00:00:00").toLocaleDateString("he-IL"),
+        })),
+      }
+    : null;
+
   return (
     <div className="pb-24 md:pb-8">
       <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
@@ -96,6 +135,9 @@ export default async function InsightsPage() {
           <TrophyWall badges={badges} wins={wins} />
         </FadeIn>
         </div>
+
+        {/* finance panels (when invoicing is connected) */}
+        {financeData && <FadeIn><FinancePanels d={financeData} /></FadeIn>}
 
         {/* costs */}
         <FadeIn><CostsManager costs={costs} /></FadeIn>

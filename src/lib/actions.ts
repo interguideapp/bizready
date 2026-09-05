@@ -6,6 +6,8 @@ import { TASK_TEMPLATES } from "@/lib/content";
 import { buildPlan, profileFromAnswers, reconcilePlan } from "@/lib/rules-engine";
 import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
+import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
+import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
 
 async function requireUser() {
@@ -558,6 +560,84 @@ export async function deleteCost(costId: string) {
   const { supabase, businessId } = await requireBusinessId();
   await supabase.from("business_costs").delete().eq("id", costId).eq("business_id", businessId);
   revalidatePath("/", "layout");
+}
+
+// ============ integrations ============
+
+/** Connect a provider. API providers are credential-tested first. */
+export async function createConnection(
+  provider: string,
+  creds: Record<string, string>,
+  fieldMap: Record<string, boolean>
+): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, businessId } = await requireBusinessId();
+  const adapter = PROVIDERS_BY_ID.get(provider);
+  if (!adapter) return { ok: false, error: "ספק לא מוכר" };
+  if (adapter.mode === "api" && adapter.testConnection) {
+    const test = await adapter.testConnection(creds);
+    if (!test.ok) return { ok: false, error: test.error ?? "החיבור נכשל — בדקו את המפתחות" };
+  }
+  const { error } = await supabase.from("integration_connections").insert({
+    business_id: businessId,
+    provider: adapter.id,
+    category: adapter.category,
+    mode: adapter.mode,
+    credentials: adapter.mode === "api" ? creds : {},
+    field_map: fieldMap ?? {},
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/integrations");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Manual pull for an api connection — runs on the owner session (no service role). */
+export async function syncConnectionNow(
+  connectionId: string
+): Promise<{ ok: boolean; error?: string; inserted?: number }> {
+  const { supabase, businessId } = await requireBusinessId();
+  const { data: conn } = await supabase
+    .from("integration_connections")
+    .select("*")
+    .eq("id", connectionId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (!conn) return { ok: false, error: "החיבור לא נמצא" };
+  const adapter = PROVIDERS_BY_ID.get(conn.provider);
+  if (!adapter?.pull) return { ok: false, error: "סנכרון ידני זמין לחיבורי API בלבד" };
+  try {
+    const since = conn.last_sync_at ? String(conn.last_sync_at).slice(0, 10) : null;
+    const batch = await adapter.pull(
+      conn.credentials as Record<string, string>,
+      since,
+      (conn.field_map ?? {}) as Record<string, boolean>
+    );
+    const res = await executeBatch(
+      supabase,
+      { id: conn.id, business_id: businessId, provider: conn.provider, label: adapter.label, category: conn.category },
+      batch
+    );
+    revalidatePath("/integrations");
+    revalidatePath("/", "layout");
+    return { ok: true, inserted: res.inserted };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "הסנכרון נכשל";
+    await supabase
+      .from("integration_connections")
+      .update({ status: "error", last_error: message })
+      .eq("id", conn.id);
+    return { ok: false, error: message };
+  }
+}
+
+export async function disconnectConnection(connectionId: string) {
+  const { supabase, businessId } = await requireBusinessId();
+  await supabase
+    .from("integration_connections")
+    .update({ status: "disabled" })
+    .eq("id", connectionId)
+    .eq("business_id", businessId);
+  revalidatePath("/integrations");
 }
 
 export async function signOut() {

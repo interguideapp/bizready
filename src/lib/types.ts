@@ -42,6 +42,9 @@ export interface OnboardingAnswers {
   uses_vehicle: boolean;
   has_website: boolean;
   plans_employees: boolean;
+  /** Wants marketing/growth help — gates the optional marketing cluster so a
+   *  compliance-only user isn't flooded. Defaults to true for existing users. */
+  wants_marketing: boolean;
   /** Only meaningful when plans_employees is true. */
   employee_work_mode: EmployeeWorkMode;
   /**
@@ -133,6 +136,7 @@ export type AppliesWhen = Partial<{
   uses_vehicle: boolean;
   has_website: boolean;
   plans_employees: boolean;
+  wants_marketing: boolean;
 }>;
 
 /**

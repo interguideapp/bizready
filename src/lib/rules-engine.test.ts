@@ -25,6 +25,7 @@ const cosmetician: OnboardingAnswers = {
   has_website: false,
   plans_employees: false,
   employee_work_mode: "on_site",
+  wants_marketing: true,
   already_done: [],
 };
 
@@ -44,6 +45,7 @@ const onlineShop: OnboardingAnswers = {
   has_website: true,
   plans_employees: false,
   employee_work_mode: "on_site",
+  wants_marketing: true,
   already_done: ["open-vat-file", "build-website", "buy-domain"],
 };
 
@@ -147,6 +149,18 @@ describe("buildPlan", () => {
     expect(ids).not.toContain("business-license"); // מסחר אונליין
     expect(ids).not.toContain("third-party-insurance"); // לא מקבל קהל
     expect(ids).not.toContain("google-business-profile"); // אונליין בלבד
+  });
+
+  it("marketing tasks appear only when the user wants marketing help", () => {
+    const withMkt = buildPlan({ ...cosmetician, wants_marketing: true }, TASK_TEMPLATES).map((t) => t.template_id);
+    const noMkt = buildPlan({ ...cosmetician, wants_marketing: false }, TASK_TEMPLATES).map((t) => t.template_id);
+    expect(withMkt).toContain("target-audience");
+    expect(withMkt).toContain("basic-branding");
+    expect(noMkt).not.toContain("target-audience");
+    expect(noMkt).not.toContain("basic-branding");
+    // compliance basics stay regardless of the marketing preference
+    expect(noMkt).toContain("open-vat-file");
+    expect(noMkt).toContain("pricing");
   });
 
   it("the two personas get clearly different plans", () => {
@@ -276,6 +290,20 @@ describe("reconcilePlan", () => {
     );
     expect(switched.toFlagIrrelevant).toContain("patur-ceiling-watch");
     expect(switched.toAdd.map((t) => t.template_id)).toContain("vat-reporting");
+  });
+
+  it("flags marketing tasks irrelevant when marketing help is turned off, and back", () => {
+    const before = buildPlan({ ...cosmetician, wants_marketing: true }, TASK_TEMPLATES);
+    const existing = before.map((t) => ({ template_id: t.template_id, is_relevant: true }));
+    const off = reconcilePlan({ ...cosmetician, wants_marketing: false }, TASK_TEMPLATES, existing);
+    expect(off.toFlagIrrelevant).toContain("target-audience");
+    // turning it back on re-adds them
+    const back = reconcilePlan(
+      { ...cosmetician, wants_marketing: true },
+      TASK_TEMPLATES,
+      existing.map((e) => ({ ...e, is_relevant: e.template_id === "target-audience" ? false : e.is_relevant }))
+    );
+    expect(back.toFlagRelevant).toContain("target-audience");
   });
 
   it("template dependencies all reference existing templates", () => {

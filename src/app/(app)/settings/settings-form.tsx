@@ -121,10 +121,16 @@ const TOGGLES: { key: keyof OnboardingAnswers; label: string }[] = [
   { key: "uses_vehicle", label: "משתמש/ת ברכב לעסק" },
   { key: "has_website", label: "יש אתר אינטרנט" },
   { key: "plans_employees", label: "מתכנן/ת להעסיק עובדים" },
+  { key: "wants_marketing", label: "עזרה בשיווק והבאת לקוחות" },
 ];
 
 export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
-  const [values, setValues] = useState<OnboardingAnswers>(answers);
+  // existing users predate wants_marketing — default to true so their marketing
+  // tasks don't silently disappear on the next reconcile.
+  const [values, setValues] = useState<OnboardingAnswers>({
+    ...answers,
+    wants_marketing: answers.wants_marketing ?? true,
+  });
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
   const dirty = JSON.stringify(values) !== JSON.stringify(answers);

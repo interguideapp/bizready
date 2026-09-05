@@ -38,7 +38,7 @@ const STEPS: Step[] = [
   { id: "location", title: "מאיפה העסק פועל?", isValid: (d) => !!d.work_location },
   { id: "channels", title: "איך אתם מוכרים ולמי?", isValid: (d) => !!d.sales_channel && !!d.client_type },
   { id: "product", title: "מה אתם מוכרים?", subtitle: "קובע אם צריך חנות, משלוחים או ניהול מלאי", isValid: (d) => !!d.product_type },
-  { id: "details", title: "עוד כמה שאלות קצרות", subtitle: "כן/לא — כל תשובה מדייקת את התכנית", isValid: (d) => d.hosts_clients !== undefined && d.collects_personal_data !== undefined && d.uses_vehicle !== undefined && d.has_website !== undefined && d.plans_employees !== undefined },
+  { id: "details", title: "עוד כמה שאלות קצרות", subtitle: "כן/לא — כל תשובה מדייקת את התכנית", isValid: (d) => d.hosts_clients !== undefined && d.collects_personal_data !== undefined && d.uses_vehicle !== undefined && d.has_website !== undefined && d.plans_employees !== undefined && d.wants_marketing !== undefined },
   { id: "employees", title: "איפה העובדים יעבדו?", subtitle: "רלוונטי לרישום נוכחות ולתנאי העסקה", isValid: (d) => !d.plans_employees || !!d.employee_work_mode },
   { id: "already", title: "מה כבר סידרתם?", subtitle: "נסמן כהושלם — הציון שלכם יתחיל מהמקום האמיתי", isValid: () => true },
 ];
@@ -97,6 +97,7 @@ export function OnboardingWizard() {
       uses_vehicle: draft.uses_vehicle!,
       has_website: draft.has_website!,
       plans_employees: draft.plans_employees!,
+      wants_marketing: draft.wants_marketing!,
       employee_work_mode: draft.plans_employees
         ? draft.employee_work_mode ?? "on_site"
         : "on_site",
@@ -312,6 +313,7 @@ export function OnboardingWizard() {
                 <YesNo label="משתמשים ברכב לצורכי העסק?" value={draft.uses_vehicle} onChange={(v) => set("uses_vehicle", v)} />
                 <YesNo label="יש כבר אתר אינטרנט לעסק?" value={draft.has_website} onChange={(v) => set("has_website", v)} />
                 <YesNo label="מתכננים להעסיק עובדים בשנה הקרובה?" value={draft.plans_employees} onChange={(v) => set("plans_employees", v)} />
+                <YesNo label="רוצים גם עזרה בשיווק והבאת לקוחות?" value={draft.wants_marketing} onChange={(v) => set("wants_marketing", v)} />
               </div>
             )}
 

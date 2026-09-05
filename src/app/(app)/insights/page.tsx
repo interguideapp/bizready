@@ -1,23 +1,8 @@
 import Link from "next/link";
-import {
-  BadgeCheck,
-  CalendarClock,
-  CheckCircle2,
-  FileCheck2,
-  Flame,
-  FolderCheck,
-  Footprints,
-  Gauge,
-  Landmark,
-  Lock,
-  Rocket,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
+import { CalendarClock, Gauge } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
+import { TrophyWall } from "@/components/insights/trophy-wall";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
   getBusiness,
@@ -34,15 +19,9 @@ import {
   computeBadges,
   computeStreak,
   computeWins,
-  computeXp,
-  levelFromXp,
 } from "@/lib/gamification";
 import type { OnboardingAnswers } from "@/lib/types";
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  Footprints, Landmark, Rocket, FileCheck2, FolderCheck, BadgeCheck,
-  ShieldCheck, Flame, TrendingUp, Trophy, Sparkles,
-};
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
 export default async function InsightsPage() {
@@ -61,7 +40,6 @@ export default async function InsightsPage() {
   const profile = computeProfileCompleteness(business, { products: products.length, documents: documents.length });
 
   const gamiTasks = tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant, completed_at: t.completed_at }));
-  const level = levelFromXp(computeXp(gamiTasks, TEMPLATES_BY_ID));
   const streak = computeStreak(events.map((e) => ({ kind: e.kind, created_at: e.created_at })));
   const wins = computeWins(gamiTasks, TEMPLATES_BY_ID);
   const badges = computeBadges({
@@ -72,7 +50,6 @@ export default async function InsightsPage() {
     documentsCount: documents.length,
     streak,
   });
-  const earnedCount = badges.filter((b) => b.earned).length;
 
   const obligations = computeUpcomingObligations(
     tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant, completion_data: t.completion_data })),
@@ -116,46 +93,7 @@ export default async function InsightsPage() {
 
         {/* trophy wall */}
         <FadeIn>
-          <Card className="h-full p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-section text-ink"><Trophy className="h-4.5 w-4.5 text-status-progress" aria-hidden />קיר ההישגים</h2>
-              <span className="tnum text-sm text-ink-muted">{earnedCount}/{badges.length}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {badges.map((b) => {
-                const Ic = ICONS[b.icon] ?? Sparkles;
-                return (
-                  <div
-                    key={b.id}
-                    className={`flex items-start gap-2.5 rounded-xl border p-3 ${
-                      b.earned ? "border-brand-edge bg-brand-tint/40" : "border-edge-soft bg-surface/30 opacity-60"
-                    }`}
-                  >
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${b.earned ? "bg-gradient-to-br from-brand-600 to-brand-400 text-white" : "bg-surface-2 text-ink-faint"}`}>
-                      {b.earned ? <Ic className="h-4 w-4" /> : <Lock className="h-3.5 w-3.5" />}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-ink">{b.title}</p>
-                      <p className="text-[11px] leading-tight text-ink-muted">{b.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {wins.length > 0 && (
-              <>
-                <p className="mb-2 mt-4 text-xs font-semibold text-ink-muted">נצחונות אחרונים</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {wins.slice(0, 10).map((w) => (
-                    <Link key={w.templateId} href={`/tasks/${w.templateId}`} className="inline-flex items-center gap-1 rounded-full border border-edge-soft bg-surface/40 px-2.5 py-1 text-xs text-ink-soft transition hover:border-brand-edge">
-                      <CheckCircle2 className="h-3 w-3 text-status-done" aria-hidden />
-                      {w.title}
-                    </Link>
-                  ))}
-                </div>
-              </>
-            )}
-          </Card>
+          <TrophyWall badges={badges} wins={wins} />
         </FadeIn>
         </div>
 

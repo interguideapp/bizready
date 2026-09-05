@@ -12,7 +12,7 @@ import {
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [passwordState, setPasswordState] = useState<"idle" | "submitting">("idle");
@@ -47,9 +47,17 @@ export default function LoginPage() {
 
   async function submitUsernamePassword(e: React.FormEvent) {
     e.preventDefault();
-    const normalizedUsername = normalizeUsername(username);
-    if (!isValidUsername(normalizedUsername)) {
-      setErrorMsg("שם המשתמש צריך להכיל 3–30 תווים באנגלית, מספרים, מקף או קו תחתון.");
+    const raw = identifier.trim();
+    const isEmail = raw.includes("@");
+
+    if (isEmail) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw)) {
+        setErrorMsg("כתובת אימייל לא תקינה.");
+        setState("error");
+        return;
+      }
+    } else if (!isValidUsername(normalizeUsername(raw))) {
+      setErrorMsg("שם המשתמש צריך 3–30 תווים באנגלית, מספרים, מקף או קו תחתון.");
       setState("error");
       return;
     }
@@ -62,23 +70,28 @@ export default function LoginPage() {
     setPasswordState("submitting");
     setState("idle");
     setErrorMsg("");
+    const loginEmail = isEmail ? raw.toLowerCase() : usernameToInternalEmail(normalizeUsername(raw));
     try {
       if (mode === "register") {
+        const payload = isEmail
+          ? { email: raw, password }
+          : { username: normalizeUsername(raw), password };
         const response = await fetch("/api/auth/username-register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: normalizedUsername, password }),
+          body: JSON.stringify(payload),
         });
         const result = (await response.json()) as { error?: string };
-        if (!response.ok) throw new Error(result.error ?? "Could not create this account.");
+        if (!response.ok) throw new Error(result.error ?? "ההרשמה נכשלה.");
       }
 
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email: usernameToInternalEmail(normalizedUsername),
-        password,
-      });
-      if (error) throw new Error("שם המשתמש או הסיסמה שגויים.");
+      const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+      if (error) {
+        throw new Error(
+          mode === "register" ? "החשבון נוצר, אך הכניסה נכשלה. נסו להתחבר." : "הפרטים שגויים."
+        );
+      }
       // The protected app layout sends first-time users to onboarding while
       // returning users continue to their dashboard.
       location.assign("/dashboard");
@@ -168,14 +181,14 @@ export default function LoginPage() {
                 <button type="button" onClick={() => setMode("register")} className={`flex-1 rounded-md px-2 py-1.5 ${mode === "register" ? "bg-card text-ink shadow-sm" : "text-ink-muted"}`}>הרשמה</button>
               </div>
               <form onSubmit={submitUsernamePassword} className="flex flex-col gap-3">
-                <input type="text" required minLength={3} maxLength={30} autoComplete="username" dir="ltr" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
+                <input type="text" required autoComplete="username" dir="ltr" placeholder="שם משתמש או אימייל" value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 text-left outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
                 <input type="password" required minLength={12} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder="סיסמה (12 תווים לפחות)" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-edge-strong px-4 py-3 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge" />
                 <button type="submit" disabled={passwordState === "submitting"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-4 py-3 font-semibold text-white shadow-e-brand transition hover:opacity-95 disabled:opacity-60">
                   {passwordState === "submitting" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <KeyRound className="h-4 w-4" aria-hidden />}
                   {mode === "register" ? "יצירת חשבון" : "כניסה"}
                 </button>
               </form>
-              <p className="mt-3 text-center text-xs text-ink-muted">לא נדרשת כתובת אימייל או אימות במייל.</p>
+              <p className="mt-3 text-center text-xs text-ink-muted">אפשר עם שם משתמש או עם אימייל — בלי אימות במייל.</p>
             </div>
 
             <div className="my-5 flex items-center gap-3 text-xs text-ink-faint">

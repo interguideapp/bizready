@@ -234,7 +234,16 @@ export const DEFAULT_COMPLETION: CompletionSpec = {
   ],
 };
 
-/** Yearly-updated legal figures, kept in one place (verified 2026-07-18). */
+/**
+ * Yearly-updated legal figures, kept in one place.
+ * Re-verified 2026-09-05 against official/industry sources:
+ * - osek-patur ceiling ₪122,833 (2026) — bizportal / N12 / iCount / כל-זכות.
+ * - חשבוניות-ישראל allocation threshold ₪5,000 before VAT, from 2026-06-01
+ *   (stepped down from ₪25,000) — GreenInvoice / invoice4u / Baker Tilly.
+ *   Applies to עוסק מורשה only; עוסק פטור issues receipts, so it's exempt.
+ * Note: Israel VAT has been 18% since 2025-01-01 — the app never states a VAT
+ * rate, and the tax set-aside is a labeled estimate, so nothing depends on it.
+ */
 export const YEARLY_FIGURES = {
   year: 2026,
   /** תקרת עוסק פטור */

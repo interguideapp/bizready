@@ -14,6 +14,7 @@ import {
   FolderCheck,
   Footprints,
   Landmark,
+  Lock,
   Rocket,
   ShieldCheck,
   Sparkles,
@@ -26,7 +27,6 @@ import {
 import { Card, FadeIn } from "@/components/ui";
 import { CategoryIcon } from "@/components/category-icon";
 import { fadeUp, spring, stagger } from "@/lib/motion";
-import type { TaskPriority } from "@/lib/types";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Footprints, Landmark, Rocket, FileCheck2, FolderCheck, BadgeCheck,
@@ -40,7 +40,7 @@ function Ic({ name, className }: { name: string; className?: string }) {
 export type ConfidenceState = "at_risk" | "on_track" | "covered";
 
 export interface DashStage { id: string; title: string; done: number; total: number; }
-export interface DashPriority { templateId: string; title: string; icon: string; priority: TaskPriority; categoryTitle: string; unlocks: number; }
+export interface DashStep { templateId: string; title: string; icon: string; categoryTitle: string; locked: boolean; blockedByTitle: string | null; }
 
 export interface DashboardData {
   businessName: string;
@@ -56,7 +56,8 @@ export interface DashboardData {
   profilePercent: number;
   monthlyCost: number | null;
   stages: DashStage[];
-  priorities: DashPriority[];
+  pathSteps: DashStep[];
+  asideSteps: DashStep[];
   recentWins: { templateId: string; title: string }[];
   earnedBadges: { id: string; title: string; icon: string }[];
   badgeTotal: number;
@@ -83,7 +84,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
         <motion.div variants={fadeUp} initial="hidden" animate="show">
           <p className="text-sm font-medium text-ink-muted">{data.businessName}</p>
           <h1
-            className="mt-1 text-[clamp(2rem,1.4rem+2.6vw,3.1rem)] font-extrabold leading-[1.06] tracking-tight"
+            className="mt-1 text-[clamp(1.85rem,1.2rem+2.1vw,2.7rem)] font-extrabold leading-[1.1] tracking-tight text-balance"
             style={risk ? { color: "var(--status-overdue)" } : { background: AURORA, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}
           >
             {data.confidence.headline}
@@ -121,7 +122,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
             <Reactor score={data.scoreOverall} />
             <div className="relative min-w-0 flex-1">
               <p className="eyebrow">רמה {data.level.level} · מתוך 5</p>
-              <p className="mt-1 text-[22px] font-extrabold text-gradient">{data.level.title}</p>
+              <p className="mt-1 text-[17px] font-bold leading-tight text-gradient">{data.level.title}</p>
               <div className="mt-3.5">
                 <div className="mb-1.5 flex items-center justify-between text-[11px]">
                   <span className="text-ink-muted">{data.level.nextTitle ? "לרמה הבאה" : "הרמה הגבוהה ביותר"}</span>
@@ -214,25 +215,23 @@ export function DashboardView({ data }: { data: DashboardData }) {
       <div className="mb-4 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <FadeIn>
           <Card className="h-full p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-section text-ink"><Zap className="h-4.5 w-4.5 text-brand-400" aria-hidden />מה חשוב עכשיו</h2>
-            {data.priorities.length === 0 ? (
-              <p className="text-sm text-ink-muted">כל המשימות הפעילות טופלו — יופי.</p>
+            <h2 className="mb-4 flex items-center gap-2 text-section text-ink"><Zap className="h-4.5 w-4.5 text-brand-400" aria-hidden />הצעדים הבאים</h2>
+            {data.pathSteps.length === 0 ? (
+              <p className="text-sm text-ink-muted">כל שלבי ההקמה טופלו — יופי.</p>
             ) : (
               <div className="flex flex-col gap-2.5">
-                {data.priorities.map((p, i) => (
-                  <Link key={p.templateId} href={`/tasks/${p.templateId}`} className={`group flex items-center gap-3 rounded-2xl p-3.5 transition ${i === 0 ? "border border-brand-edge bg-brand-tint/40" : "border border-edge-soft hover:border-brand-edge"}`}>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
-                      <CategoryIcon name={p.icon} className="h-4.5 w-4.5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-ink">{p.title}</p>
-                      <p className="text-[11.5px] text-ink-muted">{p.categoryTitle} · {p.priority === "critical" ? "קריטי" : p.priority === "important" ? "חשוב" : "מומלץ"}</p>
-                    </div>
-                    {p.unlocks > 0 && <span className="tnum shrink-0 rounded-full bg-brand-strong px-2 py-0.5 text-[10px] font-bold text-surface">פותח {p.unlocks}</span>}
-                    <ArrowLeft className="h-4 w-4 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />
-                  </Link>
+                {data.pathSteps.map((p, i) => (
+                  <StepRow key={p.templateId} step={p} lead={i === 0 && !p.locked} />
                 ))}
               </div>
+            )}
+            {data.asideSteps.length > 0 && (
+              <>
+                <p className="eyebrow mb-2.5 mt-5">על הדרך · אפשר גם עכשיו</p>
+                <div className="flex flex-col gap-2">
+                  {data.asideSteps.map((a) => <StepRow key={a.templateId} step={a} />)}
+                </div>
+              </>
             )}
           </Card>
         </FadeIn>
@@ -271,8 +270,32 @@ export function DashboardView({ data }: { data: DashboardData }) {
   );
 }
 
+function StepRow({ step, lead }: { step: DashStep; lead?: boolean }) {
+  if (step.locked) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-edge-soft/70 p-3 opacity-70">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-faint"><Lock className="h-4 w-4" aria-hidden /></span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-ink-soft">{step.title}</p>
+          <p className="truncate text-[11px] text-ink-faint">{step.blockedByTitle ? `יפתח אחרי: ${step.blockedByTitle}` : step.categoryTitle}</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <Link href={`/tasks/${step.templateId}`} className={`group flex items-center gap-3 rounded-2xl p-3.5 transition ${lead ? "border border-brand-edge bg-brand-tint/40" : "border border-edge-soft hover:border-brand-edge"}`}>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-strong"><CategoryIcon name={step.icon} className="h-4.5 w-4.5" /></span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-ink">{step.title}</p>
+        <p className="truncate text-[11px] text-ink-muted">{step.categoryTitle}</p>
+      </div>
+      <ArrowLeft className="h-4 w-4 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />
+    </Link>
+  );
+}
+
 function Reactor({ score }: { score: number }) {
-  const size = 132, stroke = 10, r = (size - stroke) / 2 - 4, c = 2 * Math.PI * r;
+  const size = 118, stroke = 9, r = (size - stroke) / 2 - 4, c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, score)) / 100;
   return (
     <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
@@ -283,7 +306,7 @@ function Reactor({ score }: { score: number }) {
         <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#reactor)" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - pct) }} transition={spring} style={{ filter: "drop-shadow(0 0 11px var(--accent-glow))" }} />
       </svg>
       <span className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="tnum text-[42px] font-bold leading-none text-ink">{Math.round(score)}</span>
+        <span className="tnum text-[34px] font-bold leading-none text-ink">{Math.round(score)}</span>
         <span className="eyebrow mt-1.5">מוכנות</span>
       </span>
     </span>

@@ -161,20 +161,47 @@ export default async function DashboardPage() {
     .slice(0, 3)
     .map((o) => ({ templateId: o.templateId ?? "calendar", title: o.title, daysUntil: o.daysUntil }));
 
-  // priorities — most important actionable tasks, excluding the hero's one thing
-  const priorities = journey.nodes
+  // Split the forward work into the critical PATH (the registration/tax spine,
+  // shown in stage + dependency order even when a step is still locked, so the
+  // true next direction is always visible) and "על הדרך" — available side tasks
+  // you can knock out anytime without blocking progress.
+  const STAGE_ORDER: Record<string, number> = { setup: 0, operating: 1, growth: 2 };
+  const catIcon = (id: string) => CATEGORIES_BY_ID.get(id)?.icon ?? "Circle";
+  const catTitle = (id: string) => CATEGORIES_BY_ID.get(id)?.title ?? "";
+  const onPath = (n: (typeof journey.nodes)[number]) => {
+    const stg = stageOf(n.categoryId);
+    return (
+      stg === "setup" ||
+      n.categoryId === "tax" ||
+      n.categoryId === "employment" ||
+      isStatutoryFiling(n.templateId) ||
+      (n.categoryId === "finance" && n.priority === "critical")
+    );
+  };
+  const notDone = journey.nodes.filter((n) => n.state !== "done" && n.templateId !== oneThingId);
+  const toStep = (n: (typeof journey.nodes)[number]) => ({
+    templateId: n.templateId,
+    title: n.title,
+    icon: catIcon(n.categoryId),
+    categoryTitle: catTitle(n.categoryId),
+    locked: n.state === "locked",
+    blockedByTitle: n.blockedBy[0] ?? null,
+  });
+  const pathSteps = notDone
+    .filter(onPath)
+    .sort(
+      (a, b) =>
+        (STAGE_ORDER[stageOf(a.categoryId)] ?? 1) - (STAGE_ORDER[stageOf(b.categoryId)] ?? 1) ||
+        (TEMPLATES_BY_ID.get(a.templateId)?.sort_order ?? 0) - (TEMPLATES_BY_ID.get(b.templateId)?.sort_order ?? 0)
+    )
+    .slice(0, 4)
+    .map(toStep);
+  const asideSteps = notDone
+    .filter((n) => !onPath(n) && n.state !== "locked")
     .map((n) => ({ n, s: taskImportance(n, dueByTemplate.get(n.templateId) ?? null, today, stageOf(n.categoryId)) }))
-    .filter((x) => x.s > 0 && x.n.templateId !== oneThingId)
     .sort((a, b) => b.s - a.s)
     .slice(0, 3)
-    .map((x) => ({
-      templateId: x.n.templateId,
-      title: x.n.title,
-      icon: CATEGORIES_BY_ID.get(x.n.categoryId)?.icon ?? "Circle",
-      priority: x.n.priority,
-      categoryTitle: CATEGORIES_BY_ID.get(x.n.categoryId)?.title ?? "",
-      unlocks: x.n.unlocks.length,
-    }));
+    .map((x) => toStep(x.n));
 
   const data: DashboardData = {
     businessName: business.name,
@@ -198,7 +225,8 @@ export default async function DashboardPage() {
     profilePercent: profile.percent,
     monthlyCost: costs.length > 0 ? monthlyTotal(costs) : null,
     stages,
-    priorities,
+    pathSteps,
+    asideSteps,
     recentWins: wins.slice(0, 6).map((w) => ({ templateId: w.templateId, title: w.title })),
     earnedBadges: badges.map((b) => ({ id: b.id, title: b.title, icon: b.icon })),
     badgeTotal: allBadges.length,

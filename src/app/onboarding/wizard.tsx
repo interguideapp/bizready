@@ -321,7 +321,9 @@ export function OnboardingWizard() {
 
             {step.id === "already" && (
               <div className="flex flex-col gap-2">
-                {ALREADY_DONE_OPTIONS.map((opt) => {
+                {ALREADY_DONE_OPTIONS.filter(
+                  (opt) => !opt.entities || !draft.entity_type || opt.entities.includes(draft.entity_type)
+                ).map((opt) => {
                   const selected = draft.already_done?.includes(opt.id);
                   return (
                     <button

@@ -60,6 +60,20 @@ describe("computeAttention", () => {
     const a = computeAttention([], nodes, new Map(), today, stageOf);
     expect(a.nextTemplateId).toBe("register-business");
   });
+
+  it("never surfaces an obligation whose task is still locked (prereqs unmet)", () => {
+    // income-tax advances is due soon, but the tax file isn't open yet
+    const obs: AttentionObligation[] = [
+      { templateId: "income-tax-advances", title: "מקדמות מס הכנסה", dueDate: "2026-09-23", daysUntil: 3, basis: "statutory", periodLabel: null },
+    ];
+    const nodes = [
+      node({ templateId: "income-tax-advances", state: "locked", priority: "important" }),
+      node({ templateId: "open-vat-file", state: "next", priority: "critical" }),
+    ];
+    const a = computeAttention(obs, nodes, new Map(), today);
+    expect(a.urgent).toBeNull(); // locked → not something you can act on now
+    expect(a.nextTemplateId).toBe("open-vat-file"); // the real next step surfaces
+  });
 });
 
 describe("taskImportance stage weighting", () => {

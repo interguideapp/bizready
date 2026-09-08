@@ -85,10 +85,16 @@ export function computeAttention(
   today: string,
   stageOf?: (categoryId: string) => Stage
 ): Attention {
-  // urgent = the highest-urgency dated obligation, only if it's actually urgent
+  // The dependency graph is the single source of truth: an obligation is only
+  // "pressing" if you can actually act on it now. A dated task whose
+  // prerequisites aren't done (its journey node is locked) is NEVER urgent —
+  // e.g. "income-tax advances" never shows before the tax file is even opened.
+  const blocked = new Set(
+    nodes.filter((n) => n.state === "locked").map((n) => n.templateId)
+  );
   const rankedOb = obligations
     .map((o) => ({ o, u: obligationUrgency(o) }))
-    .filter((x) => x.u > 0)
+    .filter((x) => x.u > 0 && !(x.o.templateId != null && blocked.has(x.o.templateId)))
     .sort((a, b) => b.u - a.u);
   const urgent = rankedOb[0]?.o ?? null;
 

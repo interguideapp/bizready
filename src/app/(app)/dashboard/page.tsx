@@ -101,10 +101,20 @@ export default async function DashboardPage() {
     new Date(),
     { entityType: business.entity_type, vatFrequency: answers?.vat_frequency, hasAccountant: Boolean(business.accountant_name) }
   );
+  // One truth: the dependency graph gates what's shown. An obligation whose task
+  // is still locked (prerequisites not done) is not something you can act on yet,
+  // so it never appears as "pressing" or as an upcoming deadline on the dashboard.
+  const lockedIds = new Set(
+    journey.nodes.filter((n) => n.state === "locked").map((n) => n.templateId)
+  );
+  const actionableObligations = obligations.filter(
+    (o) => !(o.templateId != null && lockedIds.has(o.templateId))
+  );
+
   // unified attention: the single most pressing dated item + the most important next task
   const dueByTemplate = new Map(tasks.map((t) => [t.template_id, t.due_date]));
   const attention = computeAttention(
-    obligations.map((o) => ({
+    actionableObligations.map((o) => ({
       templateId: o.templateId,
       title: o.title,
       dueDate: o.dueDate,
@@ -148,7 +158,7 @@ export default async function DashboardPage() {
     urgent: urgent
       ? { templateId: urgent.templateId ?? "calendar", title: urgent.title, dueDate: urgent.dueDate, daysUntil: urgent.daysUntil, periodLabel: urgent.periodLabel }
       : null,
-    upcoming: obligations.slice(0, 4).map((o) => ({
+    upcoming: actionableObligations.slice(0, 4).map((o) => ({
       templateId: o.templateId ?? "calendar",
       title: o.title,
       dueDate: o.dueDate,

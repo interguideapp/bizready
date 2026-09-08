@@ -24,7 +24,7 @@ import {
 } from "@/lib/gamification";
 import { monthlyTotal } from "@/lib/costs";
 import { DashboardView, type DashboardData } from "@/components/dashboard/dashboard-view";
-import type { OnboardingAnswers } from "@/lib/types";
+import { YEARLY_FIGURES, type OnboardingAnswers } from "@/lib/types";
 
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 const stageOf = (categoryId: string): Stage => (STAGE_OF.get(categoryId) as Stage) ?? "operating";
@@ -55,6 +55,17 @@ export default async function DashboardPage() {
 
   const answers = business.onboarding_answers as OnboardingAnswers;
   const score = computeScore(tasks, TEMPLATES_BY_ID);
+
+  // money signal — income logged (or synced) this year drives set-aside + ceiling
+  const REVENUE_METRICS = new Set(["revenue", "manual_revenue"]);
+  const thisMonthPrefix = new Date().toISOString().slice(0, 7); // yyyy-mm
+  let revenueYtd = 0;
+  let monthRevenue = 0;
+  for (const m of metrics) {
+    if (!REVENUE_METRICS.has(m.metric)) continue;
+    revenueYtd += m.value;
+    if (m.metric_date.startsWith(thisMonthPrefix)) monthRevenue += m.value;
+  }
   const profile = computeProfileCompleteness(business, {
     products: products.length,
     documents: documents.length,
@@ -146,11 +157,21 @@ export default async function DashboardPage() {
   const remainingCritical = relevant.filter(
     (t) => t.status !== "done" && TEMPLATES_BY_ID.get(t.template_id)?.priority === "critical"
   ).length;
+  // ceiling awareness — only meaningful for an osek_patur with logged income
+  const ceilingPct =
+    business.entity_type === "osek_patur" && revenueYtd > 0
+      ? (revenueYtd / YEARLY_FIGURES.osekPaturCeiling) * 100
+      : undefined;
+  const ceilingTaskId = journey.nodes.some((n) => n.templateId === "patur-ceiling-watch")
+    ? "patur-ceiling-watch"
+    : null;
   const confidence = computeConfidence({
     overdueStatutory: overdueCount,
     urgent: urgent ? { templateId: urgent.templateId, title: urgent.title, daysUntil: urgent.daysUntil } : null,
     next: nextTpl ? { templateId: nextTpl.id, title: nextTpl.title } : null,
     remainingCritical,
+    ceilingPct,
+    ceilingTaskId,
   });
   const oneThingId = confidence.theOneThing?.templateId ?? null;
   const oneThingTpl = oneThingId ? TEMPLATES_BY_ID.get(oneThingId) : null;
@@ -207,16 +228,7 @@ export default async function DashboardPage() {
     .slice(0, 3)
     .map((x) => toStep(x.n));
 
-  // money signal — income logged (or synced) this year drives the set-aside hint
-  const REVENUE_METRICS = new Set(["revenue", "manual_revenue"]);
-  const thisMonthPrefix = new Date().toISOString().slice(0, 7); // yyyy-mm
-  let revenueYtd = 0;
-  let monthRevenue = 0;
-  for (const m of metrics) {
-    if (!REVENUE_METRICS.has(m.metric)) continue;
-    revenueYtd += m.value;
-    if (m.metric_date.startsWith(thisMonthPrefix)) monthRevenue += m.value;
-  }
+  // money signal — set-aside hint from the income computed above
   const setAside = computeSetAside(revenueYtd);
   // corporate tax isn't a flat set-aside % of turnover, so the rule of thumb is
   // shown only for the individual structures.

@@ -49,4 +49,46 @@ describe("computeConfidence", () => {
     expect(c.state).toBe("covered");
     expect(c.theOneThing).toBeNull();
   });
+
+  it("flags at_risk with a switch-to-murshe action when the patur ceiling is crossed", () => {
+    const c = computeConfidence({
+      overdueStatutory: 0,
+      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: 3 },
+      next: null,
+      remainingCritical: 2,
+      ceilingPct: 104,
+      ceilingTaskId: "patur-ceiling-watch",
+    });
+    expect(c.state).toBe("at_risk");
+    expect(c.realRisks).toBe(1);
+    expect(c.headline).toContain("תקרת עוסק פטור");
+    expect(c.theOneThing?.templateId).toBe("patur-ceiling-watch");
+  });
+
+  it("adds an approaching-ceiling note to on_track without alarming", () => {
+    const c = computeConfidence({
+      overdueStatutory: 0,
+      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: 5 },
+      next: null,
+      remainingCritical: 2,
+      ceilingPct: 88,
+    });
+    expect(c.state).toBe("on_track");
+    expect(c.realRisks).toBe(0);
+    expect(c.detail).toContain("מתקרבים לתקרת הפטור");
+    expect(c.detail).toContain("88%");
+  });
+
+  it("an overdue filing still outranks a crossed ceiling for the headline", () => {
+    const c = computeConfidence({
+      overdueStatutory: 1,
+      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: -3 },
+      next: null,
+      remainingCritical: 2,
+      ceilingPct: 120,
+    });
+    expect(c.state).toBe("at_risk");
+    expect(c.headline).toContain("איחור");
+    expect(c.theOneThing?.templateId).toBe("vat-reporting");
+  });
 });

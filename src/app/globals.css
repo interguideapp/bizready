@@ -28,6 +28,9 @@
   --brand-tint: rgba(99, 102, 241, 0.1);
   --brand-edge: rgba(99, 102, 241, 0.3);
   --brand-strong: #4338ca;
+  --glow-c: rgba(124, 58, 237, 0.08);
+  --aurora-from: #7c3aed;
+  --aurora-to: #0891b2;
 
   --accent-from: #4f46e5;
   --accent-to: #0891b2;
@@ -87,9 +90,13 @@
   --status-todo: #94a3b8;
   --status-todo-bg: rgba(148, 163, 184, 0.14);
 
-  --glow-a: rgba(99, 102, 241, 0.22);
-  --glow-b: rgba(34, 211, 238, 0.12);
+  --glow-a: rgba(99, 102, 241, 0.24);
+  --glow-b: rgba(34, 211, 238, 0.14);
+  --glow-c: rgba(124, 58, 237, 0.22);
   --grid-line: rgba(255, 255, 255, 0.03);
+  /* the blend's aurora accent — violet→cyan, used on hero moments */
+  --aurora-from: #c4b5fd;
+  --aurora-to: #67e8f9;
 
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.5);
   --elev-2: 0 2px 12px rgba(0, 0, 0, 0.5), 0 12px 34px rgba(0, 0, 0, 0.4);
@@ -155,11 +162,12 @@
 body {
   @apply bg-surface text-ink antialiased;
   background-image:
-    radial-gradient(60rem 40rem at 82% -8%, var(--glow-a), transparent 62%),
-    radial-gradient(48rem 32rem at -12% 110%, var(--glow-b), transparent 60%),
+    radial-gradient(60rem 42rem at 84% -10%, var(--glow-c), transparent 60%),
+    radial-gradient(56rem 40rem at 6% 4%, var(--glow-a), transparent 62%),
+    radial-gradient(52rem 38rem at 96% 112%, var(--glow-b), transparent 62%),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 46px 46px, 46px 46px;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 46px 46px, 46px 46px;
   background-attachment: fixed;
   transition: background-color 0.3s ease;
 }

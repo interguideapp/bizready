@@ -1,6 +1,18 @@
 // Shared domain types for BizReady
 
-export type EntityType = "osek_patur" | "osek_murshe";
+export type EntityType =
+  | "osek_patur" // עוסק פטור
+  | "osek_murshe" // עוסק מורשה
+  | "company" // חברה בע"מ
+  | "partnership"; // שותפות רשומה
+
+/** Short Hebrew label for each legal structure. */
+export const ENTITY_LABELS: Record<EntityType, string> = {
+  osek_patur: "עוסק פטור",
+  osek_murshe: "עוסק מורשה",
+  company: "חברה בע\"מ",
+  partnership: "שותפות רשומה",
+};
 
 export type BusinessStage = "idea" | "setting_up" | "active";
 
@@ -252,4 +264,20 @@ export const YEARLY_FIGURES = {
   invoiceAllocationThreshold: 5_000,
   /** שכר ממוצע במשק (לחישובי פנסיה חובה) */
   averageWage: 13_769,
+  /** שיעור מס חברות (%) — רווחי החברה */
+  corporateTaxRate: 23,
+  /** אגרת רישום חברה חדשה ברשם החברות (מקוון זול יותר) */
+  companyRegistrationFee: 3_123,
+  companyRegistrationFeeOnline: 2_559,
+  /** אגרה שנתית לרשם החברות — מופחתת עד 31.3, אחריה הרגילה */
+  registrarAnnualFeeReduced: 1_338,
+  registrarAnnualFeeRegular: 1_777,
+  /** אגרות רישום שותפות ברשם השותפויות (כללית / מוגבלת) */
+  partnershipRegistrationGeneral: 1_128,
+  partnershipRegistrationLimited: 3_112,
+  /** אגרה שנתית לרשם השותפויות — מופחתת עד 31.3, אחריה הרגילה */
+  partnershipAnnualFeeReduced: 1_333,
+  partnershipAnnualFeeRegular: 1_771,
+  /** שיעור ברירת מחדל לניכוי מס במקור מנותן שירותים ללא אישור (%) */
+  withholdingDefaultRate: 20,
 } as const;

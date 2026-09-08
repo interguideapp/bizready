@@ -166,6 +166,38 @@ describe("isStatutoryFiling", () => {
   });
 });
 
+describe("company VAT waits for the company's own tax files (one truth)", () => {
+  it("suppresses a company's VAT obligation until company-tax-files is done", () => {
+    // company registered but tax files not yet opened → no VAT duty exists yet
+    const notYet = computeUpcomingObligations(
+      [
+        task({ template_id: "register-company", status: "done" }),
+        task({ template_id: "company-tax-files", status: "todo" }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      today,
+      { entityType: "company", vatFrequency: "bimonthly" }
+    );
+    expect(notYet.some((o) => o.kind === "vat")).toBe(false);
+
+    // once the company's tax files are open, the VAT obligation appears
+    const now = computeUpcomingObligations(
+      [
+        task({ template_id: "register-company", status: "done" }),
+        task({ template_id: "company-tax-files", status: "done" }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      today,
+      { entityType: "company", vatFrequency: "bimonthly" }
+    );
+    expect(now.some((o) => o.kind === "vat")).toBe(true);
+  });
+});
+
 describe("crossedWindows", () => {
   it("returns the Pro windows that a due date has entered", () => {
     expect(crossedWindows(20, REMINDER_WINDOWS_PRO)).toEqual([30]);

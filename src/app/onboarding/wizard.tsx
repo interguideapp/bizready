@@ -34,7 +34,7 @@ const STEPS: Step[] = [
   { id: "entity", title: "איזה סוג עוסק?", subtitle: "לא בטוחים? נעזור להחליט", isValid: (d) => !!d.entity_type },
   { id: "field", title: "מה תחום הפעילות?", isValid: (d) => !!d.field },
   { id: "revenue", title: "כמה העסק צפוי להכניס בשנה?", subtitle: "הערכה גסה — משפיע על מיסוי והמלצות", isValid: (d) => !!d.expected_revenue },
-  { id: "vat", title: "כל כמה זמן תדווחו למע\"מ?", subtitle: "נקבע ע\"י רשות המסים לפי המחזור — וקובע את תאריכי ההגשה שנזכיר לכם", isValid: (d) => d.entity_type !== "osek_murshe" || !!d.vat_frequency },
+  { id: "vat", title: "כל כמה זמן תדווחו למע\"מ?", subtitle: "נקבע ע\"י רשות המסים לפי המחזור — וקובע את תאריכי ההגשה שנזכיר לכם", isValid: (d) => (d.entity_type !== "osek_murshe" && d.entity_type !== "company") || !!d.vat_frequency },
   { id: "location", title: "מאיפה העסק פועל?", isValid: (d) => !!d.work_location },
   { id: "channels", title: "איך אתם מוכרים ולמי?", isValid: (d) => !!d.sales_channel && !!d.client_type },
   { id: "product", title: "מה אתם מוכרים?", subtitle: "קובע אם צריך חנות, משלוחים או ניהול מלאי", isValid: (d) => !!d.product_type },
@@ -61,7 +61,7 @@ export function OnboardingWizard() {
   const isVisible = (i: number) => {
     const id = STEPS[i].id;
     if (id === "employees") return !!draft.plans_employees;
-    if (id === "vat") return draft.entity_type === "osek_murshe";
+    if (id === "vat") return draft.entity_type === "osek_murshe" || draft.entity_type === "company";
     return true;
   };
 
@@ -89,7 +89,7 @@ export function OnboardingWizard() {
       client_type: draft.client_type!,
       product_type: draft.product_type!,
       vat_frequency:
-        draft.entity_type === "osek_murshe"
+        draft.entity_type === "osek_murshe" || draft.entity_type === "company"
           ? draft.vat_frequency ?? "bimonthly"
           : undefined,
       hosts_clients: draft.hosts_clients!,
@@ -168,6 +168,8 @@ export function OnboardingWizard() {
                   options={[
                     { value: "osek_patur", label: "עוסק פטור", hint: `מחזור עד ₪${YEARLY_FIGURES.osekPaturCeiling.toLocaleString()} בשנה, בלי גביית מע"מ` },
                     { value: "osek_murshe", label: "עוסק מורשה", hint: "כל מחזור, גובים ומקזזים מע\"מ" },
+                    { value: "company", label: "חברה בע\"מ", hint: "ישות נפרדת, אחריות מוגבלת, מס חברות 23%" },
+                    { value: "partnership", label: "שותפות רשומה", hint: "שני שותפים ומעלה — כל שותף ממוסה על חלקו" },
                   ]}
                 />
                 <button

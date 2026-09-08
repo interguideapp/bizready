@@ -86,7 +86,7 @@ export function FinancePanels({ d }: { d: FinanceData }) {
           <p className="tnum text-2xl font-bold text-ink">{nis(setAside.low)}–{nis(setAside.high)}</p>
           <p className="text-xs text-ink-muted">
             הערכה בלבד — כ-25%–35% מהמחזור למס הכנסה וביטוח לאומי.
-            {d.entityType === "osek_murshe" && " מע\"מ נגבה מהלקוח ומועבר בנפרד."}
+            {(d.entityType === "osek_murshe" || d.entityType === "company") && " מע\"מ נגבה מהלקוח ומועבר בנפרד."}
             {" "}לאימות מול רו״ח.
           </p>
           {d.nextPayments.length > 0 && (

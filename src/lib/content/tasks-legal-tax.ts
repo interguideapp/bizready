@@ -42,7 +42,8 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
         { key: "vat_file", label: "מספר תיק מע\"מ (אם שונה)", writesTo: "vat_file" },
       ],
     },
-    applies_when: {},
+    // companies open their tax files as a legal person (company-tax-files), not as an עוסק
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: [],
     deadline_days: 0,
     priority: "critical",
@@ -82,7 +83,7 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
         },
       ],
     },
-    applies_when: {},
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["open-vat-file"],
     deadline_days: 7,
     priority: "critical",
@@ -125,7 +126,8 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
         { key: "advance", label: "גובה המקדמה החודשית שנקבעה (₪)" },
       ],
     },
-    applies_when: {},
+    // עצמאי in ביטוח לאומי: osek + individual partners; a company's owners draw salary instead
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["open-vat-file"],
     deadline_days: 14,
     priority: "critical",
@@ -353,8 +355,11 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     ],
     docs_needed: [],
     est_time: "חצי שעה",
+    // advances apply to individuals and companies alike; the prerequisite is the
+    // relevant tax-file task (open-income-tax-file for an עוסק, company-tax-files
+    // for a company) — the one not in the plan simply doesn't block.
     applies_when: {},
-    depends_on: ["open-income-tax-file"],
+    depends_on: ["open-income-tax-file", "company-tax-files"],
     recurrence: "bimonthly",
     priority: "important",
     source_url: "https://www.gov.il/he/departments/israel_tax_authority",
@@ -383,8 +388,11 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     ],
     docs_needed: ["חשבוניות עסקאות ותשומות לתקופה"],
     est_time: "שעה בכל תקופה",
-    applies_when: { entity_type: ["osek_murshe"] },
-    depends_on: ["open-vat-file"],
+    // companies are always מורשה for VAT. The two prerequisites are alternatives:
+    // an osek's file is open-vat-file, a company's is company-tax-files — whichever
+    // applies gates the obligation; the other isn't in the plan, so it can't block.
+    applies_when: { entity_type: ["osek_murshe", "company"] },
+    depends_on: ["open-vat-file", "company-tax-files"],
     deadline_days: 45,
     recurrence: "bimonthly",
     priority: "critical",
@@ -415,7 +423,9 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     ],
     docs_needed: ["ריכוז הכנסות והוצאות", "אישורי הפקדות פנסיוניות", "אישורי ניכוי מס במקור"],
     est_time: "כמה שעות (או דרך רו\"ח)",
-    applies_when: {},
+    // the individual return (טופס 1301); a company files a corporate return
+    // (טופס 1214) covered by company-annual-report-financials instead.
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["open-income-tax-file"],
     deadline_days: 365,
     recurrence: "yearly",
@@ -494,7 +504,8 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     ],
     docs_needed: ["אסמכתאות נכסים והתחייבויות"],
     est_time: "שעה של סדר עכשיו — חוסכת ימים בעתיד",
-    applies_when: {},
+    // individuals file הצהרת הון; a company reports through its audited balance sheet
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["open-income-tax-file"],
     priority: "recommended",
     source_url: "https://www.kolzchut.org.il/he/הצהרת_הון",

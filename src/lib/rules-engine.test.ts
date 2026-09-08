@@ -316,6 +316,54 @@ describe("reconcilePlan", () => {
   });
 });
 
+describe("entity coverage — company & partnership", () => {
+  const company: OnboardingAnswers = { ...cosmetician, entity_type: "company", field: "tech", vat_frequency: "bimonthly" };
+  const partnership: OnboardingAnswers = { ...cosmetician, entity_type: "partnership" };
+
+  it("gives a company its incorporated track, not the עוסק registration flow", () => {
+    const ids = new Set(buildPlan(company, TASK_TEMPLATES).map((t) => t.template_id));
+    // company-specific setup
+    expect(ids.has("register-company")).toBe(true);
+    expect(ids.has("company-tax-files")).toBe(true);
+    expect(ids.has("company-annual-report-financials")).toBe(true);
+    // NOT the individual/עוסק flow
+    expect(ids.has("open-vat-file")).toBe(false);
+    expect(ids.has("open-income-tax-file")).toBe(false);
+    expect(ids.has("open-bituach-leumi-file")).toBe(false);
+    expect(ids.has("annual-tax-report")).toBe(false); // corporate return instead
+    expect(ids.has("patur-ceiling-watch")).toBe(false);
+    expect(ids.has("capital-statement-prep")).toBe(false);
+  });
+
+  it("keeps VAT/advances for a company (always מורשה), gated on the company's own files", () => {
+    const ids = new Set(buildPlan(company, TASK_TEMPLATES).map((t) => t.template_id));
+    expect(ids.has("vat-reporting")).toBe(true);
+    expect(ids.has("income-tax-advances")).toBe(true);
+    // and those filings depend on company-tax-files, which is in the plan
+    const vat = TEMPLATES_BY_ID.get("vat-reporting")!;
+    expect(vat.depends_on).toContain("company-tax-files");
+  });
+
+  it("a company doesn't get the two-value-only osek tasks, but still gets generic ones", () => {
+    const ids = new Set(buildPlan(company, TASK_TEMPLATES).map((t) => t.template_id));
+    // a generic (applies_when {}) task like the capital statement is gated out, but
+    // truly universal ones (e.g. bookkeeping/insurance) still apply — sanity: plan non-empty
+    expect(ids.size).toBeGreaterThan(5);
+  });
+
+  it("a partnership registers the שותפות and its partners still open individual files", () => {
+    const ids = new Set(buildPlan(partnership, TASK_TEMPLATES).map((t) => t.template_id));
+    expect(ids.has("register-partnership")).toBe(true);
+    expect(ids.has("partnership-agreement")).toBe(true);
+    expect(ids.has("partnership-annual-fee")).toBe(true);
+    // partners are individuals → they still open personal tax + bituach files
+    expect(ids.has("open-vat-file")).toBe(true);
+    expect(ids.has("open-bituach-leumi-file")).toBe(true);
+    // but no company-only tasks
+    expect(ids.has("register-company")).toBe(false);
+  });
+});
+
 describe("summarizeReconcile", () => {
   it("resolves ids to named, prioritized, category-aware changes", () => {
     const before = buildPlan(cosmetician, TASK_TEMPLATES);

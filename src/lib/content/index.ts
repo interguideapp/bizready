@@ -5,11 +5,13 @@ import { FINANCE_INSURANCE_TASKS } from "./tasks-finance-insurance";
 import { DIGITAL_MARKETING_OPS_TASKS } from "./tasks-digital-marketing-ops";
 import { EMPLOYMENT_TASKS } from "./tasks-employment";
 import { SPECIFIC_TASKS } from "./tasks-specific";
+import { ENTITY_TASKS } from "./tasks-entities";
 
 export { CATEGORIES };
 
 export const TASK_TEMPLATES: TaskTemplate[] = [
   ...LEGAL_TAX_TASKS,
+  ...ENTITY_TASKS,
   ...FINANCE_INSURANCE_TASKS,
   ...DIGITAL_MARKETING_OPS_TASKS,
   ...SPECIFIC_TASKS,

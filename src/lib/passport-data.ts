@@ -18,7 +18,7 @@ import {
 import { CATEGORIES } from "@/lib/content";
 import { annualTotal, CADENCE_LABEL, monthlyTotal } from "@/lib/costs";
 import { getTaskEvents } from "@/lib/data";
-import type { OnboardingAnswers } from "@/lib/types";
+import { ENTITY_LABELS, type OnboardingAnswers } from "@/lib/types";
 import type { PassportData } from "@/lib/documents/passport";
 
 const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
@@ -99,7 +99,7 @@ export async function loadPassport(): Promise<PassportData | null> {
 
   return {
     businessName: business.name,
-    entityLabel: business.entity_type === "osek_murshe" ? "עוסק מורשה" : "עוסק פטור",
+    entityLabel: ENTITY_LABELS[business.entity_type as keyof typeof ENTITY_LABELS] ?? "עוסק",
     generatedAt: new Date().toLocaleDateString("he-IL"),
     identity,
     levelTitle: level.title,

@@ -18,10 +18,12 @@ const SELECTS: {
 }[] = [
   {
     key: "entity_type",
-    label: "סוג עוסק",
+    label: "סוג התאגדות",
     options: [
       { value: "osek_patur", label: "עוסק פטור" },
       { value: "osek_murshe", label: "עוסק מורשה" },
+      { value: "company", label: "חברה בע\"מ" },
+      { value: "partnership", label: "שותפות רשומה" },
     ],
   },
   {
@@ -183,7 +185,7 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
         <div className="grid gap-4 sm:grid-cols-2">
           {[
             ...SELECTS,
-            ...(values.entity_type === "osek_murshe"
+            ...(values.entity_type === "osek_murshe" || values.entity_type === "company"
               ? [VAT_FREQUENCY_SELECT]
               : []),
             ...(values.plans_employees ? [EMPLOYEE_SELECT] : []),

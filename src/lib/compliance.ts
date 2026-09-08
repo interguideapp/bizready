@@ -231,10 +231,24 @@ export function computeUpcomingObligations(
     return d >= -60 && d <= horizonDays; // keep a little overdue history visible
   };
 
+  // One truth: a statutory filing obligation is real only once its prerequisites
+  // are done. You have no VAT/advances/annual duty before the tax file is even
+  // opened, so those dates never appear (as pressing or on the calendar) until
+  // the setup task that unlocks them is complete.
+  const taskById = new Map(tasks.map((t) => [t.template_id, t] as const));
+  const prereqsMet = (template: TaskTemplate) =>
+    template.depends_on.every((dep) => {
+      const dt = taskById.get(dep);
+      if (!dt || !dt.is_relevant) return true; // dependency doesn't apply → not blocking
+      return dt.status === "done" || dt.status === "not_relevant";
+    });
+
   for (const task of tasks) {
     if (!task.is_relevant) continue;
     const template = templates.get(task.template_id);
     if (!template) continue;
+    // statutory filings wait for their unlocking setup task
+    if (isStatutoryFiling(task.template_id) && !prereqsMet(template)) continue;
 
     // --- statutory filings: real, period-accurate, sourced dates ---
     if (task.template_id === "vat-reporting") {

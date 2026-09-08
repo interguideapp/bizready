@@ -4,9 +4,11 @@ import {
   getBusinessTasks,
   getCosts,
   getDocuments,
+  getMetrics,
   getProducts,
   getTaskEvents,
 } from "@/lib/data";
+import { computeSetAside } from "@/lib/finance/setaside";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
@@ -41,12 +43,14 @@ function daysPhrase(d: number) {
 
 export default async function DashboardPage() {
   const business = (await getBusiness())!;
-  const [tasks, products, documents, events, costs] = await Promise.all([
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const [tasks, products, documents, events, costs, metrics] = await Promise.all([
     getBusinessTasks(business.id),
     getProducts(business.id),
     getDocuments(business.id),
     getTaskEvents(business.id, 200),
     getCosts(business.id),
+    getMetrics(business.id, yearStart),
   ]);
 
   const answers = business.onboarding_answers as OnboardingAnswers;
@@ -203,6 +207,28 @@ export default async function DashboardPage() {
     .slice(0, 3)
     .map((x) => toStep(x.n));
 
+  // money signal — income logged (or synced) this year drives the set-aside hint
+  const REVENUE_METRICS = new Set(["revenue", "manual_revenue"]);
+  const thisMonthPrefix = new Date().toISOString().slice(0, 7); // yyyy-mm
+  let revenueYtd = 0;
+  let monthRevenue = 0;
+  for (const m of metrics) {
+    if (!REVENUE_METRICS.has(m.metric)) continue;
+    revenueYtd += m.value;
+    if (m.metric_date.startsWith(thisMonthPrefix)) monthRevenue += m.value;
+  }
+  const setAside = computeSetAside(revenueYtd);
+  // corporate tax isn't a flat set-aside % of turnover, so the rule of thumb is
+  // shown only for the individual structures.
+  const showSetAside = business.entity_type !== "company";
+  const money = {
+    hasIncome: revenueYtd > 0,
+    monthRevenue,
+    setAsideLow: setAside.low,
+    setAsideHigh: setAside.high,
+    showSetAside,
+  };
+
   const data: DashboardData = {
     businessName: business.name,
     confidence: { state: confidence.state, headline: confidence.headline, detail: confidence.detail },
@@ -224,6 +250,7 @@ export default async function DashboardPage() {
     overdueCount,
     profilePercent: profile.percent,
     monthlyCost: costs.length > 0 ? monthlyTotal(costs) : null,
+    money,
     stages,
     pathSteps,
     asideSteps,

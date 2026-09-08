@@ -15,6 +15,7 @@ import {
   Footprints,
   Landmark,
   Lock,
+  PiggyBank,
   Rocket,
   ShieldCheck,
   SlidersHorizontal,
@@ -56,6 +57,8 @@ export interface DashboardData {
   overdueCount: number;
   profilePercent: number;
   monthlyCost: number | null;
+  /** money signal from logged/synced income; null when the entity has no set-aside rule of thumb */
+  money: { hasIncome: boolean; monthRevenue: number; setAsideLow: number; setAsideHigh: number; showSetAside: boolean } | null;
   stages: DashStage[];
   pathSteps: DashStep[];
   asideSteps: DashStep[];
@@ -172,9 +175,43 @@ export function DashboardView({ data }: { data: DashboardData }) {
       <motion.div variants={stagger(0.05)} initial="hidden" animate="show" className="mb-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <Tele icon={<CheckCircle2 className="h-3.5 w-3.5 text-status-done" />} label="הושלמו" value={`${data.doneCount}/${data.totalCount}`} />
         <Tele icon={<AlertTriangle className={`h-3.5 w-3.5 ${data.overdueCount > 0 ? "text-status-overdue" : "text-ink-faint"}`} />} label="באיחור" value={String(data.overdueCount)} warn={data.overdueCount > 0} />
+        <Link href="/insights"><Tele icon={<TrendingUp className="h-3.5 w-3.5 text-brand-400" />} label="מחזור החודש" value={data.money?.hasIncome ? nis(data.money.monthRevenue) : "רשמו →"} /></Link>
         <Link href="/business"><Tele icon={<UserRound className="h-3.5 w-3.5 text-brand-400" />} label="פרופיל" value={`${data.profilePercent}%`} /></Link>
-        <Link href="/insights"><Tele icon={<Wallet className="h-3.5 w-3.5 text-brand-400" />} label="עלות/חודש" value={data.monthlyCost != null ? nis(data.monthlyCost) : "—"} /></Link>
       </motion.div>
+
+      {/* ===== money signal ===== */}
+      {data.money && (
+        <FadeIn className="mb-4">
+          {data.money.hasIncome ? (
+            <Link href="/insights" className="block">
+              <Card className="flex flex-wrap items-center justify-between gap-3 p-5 transition hover:border-brand-edge">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-tint text-brand-strong"><PiggyBank className="h-4.5 w-4.5" /></span>
+                  <div>
+                    <p className="eyebrow">כמה כדאי להפריש למיסים</p>
+                    {data.money.showSetAside ? (
+                      <p className="tnum text-lg font-bold text-ink">{nis(data.money.setAsideLow)}–{nis(data.money.setAsideHigh)}</p>
+                    ) : (
+                      <p className="text-sm text-ink-soft">מס חברות מחושב על הרווח — דברו עם הרו״ח</p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-ink-muted">הערכה · לתמונה המלאה ←</span>
+              </Card>
+            </Link>
+          ) : (
+            <Link href="/insights" className="block">
+              <Card className="flex items-center justify-between gap-3 p-4 transition hover:border-brand-edge">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-tint text-brand-strong"><PiggyBank className="h-4.5 w-4.5" /></span>
+                  <span className="text-sm text-ink-soft">רשמו כמה הכנסתם — ותדעו מיד כמה להפריש למיסים ואיפה אתם מול התקרה</span>
+                </div>
+                <span className="shrink-0 text-xs font-semibold text-brand-strong">רישום הכנסה ←</span>
+              </Card>
+            </Link>
+          )}
+        </FadeIn>
+      )}
 
       {/* ===== journey rail ===== */}
       <FadeIn className="mb-4">

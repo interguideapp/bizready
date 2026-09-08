@@ -7,6 +7,7 @@ import {
   nextSteps,
   reconcilePlan,
   resolveTemplate,
+  summarizeReconcile,
 } from "./rules-engine";
 
 /** קוסמטיקאית עוסק פטור מהבית, בלי אתר, לקוחות פרטיים */
@@ -312,5 +313,49 @@ describe("reconcilePlan", () => {
         expect(TEMPLATES_BY_ID.has(dep), `${t.id} depends on missing ${dep}`).toBe(true);
       }
     }
+  });
+});
+
+describe("summarizeReconcile", () => {
+  it("resolves ids to named, prioritized, category-aware changes", () => {
+    const before = buildPlan(cosmetician, TASK_TEMPLATES);
+    const result = reconcilePlan(
+      { ...cosmetician, has_website: true },
+      TASK_TEMPLATES,
+      before.map((t) => ({ template_id: t.template_id, is_relevant: true }))
+    );
+    const summary = summarizeReconcile(result, TEMPLATES_BY_ID);
+
+    expect(summary.changed).toBe(true);
+    expect(summary.added.length).toBe(result.toAdd.length);
+    // every change carries a real title + category, not a bare id
+    for (const c of summary.added) {
+      expect(c.title.length).toBeGreaterThan(0);
+      expect(c.categoryId.length).toBeGreaterThan(0);
+    }
+    expect(summary.added.map((c) => c.templateId)).toContain("website-accessibility");
+    // criticals are ordered ahead of recommended
+    const ranks = summary.added.map((c) =>
+      c.priority === "critical" ? 0 : c.priority === "important" ? 1 : 2
+    );
+    expect([...ranks]).toEqual([...ranks].sort((a, b) => a - b));
+  });
+
+  it("reports changed=false when nothing moves", () => {
+    const summary = summarizeReconcile(
+      { toAdd: [], toFlagIrrelevant: [], toFlagRelevant: [] },
+      TEMPLATES_BY_ID
+    );
+    expect(summary.changed).toBe(false);
+    expect(summary.added).toEqual([]);
+  });
+
+  it("drops unknown template ids instead of throwing", () => {
+    const summary = summarizeReconcile(
+      { toAdd: [], toFlagIrrelevant: ["does-not-exist"], toFlagRelevant: [] },
+      TEMPLATES_BY_ID
+    );
+    expect(summary.removed).toEqual([]);
+    expect(summary.changed).toBe(false);
   });
 });

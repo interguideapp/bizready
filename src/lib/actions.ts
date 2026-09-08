@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { TASK_TEMPLATES } from "@/lib/content";
-import { buildPlan, profileFromAnswers, reconcilePlan } from "@/lib/rules-engine";
+import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
+import {
+  buildPlan,
+  profileFromAnswers,
+  reconcilePlan,
+  summarizeReconcile,
+  type ReconcileSummary,
+} from "@/lib/rules-engine";
 import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
@@ -61,8 +67,35 @@ export async function completeOnboarding(
   redirect("/plan-ready");
 }
 
+/**
+ * Dry-run a profile change: what would recalibration add, hide, or bring back?
+ * No writes — lets the settings form show the exact plan diff before committing
+ * so כיול is a transparent, trusted action instead of a silent mutation.
+ */
+export async function previewReconcile(
+  answers: OnboardingAnswers
+): Promise<ReconcileSummary> {
+  const { supabase, user } = await requireUser();
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", user.id)
+    .single();
+  if (!business) return { added: [], removed: [], restored: [], changed: false };
+
+  const { data: existing } = await supabase
+    .from("business_tasks")
+    .select("template_id, is_relevant")
+    .eq("business_id", business.id);
+
+  const result = reconcilePlan(answers, TASK_TEMPLATES, existing ?? []);
+  return summarizeReconcile(result, TEMPLATES_BY_ID);
+}
+
 /** Update answers from settings and reconcile the task list. */
-export async function updateAnswers(answers: OnboardingAnswers) {
+export async function updateAnswers(
+  answers: OnboardingAnswers
+): Promise<ReconcileSummary> {
   const { supabase, user } = await requireUser();
 
   const { data: business } = await supabase
@@ -87,11 +120,8 @@ export async function updateAnswers(answers: OnboardingAnswers) {
     .select("template_id, is_relevant")
     .eq("business_id", business.id);
 
-  const { toAdd, toFlagIrrelevant, toFlagRelevant } = reconcilePlan(
-    answers,
-    TASK_TEMPLATES,
-    existing ?? []
-  );
+  const reconcile = reconcilePlan(answers, TASK_TEMPLATES, existing ?? []);
+  const { toAdd, toFlagIrrelevant, toFlagRelevant } = reconcile;
 
   if (toAdd.length > 0) {
     await supabase.from("business_tasks").insert(
@@ -133,6 +163,7 @@ export async function updateAnswers(answers: OnboardingAnswers) {
   }
 
   revalidatePath("/", "layout");
+  return summarizeReconcile(reconcile, TEMPLATES_BY_ID);
 }
 
 /**

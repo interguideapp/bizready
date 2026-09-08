@@ -12,8 +12,8 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageTitle
-        title="הגדרות"
-        subtitle="שינוי בתשובות מעדכן את תכנית המשימות אוטומטית"
+        title="הגדרות וכיול התכנית"
+        subtitle="השתנה משהו בעסק? עדכנו את הפרטים וראו בדיוק איך התכנית מתכיילת — לפני שמאשרים"
       />
       <div className="mb-5">
         {isPro(business) ? (

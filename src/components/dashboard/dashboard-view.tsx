@@ -17,6 +17,7 @@ import {
   Lock,
   Rocket,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   TrendingUp,
   Trophy,
@@ -233,6 +234,13 @@ export function DashboardView({ data }: { data: DashboardData }) {
                 </div>
               </>
             )}
+            <Link
+              href="/settings"
+              className="mt-5 flex items-center gap-2.5 border-t border-edge-soft pt-4 text-[13px] text-ink-muted transition hover:text-brand-strong"
+            >
+              <SlidersHorizontal className="h-4 w-4 text-brand-400" aria-hidden />
+              <span>השתנה משהו בעסק? <span className="font-semibold text-ink-soft">כיילו את התכנית</span> — נראה לכם מה ישתנה לפני שמאשרים</span>
+            </Link>
           </Card>
         </FadeIn>
 

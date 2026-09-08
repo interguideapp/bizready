@@ -126,6 +126,67 @@ export function reconcilePlan(
   };
 }
 
+/** One task that a recalibration would add, hide, or bring back. */
+export interface PlanChange {
+  templateId: string;
+  title: string;
+  categoryId: string;
+  priority: TaskPriority;
+}
+
+/** Human-readable, category-aware view of a reconcile — for the "כיול" preview. */
+export interface ReconcileSummary {
+  added: PlanChange[]; // brand-new tasks the profile now needs
+  removed: PlanChange[]; // tasks that no longer apply (hidden, history kept)
+  restored: PlanChange[]; // previously-hidden tasks that apply again
+  changed: boolean;
+}
+
+/**
+ * Resolve a raw reconcile result into named, prioritized task lists so the UI
+ * can show the user exactly what a profile change does to their plan *before*
+ * they commit it. Pure: unknown template ids are dropped, criticals first.
+ */
+export function summarizeReconcile(
+  result: {
+    toAdd: PlannedTask[];
+    toFlagIrrelevant: string[];
+    toFlagRelevant: string[];
+  },
+  templates: Map<string, TaskTemplate>
+): ReconcileSummary {
+  const rank: Record<TaskPriority, number> = {
+    critical: 0,
+    important: 1,
+    recommended: 2,
+  };
+  const toChange = (templateId: string): PlanChange | null => {
+    const t = templates.get(templateId);
+    if (!t) return null;
+    return {
+      templateId,
+      title: t.title,
+      categoryId: t.category_id,
+      priority: t.priority,
+    };
+  };
+  const resolve = (ids: string[]) =>
+    ids
+      .map(toChange)
+      .filter((c): c is PlanChange => c !== null)
+      .sort((a, b) => rank[a.priority] - rank[b.priority]);
+
+  const added = resolve(result.toAdd.map((t) => t.template_id));
+  const removed = resolve(result.toFlagIrrelevant);
+  const restored = resolve(result.toFlagRelevant);
+  return {
+    added,
+    removed,
+    restored,
+    changed: added.length + removed.length + restored.length > 0,
+  };
+}
+
 // ============ readiness score ============
 
 export interface ScoredTask {

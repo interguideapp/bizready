@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Check, Loader2, LogOut } from "lucide-react";
-import { signOut, updateAnswers } from "@/lib/actions";
+import { useEffect, useState, useTransition } from "react";
+import { Check, Loader2, LogOut, Plus, Minus, RotateCcw, Sparkles } from "lucide-react";
+import { previewReconcile, signOut, updateAnswers } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
+import { CATEGORIES_BY_ID } from "@/lib/content";
+import type { ReconcileSummary } from "@/lib/rules-engine";
 import type { OnboardingAnswers } from "@/lib/types";
+
+const catTitle = (id: string) => CATEGORIES_BY_ID.get(id)?.title ?? "";
 
 const SELECTS: {
   key: keyof OnboardingAnswers;
@@ -133,13 +137,41 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
   });
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
-  const dirty = JSON.stringify(values) !== JSON.stringify(answers);
+  // Tie each dry-run to the exact answers it was computed for, so a preview
+  // only shows once it matches the current edits (no stale flashing).
+  const [preview, setPreview] = useState<{ sig: string; summary: ReconcileSummary } | null>(null);
+  const valuesSig = JSON.stringify(values);
+  const dirty = valuesSig !== JSON.stringify(answers);
+  const freshPreview = preview && preview.sig === valuesSig ? preview.summary : null;
+  const previewing = dirty && !freshPreview;
+
+  // Live dry-run: whenever the edited answers settle, ask the server what the
+  // recalibration would do — so the diff is visible before anything is written.
+  useEffect(() => {
+    if (!dirty) return;
+    const sig = valuesSig;
+    const timer = setTimeout(async () => {
+      const summary = await previewReconcile(JSON.parse(sig) as OnboardingAnswers);
+      setPreview({ sig, summary });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [valuesSig, dirty]);
 
   function save() {
     startTransition(async () => {
-      await updateAnswers(values);
+      const summary = await updateAnswers(values);
       setSaved(true);
-      toast.success("התכנית עודכנה לפי התשובות החדשות");
+      const added = summary.added.length;
+      const hidden = summary.removed.length;
+      const parts = [
+        added > 0 ? `${added} משימות נוספו` : "",
+        hidden > 0 ? `${hidden} הוסתרו` : "",
+      ].filter(Boolean);
+      toast.success(
+        parts.length > 0
+          ? `התכנית כוילה — ${parts.join(" · ")}`
+          : "התכנית עודכנה לפי התשובות החדשות"
+      );
       setTimeout(() => setSaved(false), 2500);
     });
   }
@@ -199,6 +231,10 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
           ))}
         </div>
 
+        {dirty && (
+          <ChangePreview summary={freshPreview} loading={previewing} />
+        )}
+
         <div className="mt-6 flex items-center gap-3">
           <button
             onClick={save}
@@ -210,11 +246,11 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
             ) : (
               saved && <Check className="h-4 w-4" aria-hidden />
             )}
-            {pending ? "מעדכן את התכנית..." : saved ? "עודכן!" : "שמירה ועדכון התכנית"}
+            {pending ? "מכייל את התכנית..." : saved ? "עודכן!" : "החלת השינויים על התכנית"}
           </button>
           {dirty && !pending && (
             <span className="text-xs text-ink-faint">
-              משימות חדשות יתווספו, לא-רלוונטיות יוסתרו — ההיסטוריה נשמרת
+              ההיסטוריה נשמרת — כלום לא נמחק
             </span>
           )}
         </div>
@@ -230,6 +266,85 @@ export function SettingsForm({ answers }: { answers: OnboardingAnswers }) {
           התנתקות
         </button>
       </Card>
+    </div>
+  );
+}
+
+/** The live "here's what will change" diff for a pending recalibration. */
+function ChangePreview({
+  summary,
+  loading,
+}: {
+  summary: ReconcileSummary | null;
+  loading: boolean;
+}) {
+  const groups = [
+    {
+      key: "added",
+      items: summary?.added ?? [],
+      label: "משימות חדשות שיתווספו",
+      Icon: Plus,
+      tone: "text-emerald-600 dark:text-emerald-400",
+      ring: "border-emerald-500/30 bg-emerald-500/5",
+    },
+    {
+      key: "removed",
+      items: summary?.removed ?? [],
+      label: "משימות שכבר לא רלוונטיות — יוסתרו",
+      Icon: Minus,
+      tone: "text-ink-faint",
+      ring: "border-edge bg-surface",
+    },
+    {
+      key: "restored",
+      items: summary?.restored ?? [],
+      label: "משימות שחוזרות להיות רלוונטיות",
+      Icon: RotateCcw,
+      tone: "text-brand-600 dark:text-brand-400",
+      ring: "border-brand-500/30 bg-brand-500/5",
+    },
+  ].filter((g) => g.items.length > 0);
+
+  return (
+    <div className="mt-5 rounded-2xl border border-edge bg-surface p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-brand-500" aria-hidden />
+        <span className="text-sm font-semibold text-ink">
+          כך תשתנה התכנית שלכם
+        </span>
+        {loading && (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-faint" aria-hidden />
+        )}
+      </div>
+
+      {summary && !summary.changed && !loading && (
+        <p className="text-sm text-ink-faint">
+          השינוי הזה לא מוסיף או מסיר משימות — רק מעדכן את פרטי העסק.
+        </p>
+      )}
+
+      {!summary && loading && (
+        <p className="text-sm text-ink-faint">בודק מה ישתנה…</p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {groups.map(({ key, items, label, Icon, tone, ring }) => (
+          <div key={key} className={`rounded-xl border ${ring} p-3`}>
+            <div className={`mb-2 flex items-center gap-1.5 text-xs font-semibold ${tone}`}>
+              <Icon className="h-3.5 w-3.5" aria-hidden />
+              {label} · {items.length}
+            </div>
+            <ul className="flex flex-col gap-1.5">
+              {items.map((c) => (
+                <li key={c.templateId} className="flex items-baseline gap-2 text-sm">
+                  <span className="text-ink">{c.title}</span>
+                  <span className="text-[11px] text-ink-faint">{catTitle(c.categoryId)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

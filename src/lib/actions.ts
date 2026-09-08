@@ -593,6 +593,40 @@ export async function deleteCost(costId: string) {
   revalidatePath("/", "layout");
 }
 
+// ============ manual income (money picture without an integration) ============
+
+/**
+ * Log revenue for a month by hand, so the finance intelligence — set-aside,
+ * ceiling watch, revenue chart, next payments — works for everyone, not only
+ * businesses that wired up an invoicing integration.
+ *
+ * Stored in sync_metrics under a distinct `manual_revenue` metric, so it never
+ * collides with a provider's synced `revenue` and the two can be summed. Anchored
+ * to the first of the month (the chart buckets by month). No migration needed.
+ */
+export async function setMonthlyIncome(
+  monthKey: string, // "yyyy-mm"
+  amount: number
+): Promise<{ ok: boolean; error?: string }> {
+  if (!/^\d{4}-\d{2}$/.test(monthKey)) return { ok: false, error: "חודש לא תקין" };
+  const value = Math.max(0, Math.round(Number(amount)));
+  if (!Number.isFinite(value)) return { ok: false, error: "סכום לא תקין" };
+  const { supabase, businessId } = await requireBusinessId();
+  const { error } = await supabase.from("sync_metrics").upsert(
+    {
+      business_id: businessId,
+      metric: "manual_revenue",
+      metric_date: `${monthKey}-01`,
+      value,
+    },
+    { onConflict: "business_id,metric_date,metric" }
+  );
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/insights");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 // ============ integrations ============
 
 /** Connect a provider. API providers are credential-tested first. */

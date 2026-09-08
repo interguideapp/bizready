@@ -4,6 +4,8 @@ import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
 import { TrophyWall } from "@/components/insights/trophy-wall";
 import { FinancePanels } from "@/components/finance/finance-panels";
+import { IncomeLogger } from "@/components/finance/income-logger";
+import { buildIncomeMonths } from "@/lib/finance/income";
 import type { MonthPoint } from "@/components/revenue-chart";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
@@ -67,9 +69,14 @@ export default async function InsightsPage() {
   const now = new Date();
   const year = now.getFullYear();
   const metrics = await getMetrics(business.id, `${year - 1}-01-01`);
+  // synced revenue (from an invoicing integration) and hand-logged income are
+  // summed — the money picture works whether or not a tool is connected.
+  const REVENUE_METRICS = new Set(["revenue", "manual_revenue"]);
   const revByMonth = new Map<string, number>();
+  let hasSynced = false;
   for (const m of metrics) {
-    if (m.metric !== "revenue") continue;
+    if (!REVENUE_METRICS.has(m.metric)) continue;
+    if (m.metric === "revenue" && m.value > 0) hasSynced = true;
     const dt = new Date(m.metric_date + "T00:00:00");
     const key = `${dt.getFullYear()}-${dt.getMonth()}`;
     revByMonth.set(key, (revByMonth.get(key) ?? 0) + m.value);
@@ -80,9 +87,17 @@ export default async function InsightsPage() {
     monthly.push({ year: dt.getFullYear(), month: dt.getMonth(), value: revByMonth.get(`${dt.getFullYear()}-${dt.getMonth()}`) ?? 0 });
   }
   const revenueYtd = metrics
-    .filter((m) => m.metric === "revenue" && m.metric_date.startsWith(String(year)))
+    .filter((m) => REVENUE_METRICS.has(m.metric) && m.metric_date.startsWith(String(year)))
     .reduce((s, m) => s + m.value, 0);
   const hasFinance = revenueYtd > 0;
+
+  // seed the manual income logger from what's already been entered
+  const manualByKey: Record<string, number> = {};
+  for (const m of metrics) {
+    if (m.metric !== "manual_revenue") continue;
+    manualByKey[m.metric_date.slice(0, 7)] = m.value;
+  }
+  const incomeMonths = buildIncomeMonths(manualByKey, 6, now);
   const financeData = hasFinance
     ? {
         monthly,
@@ -136,7 +151,10 @@ export default async function InsightsPage() {
         </FadeIn>
         </div>
 
-        {/* finance panels (when invoicing is connected) */}
+        {/* manual income — makes the money picture work without an integration */}
+        <FadeIn><IncomeLogger months={incomeMonths} synced={hasSynced} /></FadeIn>
+
+        {/* finance panels (appear once there's any revenue, synced or logged) */}
         {financeData && <FadeIn><FinancePanels d={financeData} /></FadeIn>}
 
         {/* costs */}

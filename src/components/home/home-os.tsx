@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
   AlertTriangle,
   ArrowLeft,
+  BatteryFull,
   CalendarClock,
   CheckCircle2,
   Clock3,
@@ -16,10 +17,12 @@ import {
   History,
   Hourglass,
   PiggyBank,
+  Signal,
   Sparkles,
   Store,
   UserRound,
   Wallet,
+  Wifi,
   Zap,
 } from "lucide-react";
 import { greetingFor, type QuickWin } from "@/lib/home";
@@ -66,7 +69,39 @@ function useNow() {
   return now;
 }
 
+/** Pointer-driven liquid-glass light: parallax the wallpaper and roll a specular
+ * highlight across whichever glass card the pointer is over. */
+function useLiquidGlass(rootRef: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || window.matchMedia("(pointer: coarse)").matches) return;
+    let raf = 0;
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const dx = e.clientX / window.innerWidth - 0.5;
+        const dy = e.clientY / window.innerHeight - 0.5;
+        root.style.setProperty("--par-x", `${(-dx * 18).toFixed(1)}px`);
+        root.style.setProperty("--par-y", `${(-dy * 18).toFixed(1)}px`);
+        const card = (e.target as HTMLElement)?.closest?.(".os-card") as HTMLElement | null;
+        if (card) {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+          card.style.setProperty("--my", `${e.clientY - r.top}px`);
+        }
+      });
+    };
+    root.addEventListener("pointermove", onMove);
+    return () => {
+      root.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [rootRef]);
+}
+
 export function HomeOS({ data }: { data: HomeOSData }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLiquidGlass(rootRef);
   const now = useNow();
   const time = now
     ? now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
@@ -78,11 +113,21 @@ export function HomeOS({ data }: { data: HomeOSData }) {
   const atRisk = data.confidence.state === "at_risk";
 
   return (
-    <div className="os-root relative min-h-[calc(100dvh-1px)] overflow-hidden" dir="rtl">
+    <div ref={rootRef} className="os-root relative min-h-[calc(100dvh-1px)] overflow-hidden" dir="rtl">
       <div className="os-ambient" aria-hidden />
       <div className="os-glow" aria-hidden />
 
-      <div className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-28 pt-10 sm:pt-16 md:pb-12">
+      {/* device status bar — frames the surface as an OS, not a page */}
+      <div className="relative z-10 mx-auto flex max-w-3xl items-center justify-between px-6 pt-4 text-ink-soft/70">
+        <span className="text-[11px] font-semibold tracking-wide">{dateLine || "‏"}</span>
+        <span className="flex items-center gap-1.5">
+          <Signal className="h-3.5 w-3.5" aria-hidden />
+          <Wifi className="h-3.5 w-3.5" aria-hidden />
+          <BatteryFull className="h-4 w-4" aria-hidden />
+        </span>
+      </div>
+
+      <div className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-28 pt-6 sm:pt-10 md:pb-12">
         {/* ===== lock-screen hero ===== */}
         <motion.header
           initial={{ opacity: 0, y: 10 }}
@@ -334,15 +379,15 @@ function OSTile({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="os-card flex w-full flex-col gap-2 rounded-2xl p-3.5 text-right transition hover:-translate-y-0.5"
+        className="os-card flex min-h-[112px] w-full flex-col justify-between gap-2 p-4 text-right"
       >
         <div className="flex items-center justify-between">
-          {icon}
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5">{icon}</span>
           <ArrowLeft className="h-3.5 w-3.5 text-ink-faint opacity-0 transition group-hover:opacity-100" aria-hidden />
         </div>
         <div>
           <p className="eyebrow">{label}</p>
-          <p className="tnum text-xl font-bold text-ink">
+          <p className="tnum text-2xl font-bold leading-none text-ink">
             {value}
             {suffix && <span className="text-sm font-medium text-ink-muted">{suffix}</span>}
           </p>

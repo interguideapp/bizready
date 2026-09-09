@@ -3,61 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  CalendarClock,
-  Command,
-  FolderOpen,
-  History,
-  Home,
-  IdCard,
-  LayoutDashboard,
-  ListChecks,
-  Plug,
-  Settings,
-  Store,
-} from "lucide-react";
-import { pageTransition, spring } from "@/lib/motion";
-
-// A short, clear primary nav — the things that matter day to day.
-const NAV = [
-  { href: "/home", label: "בית", icon: Home },
-  { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
-  { href: "/tasks", label: "המשימות", icon: ListChecks },
-  { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
-  { href: "/passport", label: "תיק העסק", icon: IdCard },
-  { href: "/insights", label: "תובנות", icon: BarChart3 },
-];
-
-// Secondary — grouped under "עוד" so the main nav stays short.
-const MORE_NAV = [
-  { href: "/documents", label: "מסמכים", icon: FolderOpen },
-  { href: "/business", label: "הפרופיל", icon: Briefcase },
-  { href: "/tracking", label: "מעקב", icon: History },
-  { href: "/shop", label: "חנות", icon: Store },
-  { href: "/integrations", label: "חיבורים", icon: Plug },
-  { href: "/settings", label: "הגדרות", icon: Settings },
-];
-
-// Mobile bottom bar — five, home first.
-const MOBILE_NAV = [
-  { href: "/home", label: "בית", icon: Home },
-  { href: "/tasks", label: "המשימות", icon: ListChecks },
-  { href: "/calendar", label: "לוח", icon: CalendarClock },
-  { href: "/passport", label: "תיק העסק", icon: IdCard },
-  { href: "/insights", label: "תובנות", icon: BarChart3 },
-];
-
-function UnreadDot({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span className="absolute -top-1 -left-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-overdue px-1 text-[10px] font-bold text-white">
-      {count > 9 ? "9+" : count}
-    </span>
-  );
-}
+import { Command } from "lucide-react";
+import { pageTransition } from "@/lib/motion";
+import { Dock } from "@/components/dock";
 
 export function AppShell({
   children,
@@ -70,108 +18,24 @@ export function AppShell({
   const fullBleed = pathname === "/home";
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      {/* desktop sidebar */}
-      <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-edge md:bg-card/60 md:backdrop-blur-xl">
-        <Link href="/home" className="flex items-center gap-2.5 px-5 py-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
-            <Command className="h-4.5 w-4.5" aria-hidden />
-          </span>
-          <span className="text-xl font-bold text-gradient">BizReady</span>
-        </Link>
-        <nav className="flex flex-1 flex-col gap-1 px-3">
-          {NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active ? "text-brand-strong" : "text-ink-soft hover:bg-surface hover:text-ink"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="nav-active-desktop"
-                    transition={spring}
-                    className="absolute inset-0 -z-10 rounded-xl bg-gradient-to-l from-brand-tint to-brand-tint/30 ring-1 ring-inset ring-brand-edge/50"
-                  />
-                )}
-                <Icon className="h-5 w-5" aria-hidden />
-                {label}
-              </Link>
-            );
-          })}
-
-          <p className="mt-4 mb-1 px-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">עוד</p>
-          {MORE_NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
-                  active ? "text-brand-strong" : "text-ink-muted hover:bg-surface hover:text-ink"
-                }`}
-              >
-                {active && (
-                  <motion.span layoutId="nav-active-desktop" transition={spring} className="absolute inset-0 -z-10 rounded-xl bg-brand-tint" />
-                )}
-                <Icon className="h-4 w-4" aria-hidden />
-                {label}
-              </Link>
-            );
-          })}
-
-          <Link
-            href="/notifications"
-            className={`relative mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-              pathname.startsWith("/notifications")
-                ? "text-brand-strong"
-                : "text-ink-soft hover:bg-surface hover:text-ink"
-            }`}
-          >
-            {pathname.startsWith("/notifications") && (
-              <motion.span
-                layoutId="nav-active-desktop"
-                transition={spring}
-                className="absolute inset-0 -z-10 rounded-xl bg-brand-tint"
-              />
-            )}
-            <span className="relative">
-              <Bell className="h-5 w-5" aria-hidden />
-              <UnreadDot count={unreadCount} />
-            </span>
-            התראות
-          </Link>
-        </nav>
-      </aside>
-
-      {/* mobile top bar */}
-      <header className="sticky top-0 z-20 border-b border-edge bg-card/90 backdrop-blur-xl md:hidden">
-        <div className="flex h-14 items-center justify-between px-4">
-          <span className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
-              <Command className="h-4 w-4" aria-hidden />
-            </span>
-            <span className="text-lg font-bold text-gradient">BizReady</span>
-          </span>
-          <div className="flex items-center gap-1">
-            <Link
-              href="/notifications"
-              aria-label={`התראות${unreadCount > 0 ? `, ${unreadCount} חדשות` : ""}`}
-              className="relative rounded-lg p-2 text-ink-soft"
-            >
-              <Bell className="h-5 w-5" aria-hidden />
-              <UnreadDot count={unreadCount} />
+    <div className="relative flex min-h-screen flex-col">
+      {/* slim top bar — the OS "menu bar". Hidden on the home lock-screen,
+          which carries its own status bar. */}
+      {!fullBleed && (
+        <header className="sticky top-0 z-20 border-b border-edge/70 bg-card/70 backdrop-blur-xl">
+          <div className="mx-auto flex h-14 max-w-3xl items-center px-4 md:px-8">
+            <Link href="/home" className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
+                <Command className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              <span className="text-lg font-bold text-gradient">BizReady</span>
             </Link>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className={`flex-1 ${fullBleed ? "pb-24 md:pb-0" : "pb-24 md:pb-8"}`}>
+      <main className="flex-1">
         {fullBleed ? (
-          // the OS home renders edge-to-edge as its own ambient surface
           <motion.div key={pathname} variants={pageTransition} initial="hidden" animate="show">
             {children}
           </motion.div>
@@ -181,40 +45,15 @@ export function AppShell({
             variants={pageTransition}
             initial="hidden"
             animate="show"
-            className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8"
+            className="mx-auto w-full max-w-3xl px-4 pb-36 pt-6 md:px-8"
           >
             {children}
           </motion.div>
         )}
       </main>
 
-      {/* mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-edge bg-card/95 backdrop-blur-xl md:hidden">
-        <div className="flex justify-around">
-          {MOBILE_NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`relative flex flex-col items-center gap-0.5 px-2 py-2 text-[11px] font-medium ${
-                  active ? "text-brand-strong" : "text-ink-muted"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="nav-active-mobile"
-                    transition={spring}
-                    className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-brand-600"
-                  />
-                )}
-                <Icon className="h-5 w-5" aria-hidden />
-                {label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      {/* the dock — global bottom navigation */}
+      <Dock unreadCount={unreadCount} />
     </div>
   );
 }

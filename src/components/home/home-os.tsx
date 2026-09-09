@@ -81,8 +81,12 @@ function useLiquidGlass(rootRef: React.RefObject<HTMLDivElement | null>) {
       raf = requestAnimationFrame(() => {
         const dx = e.clientX / window.innerWidth - 0.5;
         const dy = e.clientY / window.innerHeight - 0.5;
-        root.style.setProperty("--par-x", `${(-dx * 18).toFixed(1)}px`);
-        root.style.setProperty("--par-y", `${(-dy * 18).toFixed(1)}px`);
+        // wallpaper plane (further away, moves more) vs content plane (closer,
+        // moves slightly the other way) → real multi-plane depth
+        root.style.setProperty("--par-x", `${(-dx * 20).toFixed(1)}px`);
+        root.style.setProperty("--par-y", `${(-dy * 20).toFixed(1)}px`);
+        root.style.setProperty("--par-x2", `${(dx * 7).toFixed(1)}px`);
+        root.style.setProperty("--par-y2", `${(dy * 7).toFixed(1)}px`);
         const card = (e.target as HTMLElement)?.closest?.(".os-card") as HTMLElement | null;
         if (card) {
           const r = card.getBoundingClientRect();
@@ -127,18 +131,25 @@ export function HomeOS({ data }: { data: HomeOSData }) {
         </span>
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-28 pt-6 sm:pt-10 md:pb-12">
+      <div
+        className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-36 pt-6 sm:pt-10"
+        style={{ transform: "translate3d(var(--par-x2, 0), var(--par-y2, 0), 0)", transition: "transform 0.25s cubic-bezier(0.22,1,0.36,1)" }}
+      >
         {/* ===== lock-screen hero ===== */}
         <motion.header
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center text-center"
+          className="flex min-h-[42vh] flex-col items-center justify-center text-center"
         >
           <p className="eyebrow mb-2">{greeting}, {data.name}</p>
-          <div className="tnum text-[clamp(3.6rem,2.5rem+7vw,6.5rem)] font-extralight leading-none tracking-tight text-ink">
+          <motion.div
+            animate={{ scale: [1, 1.012, 1], opacity: [0.96, 1, 0.96] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="tnum text-[clamp(3.6rem,2.5rem+7vw,6.5rem)] font-extralight leading-none tracking-tight text-ink"
+          >
             {time}
-          </div>
+          </motion.div>
           <p className="mt-2 text-sm text-ink-muted">{dateLine}</p>
 
           <div

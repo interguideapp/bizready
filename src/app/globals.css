@@ -445,3 +445,51 @@ body::after {
 }
 .os-card:hover::after { opacity: 1; }
 .os-card:active { transform: translateY(-1px) scale(0.995); }
+/* a slow living sheen so the glass feels alive even without a pointer */
+.os-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, 0.06) 50%, transparent 64%);
+  background-size: 260% 100%;
+  animation: os-sheen 11s ease-in-out infinite;
+}
+@keyframes os-sheen {
+  0%, 100% { background-position: 130% 0; }
+  50% { background-position: -30% 0; }
+}
+
+/* ---- the dock ---- floating liquid-glass bubble bar */
+.dock-bar {
+  position: relative;
+  border-radius: 999px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04) 40%, transparent 72%),
+    color-mix(in srgb, var(--card) 60%, transparent);
+  backdrop-filter: blur(44px) saturate(2);
+  -webkit-backdrop-filter: blur(44px) saturate(2);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+    inset 0 -18px 34px -28px rgba(0, 0, 0, 0.7),
+    0 22px 50px -20px rgba(0, 0, 0, 0.65);
+}
+/* breathing halo under the dock */
+@keyframes dock-breathe {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50% { opacity: 0.85; transform: translateX(-50%) scale(1.06); }
+}
+.dock-halo {
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  width: 62%;
+  height: 40px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, var(--glow-c), transparent 70%);
+  filter: blur(18px);
+  animation: dock-breathe 7s ease-in-out infinite;
+  pointer-events: none;
+}

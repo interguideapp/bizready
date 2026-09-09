@@ -47,9 +47,15 @@ export const stagger = (gap = 0.06): Variants => ({
   show: { transition: { staggerChildren: gap } },
 });
 
-/** Page transition (used by the app-layout AnimatePresence wrapper). */
+/** Page transition — an OS-like "screen zoom": scale + fade + a whisper of blur. */
 export const pageTransition: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: easeOut },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
+  hidden: { opacity: 0, scale: 0.985, y: 10, filter: "blur(8px)" },
+  show: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 260, damping: 30, mass: 0.9 },
+  },
+  exit: { opacity: 0, scale: 1.012, filter: "blur(6px)", transition: { duration: 0.18 } },
 };

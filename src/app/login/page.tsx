@@ -93,8 +93,8 @@ export default function LoginPage() {
         );
       }
       // The protected app layout sends first-time users to onboarding while
-      // returning users continue to their dashboard.
-      location.assign("/dashboard");
+      // returning users continue to their home screen.
+      location.assign("/home");
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : "משהו השתבש. נסו שוב.");
       setState("error");

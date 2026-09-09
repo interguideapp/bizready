@@ -9,13 +9,13 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // send new users to onboarding, returning users to the dashboard
+      // send new users to onboarding, returning users to the home screen
       const { data: business } = await supabase
         .from("businesses")
         .select("id, onboarding_completed_at")
         .maybeSingle();
       const target = business?.onboarding_completed_at
-        ? "/dashboard"
+        ? "/home"
         : "/onboarding";
       return NextResponse.redirect(`${origin}${target}`);
     }

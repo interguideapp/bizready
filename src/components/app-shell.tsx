@@ -11,6 +11,7 @@ import {
   Command,
   FolderOpen,
   History,
+  Home,
   IdCard,
   LayoutDashboard,
   ListChecks,
@@ -20,8 +21,9 @@ import {
 } from "lucide-react";
 import { pageTransition, spring } from "@/lib/motion";
 
-// A short, clear primary nav — the five things that matter day to day.
+// A short, clear primary nav — the things that matter day to day.
 const NAV = [
+  { href: "/home", label: "בית", icon: Home },
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tasks", label: "המשימות", icon: ListChecks },
   { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
@@ -39,7 +41,14 @@ const MORE_NAV = [
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
 
-const MOBILE_NAV = NAV;
+// Mobile bottom bar — five, home first.
+const MOBILE_NAV = [
+  { href: "/home", label: "בית", icon: Home },
+  { href: "/tasks", label: "המשימות", icon: ListChecks },
+  { href: "/calendar", label: "לוח", icon: CalendarClock },
+  { href: "/passport", label: "תיק העסק", icon: IdCard },
+  { href: "/insights", label: "תובנות", icon: BarChart3 },
+];
 
 function UnreadDot({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -58,12 +67,13 @@ export function AppShell({
   unreadCount?: number;
 }) {
   const pathname = usePathname();
+  const fullBleed = pathname === "/home";
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       {/* desktop sidebar */}
       <aside className="hidden md:flex md:w-60 md:flex-col md:border-l md:border-edge md:bg-card/60 md:backdrop-blur-xl">
-        <Link href="/dashboard" className="flex items-center gap-2.5 px-5 py-5">
+        <Link href="/home" className="flex items-center gap-2.5 px-5 py-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
             <Command className="h-4.5 w-4.5" aria-hidden />
           </span>
@@ -159,16 +169,23 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="flex-1 pb-24 md:pb-8">
-        <motion.div
-          key={pathname}
-          variants={pageTransition}
-          initial="hidden"
-          animate="show"
-          className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8"
-        >
-          {children}
-        </motion.div>
+      <main className={`flex-1 ${fullBleed ? "pb-24 md:pb-0" : "pb-24 md:pb-8"}`}>
+        {fullBleed ? (
+          // the OS home renders edge-to-edge as its own ambient surface
+          <motion.div key={pathname} variants={pageTransition} initial="hidden" animate="show">
+            {children}
+          </motion.div>
+        ) : (
+          <motion.div
+            key={pathname}
+            variants={pageTransition}
+            initial="hidden"
+            animate="show"
+            className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8"
+          >
+            {children}
+          </motion.div>
+        )}
       </main>
 
       {/* mobile bottom nav */}

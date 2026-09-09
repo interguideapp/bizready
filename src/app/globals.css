@@ -340,3 +340,69 @@ body::after {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- glass OS home screen ---------- */
+@keyframes os-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(4%, 3%, 0) scale(1.08); }
+}
+@keyframes os-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(-5%, -4%, 0) scale(1); }
+}
+@keyframes os-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+/* immersive lock-screen backdrop — larger, softer, slowly living aurora */
+.os-ambient { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.os-ambient::before,
+.os-ambient::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  will-change: transform, opacity;
+}
+.os-ambient::before {
+  width: 62vw; height: 62vw; top: -14vw; right: -10vw;
+  background: radial-gradient(circle at 30% 30%, var(--aurora-from), transparent 62%);
+  opacity: 0.5;
+  animation: os-drift-a 22s ease-in-out infinite, os-breathe 14s ease-in-out infinite;
+}
+.os-ambient::after {
+  width: 56vw; height: 56vw; bottom: -18vw; left: -12vw;
+  background: radial-gradient(circle at 60% 60%, var(--aurora-to), transparent 62%);
+  opacity: 0.42;
+  animation: os-drift-b 26s ease-in-out infinite;
+}
+/* a soft central glow so the clock sits in light */
+.os-glow {
+  position: absolute; z-index: 0; pointer-events: none;
+  width: 70vw; height: 40vw; left: 50%; top: 14%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, var(--glow-c), transparent 70%);
+  filter: blur(30px);
+}
+/* full-height base so a tall page is never pure black between the glows —
+   a living dark-blue wash (toward --surface-3) with a soft mid glow */
+.os-root {
+  background:
+    radial-gradient(60rem 40rem at 50% 42%, color-mix(in srgb, var(--aurora-from) 10%, transparent), transparent 62%),
+    radial-gradient(80rem 46rem at 50% -6%, color-mix(in srgb, var(--aurora-from) 20%, transparent), transparent 58%),
+    radial-gradient(70rem 46rem at 50% 106%, color-mix(in srgb, var(--aurora-to) 18%, transparent), transparent 58%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--surface-3) 82%, var(--aurora-from)),
+      var(--surface-3) 42%,
+      color-mix(in srgb, var(--surface-3) 80%, var(--aurora-to)));
+}
+/* frosted OS card — deeper glass than the inner .panel, opaque enough to read
+   anywhere on the page (including the calm mid-band between the aurora glows) */
+.os-card {
+  position: relative;
+  background: color-mix(in srgb, var(--card) 92%, var(--surface));
+  backdrop-filter: blur(26px) saturate(1.5);
+  -webkit-backdrop-filter: blur(26px) saturate(1.5);
+  border: 1px solid color-mix(in srgb, var(--edge-strong) 80%, transparent);
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 20px 50px -24px rgba(0,0,0,0.6);
+}

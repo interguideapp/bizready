@@ -1,0 +1,385 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { motion } from "motion/react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  FileCheck2,
+  Flame,
+  FolderOpen,
+  Gauge,
+  History,
+  Hourglass,
+  PiggyBank,
+  Sparkles,
+  Store,
+  UserRound,
+  Wallet,
+  Zap,
+} from "lucide-react";
+import { greetingFor, type QuickWin } from "@/lib/home";
+import type { ConfidenceState } from "@/lib/confidence";
+
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Wallet, UserRound, FolderOpen, Store, Zap, FileCheck2, CheckCircle2, Flame,
+  CalendarClock, Gauge, PiggyBank, Sparkles, Clock3, Hourglass,
+};
+function Ic({ name, className }: { name: string; className?: string }) {
+  const C = ICONS[name] ?? Sparkles;
+  return <C className={className} />;
+}
+
+const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+
+export interface HomeOSData {
+  name: string;
+  confidence: { state: ConfidenceState; headline: string; detail: string };
+  oneThing: { title: string; href: string } | null;
+  waiting: { title: string; waitingFor: string | null; followUp: string | null; href: string }[];
+  quickWins: QuickWin[];
+  nextDeadline: { title: string; date: string; daysUntil: number } | null;
+  tiles: {
+    readiness: number;
+    money: { hasIncome: boolean; setAsideLow: number; setAsideHigh: number; monthRevenue: number; showSetAside: boolean };
+    streak: number;
+    docsCount: number;
+    done: number;
+    total: number;
+    profilePercent: number;
+  };
+  activity: { text: string; when: string; icon: string }[];
+}
+
+/** Live HH:MM clock + Hebrew date, derived from the viewer's own device time. */
+function useNow() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+export function HomeOS({ data }: { data: HomeOSData }) {
+  const now = useNow();
+  const time = now
+    ? now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+    : "‏‏‎ ";
+  const dateLine = now
+    ? now.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })
+    : "";
+  const greeting = now ? greetingFor(now.getHours()) : "שלום";
+  const atRisk = data.confidence.state === "at_risk";
+
+  return (
+    <div className="os-root relative min-h-[calc(100dvh-1px)] overflow-hidden" dir="rtl">
+      <div className="os-ambient" aria-hidden />
+      <div className="os-glow" aria-hidden />
+
+      <div className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-28 pt-10 sm:pt-16 md:pb-12">
+        {/* ===== lock-screen hero ===== */}
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center text-center"
+        >
+          <p className="eyebrow mb-2">{greeting}, {data.name}</p>
+          <div className="tnum text-[clamp(3.6rem,2.5rem+7vw,6.5rem)] font-extralight leading-none tracking-tight text-ink">
+            {time}
+          </div>
+          <p className="mt-2 text-sm text-ink-muted">{dateLine}</p>
+
+          <div
+            className={`mt-5 inline-flex max-w-full items-center gap-2 rounded-full border px-4 py-2 text-sm ${
+              atRisk
+                ? "border-status-overdue/40 bg-status-overdue/10 text-status-overdue"
+                : "border-edge-strong bg-card/50 text-ink-soft"
+            }`}
+          >
+            {atRisk ? <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden /> : <Sparkles className="h-4 w-4 shrink-0 text-brand-400" aria-hidden />}
+            <span className="truncate font-medium">{data.confidence.headline}</span>
+          </div>
+        </motion.header>
+
+        {/* ===== the one thing ===== */}
+        {data.oneThing && (
+          <FadeUp delay={0.05}>
+            <Link href={data.oneThing.href} className="block">
+              <div className="os-card group flex items-center gap-3 rounded-3xl p-4 transition hover:-translate-y-0.5">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-tint text-brand-strong">
+                  <Zap className="h-5 w-5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="eyebrow">הצעד הבא</p>
+                  <p className="truncate text-[15px] font-bold text-ink">{data.oneThing.title}</p>
+                </div>
+                <ArrowLeft className="h-5 w-5 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />
+              </div>
+            </Link>
+          </FadeUp>
+        )}
+
+        {/* ===== waiting on approval ===== */}
+        <FadeUp delay={0.1}>
+          <div className="os-card rounded-3xl p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <Hourglass className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+              <h2 className="text-section text-ink">ממתין לאישור</h2>
+              {data.waiting.length > 0 && (
+                <span className="tnum mr-auto rounded-full bg-surface px-2 py-0.5 text-xs text-ink-muted">
+                  {data.waiting.length}
+                </span>
+              )}
+            </div>
+            {data.waiting.length === 0 ? (
+              <p className="text-sm text-ink-muted">
+                אין כרגע משימות שממתינות לגורם חיצוני — הכדור אצלכם. 🎯
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {data.waiting.map((w, i) => (
+                  <Link
+                    key={i}
+                    href={w.href}
+                    className="group flex items-center gap-3 rounded-2xl border border-edge-soft bg-surface/50 p-3 transition hover:border-brand-edge"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-status-progress-bg text-status-progress">
+                      <Clock3 className="h-4 w-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">{w.title}</p>
+                      <p className="truncate text-[11px] text-ink-muted">
+                        {w.waitingFor ? `ממתין ל${w.waitingFor}` : "ממתין לתשובה"}
+                        {w.followUp ? ` · מעקב ${w.followUp}` : ""}
+                      </p>
+                    </div>
+                    <ArrowLeft className="h-4 w-4 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </FadeUp>
+
+        {/* ===== quick wins ===== */}
+        {data.quickWins.length > 0 && (
+          <FadeUp delay={0.15}>
+            <div>
+              <div className="mb-2.5 flex items-center gap-2">
+                <Zap className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+                <h2 className="text-section text-ink">אפשר עכשיו · דקות ספורות</h2>
+              </div>
+              <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1">
+                {data.quickWins.map((q) => (
+                  <Link
+                    key={q.id}
+                    href={q.href}
+                    className="os-card group flex w-52 shrink-0 flex-col gap-2 rounded-2xl p-3.5 transition hover:-translate-y-0.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
+                        <Ic name={q.icon} className="h-4.5 w-4.5" />
+                      </span>
+                      <span className="tnum flex items-center gap-1 text-[11px] text-ink-faint">
+                        <Clock3 className="h-3 w-3" aria-hidden />~{q.minutes} ד׳
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-ink">{q.label}</p>
+                      <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">{q.sublabel}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </FadeUp>
+        )}
+
+        {/* ===== OS widget grid ===== */}
+        <FadeUp delay={0.2}>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            <OSTile
+              href="/insights"
+              icon={<Gauge className="h-4.5 w-4.5 text-brand-400" />}
+              label="מוכנות"
+              value={`${data.tiles.readiness}`}
+              suffix="/100"
+              detail={<>הציון הכולל שלכם. מבוסס על המשימות שסימנתם כהושלמו — כל משימה שתסגרו מעלה אותו.</>}
+            />
+            <OSTile
+              href="/insights"
+              icon={<PiggyBank className="h-4.5 w-4.5 text-brand-400" />}
+              label="להפריש למיסים"
+              value={
+                data.tiles.money.hasIncome
+                  ? data.tiles.money.showSetAside
+                    ? nis(data.tiles.money.setAsideLow)
+                    : "—"
+                  : "רשמו"
+              }
+              detail={
+                data.tiles.money.hasIncome ? (
+                  data.tiles.money.showSetAside ? (
+                    <>הערכה: {nis(data.tiles.money.setAsideLow)}–{nis(data.tiles.money.setAsideHigh)} מההכנסה שנרשמה השנה. מחזור החודש: {nis(data.tiles.money.monthRevenue)}.</>
+                  ) : (
+                    <>מס חברות מחושב על הרווח — הפרשה מדויקת מול הרו״ח.</>
+                  )
+                ) : (
+                  <>רשמו כמה הכנסתם ותקבלו מיד תחזית הפרשה למיסים ומעקב תקרה.</>
+                )
+              }
+            />
+            <OSTile
+              href="/tracking"
+              icon={<Flame className={`h-4.5 w-4.5 ${data.tiles.streak > 0 ? "text-status-progress" : "text-ink-faint"}`} />}
+              label="רצף פעילות"
+              value={`${data.tiles.streak}`}
+              suffix=" ימים"
+              detail={
+                data.tiles.streak > 0 ? (
+                  <>{data.tiles.streak} ימים ברצף. פעולה אחת היום שומרת על הרצף — אפילו רישום הכנסה או השלמת פרט.</>
+                ) : (
+                  <>התחילו רצף היום — כל פעולה קטנה נספרת.</>
+                )
+              }
+            />
+            <OSTile
+              href="/calendar"
+              icon={<CalendarClock className="h-4.5 w-4.5 text-brand-400" />}
+              label="הדדליין הבא"
+              value={data.nextDeadline ? daysShort(data.nextDeadline.daysUntil) : "—"}
+              detail={
+                data.nextDeadline ? (
+                  <>{data.nextDeadline.title} · {data.nextDeadline.date}. חובות סטטוטוריים בלבד נספרים כאן.</>
+                ) : (
+                  <>אין מועד דחוף באופק הקרוב.</>
+                )
+              }
+            />
+            <OSTile
+              href="/documents"
+              icon={<FolderOpen className="h-4.5 w-4.5 text-brand-400" />}
+              label="מסמכים"
+              value={`${data.tiles.docsCount}`}
+              detail={<>כל המסמכים שהעליתם — תעודות, אישורים וחוזים — במקום אחד ומקושרים למשימות.</>}
+            />
+            <OSTile
+              href="/tasks"
+              icon={<CheckCircle2 className="h-4.5 w-4.5 text-status-done" />}
+              label="הושלמו"
+              value={`${data.tiles.done}`}
+              suffix={`/${data.tiles.total}`}
+              detail={<>סגרתם {data.tiles.done} מתוך {data.tiles.total} המשימות הרלוונטיות. הפרופיל מלא ב-{data.tiles.profilePercent}%.</>}
+            />
+          </div>
+        </FadeUp>
+
+        {/* ===== recent activity ===== */}
+        {data.activity.length > 0 && (
+          <FadeUp delay={0.25}>
+            <div className="os-card rounded-3xl p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <History className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+                <h2 className="text-section text-ink">מה עדכנתם לאחרונה</h2>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {data.activity.map((a, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-strong">
+                      <Ic name={a.icon} className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-ink-soft">{a.text}</span>
+                    <span className="shrink-0 text-[11px] text-ink-faint">{a.when}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </FadeUp>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** A glass stat tile that reveals a detail popover on hover (desktop) or tap (mobile). */
+function OSTile({
+  href,
+  icon,
+  label,
+  value,
+  suffix,
+  detail,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  suffix?: string;
+  detail: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="group relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="os-card flex w-full flex-col gap-2 rounded-2xl p-3.5 text-right transition hover:-translate-y-0.5"
+      >
+        <div className="flex items-center justify-between">
+          {icon}
+          <ArrowLeft className="h-3.5 w-3.5 text-ink-faint opacity-0 transition group-hover:opacity-100" aria-hidden />
+        </div>
+        <div>
+          <p className="eyebrow">{label}</p>
+          <p className="tnum text-xl font-bold text-ink">
+            {value}
+            {suffix && <span className="text-sm font-medium text-ink-muted">{suffix}</span>}
+          </p>
+        </div>
+      </button>
+
+      {/* detail popover */}
+      <div
+        className={`absolute inset-x-0 top-full z-20 mt-2 rounded-2xl border border-edge-strong bg-card p-3 text-xs leading-relaxed text-ink-soft shadow-xl backdrop-blur-xl transition ${
+          open ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
+        }`}
+        style={{ backdropFilter: "blur(24px) saturate(1.4)" }}
+      >
+        {detail}
+        <Link href={href} className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-brand-strong">
+          לפרטים המלאים <ArrowLeft className="h-3 w-3" aria-hidden />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function daysShort(d: number): string {
+  if (d < 0) return "עבר";
+  if (d === 0) return "היום";
+  if (d === 1) return "מחר";
+  return `${d} ימים`;
+}

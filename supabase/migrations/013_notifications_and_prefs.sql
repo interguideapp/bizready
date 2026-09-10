@@ -1,18 +1,21 @@
 -- ============================================================================
--- 013 — the tables the reminder system has always assumed existed.
+-- 013 — reconcile the migration set with the schema production actually has.
 --
--- `notifications` and `reminder_log` were referenced by src/lib/data.ts,
--- src/lib/actions.ts, the reminder cron and the integrations pipeline, but no
--- migration ever created them. Because every read in data.ts discarded its
--- error, the failure was invisible: the notifications page rendered
--- "הכל רגוע כרגע" whether the user was fine or the table was missing.
+-- No migration in this repo creates notifications or reminder_log, nor the
+-- businesses.notify_email / notify_whatsapp / whatsapp_phone columns — yet
+-- data.ts, actions.ts, the reminder cron and the integrations pipeline all read
+-- and write them. Production HAS them (created out-of-band), so the live app
+-- works; the repo simply cannot reproduce it. A fresh environment, a new
+-- teammate, or a disaster-recovery restore would come up with a silently
+-- broken reminder system — and because every read in data.ts used to discard
+-- its error, that breakage would have been invisible.
 --
--- Migration 007 also declared a policy on public.notifications, so 007 itself
--- aborted — which means the six owner-write policies above that line never
--- landed either. They are re-created here.
+-- 007 also declared a policy on public.notifications. That aborts on a clean
+-- apply (taking its six owner-write policies with it), so the policy moved here
+-- next to the CREATE TABLE it depends on, and those six are re-created below.
 --
--- Written to be idempotent so it is safe to apply to a database that has
--- already had 001-012 applied (and safe to re-run).
+-- Everything here is idempotent: safe on production (where most of it already
+-- exists), safe on a clean database, and safe to re-run.
 -- ============================================================================
 
 -- ---------- notification prefs on the business ----------
@@ -109,8 +112,12 @@ create policy "sync_errors: owner insert" on public.sync_errors
     exists (select 1 from public.businesses b where b.id = business_id and b.owner_id = auth.uid ())
   );
 
--- NOTE: 007's "sync_metrics: owner update" policy is deliberately NOT restored.
--- It let a user rewrite their own revenue metrics — the figures that feed the
--- עוסק-פטור ceiling calculation. Metric corrections must go through a server
--- action, not a direct client update.
+-- sync_metrics owner UPDATE is REQUIRED, not a hole: both the manual income
+-- logger (setMonthlyIncome) and owner-session sync upsert into this table, and
+-- an upsert needs UPDATE as well as INSERT. The user reporting their own
+-- revenue is the feature, not an attack — there is no other party to deceive.
 drop policy if exists "sync_metrics: owner update" on public.sync_metrics;
+create policy "sync_metrics: owner update" on public.sync_metrics
+  for update using (
+    exists (select 1 from public.businesses b where b.id = business_id and b.owner_id = auth.uid ())
+  );

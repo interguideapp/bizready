@@ -1,4 +1,5 @@
 "use server";
+import { sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
 
 import { todayInIsrael } from "@/lib/dates";
 import { revalidatePath } from "next/cache";
@@ -46,10 +47,13 @@ async function requireUser() {
 
 /** Finish onboarding: create the business + its personalized plan. */
 export async function completeOnboarding(
-  businessName: string,
-  answers: OnboardingAnswers
+  businessNameInput: string,
+  answersInput: OnboardingAnswers
 ) {
   const { supabase, user } = await requireUser();
+  // never trust the client payload (see lib/validate-answers)
+  const businessName = sanitizeBusinessName(businessNameInput);
+  const answers = sanitizeAnswers(answersInput);
 
   const { data: business, error } = await supabase
     .from("businesses")
@@ -92,9 +96,10 @@ export async function completeOnboarding(
  * so כיול is a transparent, trusted action instead of a silent mutation.
  */
 export async function previewReconcile(
-  answers: OnboardingAnswers
+  answersInput: OnboardingAnswers
 ): Promise<ReconcileSummary> {
   const { supabase, user } = await requireUser();
+  const answers = sanitizeAnswers(answersInput);
   const { data: business } = await supabase
     .from("businesses")
     .select("id")
@@ -113,9 +118,10 @@ export async function previewReconcile(
 
 /** Update answers from settings and reconcile the task list. */
 export async function updateAnswers(
-  answers: OnboardingAnswers
+  answersInput: OnboardingAnswers
 ): Promise<ReconcileSummary> {
   const { supabase, user } = await requireUser();
+  const answers = sanitizeAnswers(answersInput);
 
   const { data: business } = await supabase
     .from("businesses")

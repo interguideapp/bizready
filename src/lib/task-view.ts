@@ -21,6 +21,8 @@ export interface TaskView {
 
   why: string;
   steps: string[];
+  /** indices of `steps` the user has ticked as done (live per-step progress). */
+  stepsDone: number[];
   guide?: string;
   pitfalls: string[];
   /** What happens after you submit — the real bureaucratic follow-up. */

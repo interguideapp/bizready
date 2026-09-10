@@ -347,14 +347,19 @@ function FinishPhase({ view }: { view: TaskView }) {
         />
       </Card>
 
-      {view.status === "done" && Object.keys(view.completionData).length > 0 && (
+      {view.status === "done" && (() => {
+        // hide internal bookkeeping keys (e.g. __steps_done) and non-text values
+        const shown = Object.entries(view.completionData).filter(
+          ([k, v]) => !k.startsWith("__") && typeof v === "string" && v.trim()
+        );
+        return shown.length > 0 ? (
         <Card className="border-status-done/30 bg-status-done-bg/40 p-4">
           <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-status-done">
             <CheckCircle2 className="h-4 w-4" aria-hidden />
             מה תועד בסיום
           </p>
           <dl className="grid gap-1.5 text-sm">
-            {Object.entries(view.completionData).map(([k, v]) =>
+            {shown.map(([k, v]) =>
               v ? (
                 <div key={k} className="flex gap-2">
                   <dt className="text-ink-muted">
@@ -371,7 +376,8 @@ function FinishPhase({ view }: { view: TaskView }) {
             </p>
           )}
         </Card>
-      )}
+        ) : null;
+      })()}
     </div>
   );
 }

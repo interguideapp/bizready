@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button, Card } from "@/components/ui";
 import { StepsContent } from "@/components/steps-content";
+import { StepTracker } from "@/components/task/step-tracker";
 import { TaskChecklist } from "@/components/task-checklist";
 import { DocumentUpload } from "@/components/document-upload";
 import { DocumentGenerator } from "@/components/document-generator";
@@ -62,25 +63,29 @@ export function ArchetypeAction({
     <div className="flex flex-col gap-6">
       <ArchetypeHero view={view} />
 
-      {/* how-to steps — shared, re-skinned */}
+      {/* how-to steps — now a live, checkable tracker */}
       <section>
         <h2 className="mb-3 flex items-center gap-2 text-section text-ink">
           <ListTodo className="h-4.5 w-4.5 text-brand-500" aria-hidden />
-          איך עושים את זה
+          השלבים — סמנו תוך כדי
         </h2>
         <Card className="p-5">
-          <StepsContent text={view.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")} />
+          {view.steps.length > 0 ? (
+            <StepTracker taskId={view.taskDbId} steps={view.steps} doneIndices={view.stepsDone} />
+          ) : (
+            <StepsContent text={view.why} />
+          )}
         </Card>
       </section>
 
-      {/* personal checklist */}
+      {/* personal checklist — optional extras + file attachments */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-section text-ink">
           <ListChecks className="h-4.5 w-4.5 text-brand-500" aria-hidden />
-          הדרך שלי
+          תזכורות וקבצים משלכם
         </h2>
         <p className="mb-3 text-sm text-ink-muted">
-          צעדים משלכם — סמנו כשמתקדמים, וצרפו קבצים לכל צעד
+          רשות — הוסיפו צעד משלכם או צרפו מסמך שקשור למשימה
         </p>
         <Card className="p-4">
           <TaskChecklist

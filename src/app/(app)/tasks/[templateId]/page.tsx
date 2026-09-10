@@ -72,6 +72,10 @@ export default async function TaskDetailPage({
     .split("\n")
     .map((l) => l.trim().replace(/^\d+\.\s*/, "").replace(/\*\*/g, ""))
     .filter(Boolean);
+  const cd = (task.completion_data ?? {}) as Record<string, unknown>;
+  const stepsDone = Array.isArray(cd.__steps_done)
+    ? (cd.__steps_done as number[]).filter((n) => Number.isInteger(n) && n >= 0 && n < steps.length)
+    : [];
 
   const statutory = isStatutoryFiling(template.id);
   const obligation = statutory
@@ -124,6 +128,7 @@ export default async function TaskDetailPage({
     status: task.status,
     why: resolved.why,
     steps,
+    stepsDone,
     guide: template.guide,
     pitfalls: template.pitfalls ?? [],
     afterSubmit: template.after_submit ?? null,

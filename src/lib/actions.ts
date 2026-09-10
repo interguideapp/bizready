@@ -263,6 +263,34 @@ export async function completeTask(
   revalidatePath("/", "layout");
 }
 
+/**
+ * Tick a real step of a task on or off. Progress is stored as the completed step
+ * indices under `__steps_done` in the task's completion_data (jsonb) — no schema
+ * change — so each task tracks how far along its real-world steps you are.
+ */
+export async function toggleTaskStep(taskId: string, stepIndex: number, done: boolean) {
+  const { supabase } = await requireUser();
+  const { data: current } = await supabase
+    .from("business_tasks")
+    .select("id, completion_data")
+    .eq("id", taskId)
+    .single();
+  if (!current) throw new Error("task not found");
+  const data = (current.completion_data ?? {}) as Record<string, unknown>;
+  const set = new Set<number>(
+    Array.isArray(data.__steps_done) ? (data.__steps_done as number[]) : []
+  );
+  if (done) set.add(stepIndex);
+  else set.delete(stepIndex);
+  const next = { ...data, __steps_done: [...set].sort((a, b) => a - b) };
+  const { error } = await supabase
+    .from("business_tasks")
+    .update({ completion_data: next })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/tasks", "layout");
+}
+
 /** Set or clear a personal deadline; logs it to the activity feed. */
 export async function setTaskDueDate(taskId: string, dueDate: string | null) {
   const { supabase } = await requireUser();

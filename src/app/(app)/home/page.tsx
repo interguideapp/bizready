@@ -167,12 +167,19 @@ export default async function HomePage() {
       return { text: `${meta.verb} ${title}`.trim(), when: agoPhrase(e.created_at, today), icon: meta.icon };
     });
 
+  // profile completeness — the "what's missing to 100%" checklist, now on Home
+  const completeness = {
+    percent: profile.percent,
+    missing: profile.checks.filter((c) => !c.done).map((c) => ({ label: c.label, href: c.href })),
+  };
+
   const data: HomeOSData = {
     name: firstName(business.name),
     confidence: { state: confidence.state, headline: confidence.headline, detail: confidence.detail },
     oneThing,
     waiting,
     quickWins,
+    completeness,
     nextDeadline,
     tiles: {
       readiness: score.overall,

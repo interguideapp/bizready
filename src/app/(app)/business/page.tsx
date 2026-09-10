@@ -7,6 +7,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { getBusiness, getDocuments, getProducts } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { createClient } from "@/lib/supabase/server";
+import { BusinessHubTabs } from "@/components/business-hub-tabs";
 import { BusinessCard } from "./business-card";
 
 export default async function BusinessPage() {
@@ -34,8 +35,9 @@ export default async function BusinessPage() {
 
   return (
     <div>
+      <BusinessHubTabs />
       <PageTitle
-        title="הפרופיל העסקי"
+        title="פרטי העסק"
         subtitle="ככל שהפרופיל מלא יותר — העסק שלך מסודר, מקצועי וזמין יותר"
       />
 

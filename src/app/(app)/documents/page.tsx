@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { DOC_GENERATORS } from "@/lib/documents/generators";
 import type { OnboardingAnswers } from "@/lib/types";
+import { BusinessHubTabs } from "@/components/business-hub-tabs";
 import { DocumentRowItem } from "./document-row";
 
 const DOC_CATEGORIES: { id: string; label: string }[] = [
@@ -59,8 +60,9 @@ export default async function DocumentsPage() {
 
   return (
     <div>
+      <BusinessHubTabs />
       <PageTitle
-        title="ארכיון המסמכים"
+        title="מסמכים"
         subtitle="תעודות, אישורים ופוליסות — מתויקים ובמרחק קליק"
       />
 

@@ -14,13 +14,10 @@ import {
 import {
   BarChart3,
   Bell,
-  Briefcase,
   CalendarClock,
-  FolderOpen,
   History,
   Home,
   IdCard,
-  LayoutDashboard,
   LayoutGrid,
   ListChecks,
   Plug,
@@ -40,12 +37,11 @@ const PRIMARY: Item[] = [
   { href: "/insights", label: "תובנות", icon: BarChart3 },
 ];
 
+// business details + documents now live inside תיק העסק (hub tabs); the old
+// dashboard folded into בית; activity history is reached from בית.
 const SECONDARY: Item[] = [
   { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
-  { href: "/business", label: "הפרופיל", icon: Briefcase },
-  { href: "/documents", label: "מסמכים", icon: FolderOpen },
-  { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
-  { href: "/tracking", label: "מעקב", icon: History },
+  { href: "/tracking", label: "מעקב פעילות", icon: History },
   { href: "/integrations", label: "חיבורים", icon: Plug },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];

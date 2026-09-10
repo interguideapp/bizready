@@ -145,6 +145,40 @@ export function HomeOS({ data }: { data: HomeOSData }) {
           </FadeUp>
         )}
 
+        {/* ===== complete the business file ===== */}
+        {data.completeness.missing.length > 0 && (
+          <FadeUp delay={0.08}>
+            <div className="os-card rounded-3xl p-5">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+                  <h2 className="text-section text-ink">מה חסר לתיק העסק</h2>
+                </div>
+                <span className="tnum text-sm font-bold text-ink">{data.completeness.percent}%</span>
+              </div>
+              <div className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                <div
+                  className="h-full rounded-full bg-gradient-to-l from-brand-600 to-brand-400 transition-[width] duration-500"
+                  style={{ width: `${data.completeness.percent}%` }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {data.completeness.missing.map((m, i) => (
+                  <Link
+                    key={i}
+                    href={m.href}
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-edge-soft bg-surface/50 px-3 py-1.5 text-[13px] text-ink-soft transition hover:border-brand-edge hover:text-ink"
+                  >
+                    <Circle className="h-3.5 w-3.5 text-ink-faint transition group-hover:text-brand-400" aria-hidden />
+                    {m.label}
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
+            </div>
+          </FadeUp>
+        )}
+
         {/* ===== waiting on approval ===== */}
         <FadeUp delay={0.1}>
           <div className="os-card rounded-3xl p-5">
@@ -217,40 +251,6 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                   </Link>
                 ))}
               </div>
-            </div>
-          </FadeUp>
-        )}
-
-        {/* ===== complete the business file ===== */}
-        {data.completeness.missing.length > 0 && (
-          <FadeUp delay={0.18}>
-            <div className="os-card rounded-3xl p-5">
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <BadgeCheck className="h-4.5 w-4.5 text-brand-400" aria-hidden />
-                  <h2 className="text-section text-ink">מה חסר לתיק העסק</h2>
-                </div>
-                <span className="tnum text-sm font-bold text-ink">{data.completeness.percent}%</span>
-              </div>
-              <div className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-                <div
-                  className="h-full rounded-full bg-gradient-to-l from-brand-600 to-brand-400 transition-[width] duration-500"
-                  style={{ width: `${data.completeness.percent}%` }}
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {data.completeness.missing.map((m, i) => (
-                  <Link
-                    key={i}
-                    href={m.href}
-                    className="group inline-flex items-center gap-1.5 rounded-full border border-edge-soft bg-surface/50 px-3 py-1.5 text-[13px] text-ink-soft transition hover:border-brand-edge hover:text-ink"
-                  >
-                    <Circle className="h-3.5 w-3.5 text-ink-faint transition group-hover:text-brand-400" aria-hidden />
-                    {m.label}
-                  </Link>
-                ))}
-              </div>
-              <p className="mt-3 text-[11px] text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
             </div>
           </FadeUp>
         )}

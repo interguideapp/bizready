@@ -30,20 +30,22 @@ import {
 
 type Item = { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
 
+// The five that matter every day. The shop is primary on purpose — it's the
+// revenue surface — and "one truth" lives on בית, so the old dashboard drops out.
 const PRIMARY: Item[] = [
   { href: "/home", label: "בית", icon: Home },
-  { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tasks", label: "המשימות", icon: ListChecks },
-  { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
   { href: "/passport", label: "תיק העסק", icon: IdCard },
+  { href: "/shop", label: "החנות", icon: Store },
   { href: "/insights", label: "תובנות", icon: BarChart3 },
 ];
 
 const SECONDARY: Item[] = [
-  { href: "/documents", label: "מסמכים", icon: FolderOpen },
+  { href: "/calendar", label: "לוח החובות", icon: CalendarClock },
   { href: "/business", label: "הפרופיל", icon: Briefcase },
+  { href: "/documents", label: "מסמכים", icon: FolderOpen },
+  { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/tracking", label: "מעקב", icon: History },
-  { href: "/shop", label: "חנות", icon: Store },
   { href: "/integrations", label: "חיבורים", icon: Plug },
   { href: "/settings", label: "הגדרות", icon: Settings },
 ];
@@ -56,56 +58,65 @@ export function Dock({ unreadCount = 0 }: { unreadCount?: number }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 sm:bottom-5">
+    <>
+      {/* click-away — a separate fixed layer so the dock never reflows */}
       <AnimatePresence>
         {moreOpen && (
-          <>
-            {/* click-away */}
-            <div
-              className="pointer-events-auto fixed inset-0 z-0"
-              onClick={() => setMoreOpen(false)}
-              aria-hidden
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 14, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 14, scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 320, damping: 26 }}
-              className="dock-bar pointer-events-auto absolute bottom-[88px] z-10 w-[min(92vw,320px)] p-2"
-            >
-              <div className="grid grid-cols-2 gap-1">
-                {SECONDARY.map((it) => {
-                  const active = isActive(it.href);
-                  return (
-                    <Link
-                      key={it.href}
-                      href={it.href}
-                      onClick={() => setMoreOpen(false)}
-                      className={`flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm font-medium transition ${
-                        active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-white/5 hover:text-ink"
-                      }`}
-                    >
-                      <it.icon className="h-4.5 w-4.5" aria-hidden />
-                      {it.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden
+          />
         )}
       </AnimatePresence>
 
-      <motion.nav
-        onMouseMove={(e) => mouseX.set(e.pageX)}
-        onMouseLeave={() => mouseX.set(Infinity)}
-        initial={{ y: 24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.1 }}
-        className="dock-bar pointer-events-auto relative flex items-end gap-1 px-2.5 py-2 sm:gap-1.5 sm:px-3"
-        aria-label="ניווט ראשי"
-      >
-        <span className="dock-halo" aria-hidden />
+      {/* the dock is centred by transform, so opening "עוד" can't move it */}
+      <div className="pointer-events-none fixed bottom-3 left-1/2 z-40 -translate-x-1/2 sm:bottom-5">
+        <div className="relative flex flex-col items-center">
+          <AnimatePresence>
+            {moreOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 14, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 14, scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 320, damping: 26 }}
+                className="dock-bar pointer-events-auto absolute bottom-full mb-3 w-[min(92vw,320px)] p-2"
+              >
+                <div className="grid grid-cols-2 gap-1">
+                  {SECONDARY.map((it) => {
+                    const active = isActive(it.href);
+                    return (
+                      <Link
+                        key={it.href}
+                        href={it.href}
+                        onClick={() => setMoreOpen(false)}
+                        className={`flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm font-medium transition ${
+                          active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:bg-white/5 hover:text-ink"
+                        }`}
+                      >
+                        <it.icon className="h-4.5 w-4.5" aria-hidden />
+                        {it.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <motion.nav
+            onMouseMove={(e) => mouseX.set(e.pageX)}
+            onMouseLeave={() => mouseX.set(Infinity)}
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.1 }}
+            className="dock-bar pointer-events-auto relative flex items-end gap-1 px-2.5 py-2 sm:gap-1.5 sm:px-3"
+            aria-label="ניווט ראשי"
+          >
+            <span className="dock-halo" aria-hidden />
         {PRIMARY.map((it) => (
           <DockButton key={it.href} mouseX={mouseX} item={it} active={isActive(it.href)} />
         ))}
@@ -121,15 +132,17 @@ export function Dock({ unreadCount = 0 }: { unreadCount?: number }) {
         {/* divider */}
         <span className="mx-0.5 mb-2 h-8 w-px shrink-0 self-center bg-white/10" aria-hidden />
 
-        {/* more */}
-        <DockButton
-          mouseX={mouseX}
-          item={{ href: "#more", label: "עוד", icon: LayoutGrid }}
-          active={moreOpen}
-          onClick={() => setMoreOpen((o) => !o)}
-        />
-      </motion.nav>
-    </div>
+            {/* more */}
+            <DockButton
+              mouseX={mouseX}
+              item={{ href: "#more", label: "עוד", icon: LayoutGrid }}
+              active={moreOpen}
+              onClick={() => setMoreOpen((o) => !o)}
+            />
+          </motion.nav>
+        </div>
+      </div>
+    </>
   );
 }
 

@@ -64,10 +64,10 @@
   --card: rgba(17, 25, 44, 0.55);
   --card-solid: #0e1626;
 
-  --ink: #eaf0ff;
-  --ink-soft: #bcc7e0;
-  --ink-muted: #8391b3;
-  --ink-faint: #58637f;
+  --ink: #f2f5ff;
+  --ink-soft: #d2dbef;
+  --ink-muted: #a3b0ce;
+  --ink-faint: #6b7695;
 
   --edge: rgba(255, 255, 255, 0.08);
   --edge-soft: rgba(255, 255, 255, 0.05);
@@ -164,15 +164,19 @@
 body {
   @apply bg-surface text-ink antialiased;
   background-image:
-    radial-gradient(60rem 44rem at 50% -10%, color-mix(in srgb, var(--aurora-from) 22%, transparent), transparent 60%),
-    radial-gradient(70rem 46rem at 50% 112%, color-mix(in srgb, var(--aurora-to) 18%, transparent), transparent 60%),
-    radial-gradient(48rem 40rem at 100% 38%, var(--glow-c), transparent 62%),
+    radial-gradient(72rem 50rem at 50% -14%, color-mix(in srgb, var(--aurora-from) 11%, transparent), transparent 60%),
+    radial-gradient(74rem 48rem at 50% 116%, color-mix(in srgb, var(--aurora-to) 9%, transparent), transparent 60%),
     linear-gradient(180deg,
-      color-mix(in srgb, var(--surface-3) 80%, var(--aurora-from)),
-      var(--surface-3) 46%,
-      color-mix(in srgb, var(--surface-3) 82%, var(--aurora-to)));
+      color-mix(in srgb, var(--surface) 86%, var(--aurora-from)),
+      var(--surface) 44%,
+      color-mix(in srgb, var(--surface) 90%, var(--aurora-to)));
   background-attachment: fixed;
   transition: background-color 0.3s ease;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.55;
 }
 /* fine film grain over the whole deck — the subtle texture that reads "crafted",
    not a flat web page. Sits on top, imperceptible, never intercepts input. */
@@ -195,15 +199,17 @@ body::after {
 .panel {
   position: relative;
   isolation: isolate;
+  /* a stable frosted backing (mixed toward the dark surface, not transparent) so
+     text always has enough contrast — glass, but readable first. */
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.015) 40%, transparent 70%),
-    color-mix(in srgb, var(--card) 80%, transparent);
+    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.012) 42%, transparent 72%),
+    color-mix(in srgb, var(--card) 92%, var(--surface));
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
     var(--elev-1);
-  backdrop-filter: blur(30px) saturate(1.7);
-  -webkit-backdrop-filter: blur(30px) saturate(1.7);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
 }
 .panel::after {
   content: "";
@@ -392,15 +398,15 @@ body::after {
   will-change: transform, opacity;
 }
 .os-ambient::before {
-  width: 66vw; height: 66vw; top: -16vw; right: -12vw;
-  background: radial-gradient(circle at 30% 30%, var(--aurora-from), transparent 60%);
-  opacity: 0.7;
+  width: 66vw; height: 66vw; top: -18vw; right: -14vw;
+  background: radial-gradient(circle at 30% 30%, var(--aurora-from), transparent 62%);
+  opacity: 0.32;
   animation: os-drift-a 22s ease-in-out infinite, os-breathe 14s ease-in-out infinite;
 }
 .os-ambient::after {
-  width: 60vw; height: 60vw; bottom: -20vw; left: -14vw;
-  background: radial-gradient(circle at 60% 60%, var(--aurora-to), transparent 60%);
-  opacity: 0.6;
+  width: 60vw; height: 60vw; bottom: -22vw; left: -16vw;
+  background: radial-gradient(circle at 60% 60%, var(--aurora-to), transparent 62%);
+  opacity: 0.28;
   animation: os-drift-b 26s ease-in-out infinite;
 }
 /* a soft central glow so the clock sits in light */

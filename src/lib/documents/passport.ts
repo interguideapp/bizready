@@ -8,6 +8,10 @@
 export interface PassportData {
   businessName: string;
   entityLabel: string;
+  /** activity field, human label (e.g. "מזון") */
+  fieldLabel?: string;
+  /** real registration facts for the exported profile */
+  regStatus?: string[];
   generatedAt: string; // he date
   identity: { label: string; value: string }[];
   levelTitle: string;
@@ -43,13 +47,9 @@ export function renderPassportHtml(d: PassportData): string {
     ? `<table class="kv">${d.identity.map((i) => row(i.label, i.value)).join("")}</table>`
     : "";
 
-  const readiness = `
-    <div class="readiness">
-      <div class="lvl"><span class="lvl-n">${d.levelNumber}</span><span class="lvl-t">${esc(d.levelTitle)}</span></div>
-      <div class="score">ציון מוכנות: <b>${d.score}</b> · משימות שהושלמו: <b>${d.completedCount}/${d.totalCount}</b></div>
-      ${d.badges.length ? `<div class="badges">${d.badges.map((b) => `<span class="badge">${esc(b)}</span>`).join("")}</div>` : ""}
-    </div>
-    <table class="kv">${d.categories.map((c) => row(c.title, `${c.score}% · ${c.done}/${c.total}`)).join("")}</table>`;
+  const regStatus = d.regStatus?.length
+    ? `<ul class="facts">${d.regStatus.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>`
+    : "";
 
   const obligations = d.obligations.length
     ? `<table class="grid"><thead><tr><th>חובה</th><th>מועד</th><th>תקופה</th></tr></thead><tbody>${d.obligations
@@ -63,14 +63,6 @@ export function renderPassportHtml(d: PassportData): string {
         .join("")}</tbody></table>`
     : "";
 
-  const costs = d.costs.length
-    ? `<table class="grid"><thead><tr><th>פריט</th><th>סכום</th><th>תדירות</th></tr></thead><tbody>${d.costs
-        .map((c) => `<tr><td>${esc(c.name)}</td><td>${esc(c.amount)}</td><td>${esc(c.cadence)}</td></tr>`)
-        .join("")}</tbody></table>${
-        d.monthlyCost ? `<p class="total">סה"כ חודשי: <b>${esc(d.monthlyCost)}</b> · שנתי: <b>${esc(d.annualCost ?? "")}</b></p>` : ""
-      }`
-    : "";
-
   const products = d.products.length
     ? `<table class="grid"><thead><tr><th>שירות / מוצר</th><th>מחיר</th><th>יחידה</th></tr></thead><tbody>${d.products
         .map((p) => `<tr><td>${esc(p.name)}</td><td>${esc(p.price)}</td><td>${esc(p.unit)}</td></tr>`)
@@ -79,7 +71,7 @@ export function renderPassportHtml(d: PassportData): string {
 
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>תיק העסק — ${esc(d.businessName)}</title>
+<title>פרופיל עסקי — ${esc(d.businessName)}</title>
 <style>
   *{box-sizing:border-box}
   body{font-family:"Segoe UI",Arial,sans-serif;color:#111827;line-height:1.6;max-width:820px;margin:0 auto;padding:44px 34px;background:#fff}
@@ -103,17 +95,18 @@ export function renderPassportHtml(d: PassportData): string {
   .badges{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
   .badge{background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
   .total{margin-top:8px;font-size:13px}
+  ul.facts{margin:0;padding-inline-start:0;list-style:none}
+  ul.facts li{padding:7px 12px;margin-bottom:6px;background:#f5f6ff;border:1px solid #e0e7ff;border-radius:9px;font-size:13px;font-weight:600;color:#312e81}
   .disclaimer{margin-top:30px;padding:12px 14px;border:1px solid #e5e7eb;background:#fafafa;color:#6b7280;font-size:11px;border-radius:8px}
   @media print{body{padding:0}.no-print{display:none}}
 </style></head>
 <body>
-<header><div><h1>תיק העסק</h1><div class="sub">${esc(d.businessName)} · ${esc(d.entityLabel)}</div></div><div class="gen">הופק: ${esc(d.generatedAt)}</div></header>
-${section("פרטי העסק ותיקים ברשויות", identity)}
-${section("מצב מוכנות", readiness)}
+<header><div><h1>${esc(d.businessName)}</h1><div class="sub">${esc(d.entityLabel)}${d.fieldLabel ? ` · ${esc(d.fieldLabel)}` : ""}</div></div><div class="gen">פרופיל עסקי · הופק ${esc(d.generatedAt)}</div></header>
+${section("סטטוס רישום ברשויות", regStatus)}
+${section("פרטי העסק ותיקים", identity)}
+${section("השירותים והמחירון", products)}
 ${section("מועדי חובה קרובים", obligations)}
-${section("מסמכים בארכיון", documents)}
-${section("עלויות קבועות", costs)}
-${section("מחירון", products)}
-<div class="disclaimer">מסמך זה הופק אוטומטית ב-BizReady כתמונת מצב של העסק. הפרטים כפי שהוזנו על ידכם. אינו מהווה ייעוץ משפטי/מיסויי/פיננסי.</div>
+${section("מסמכים ואישורים", documents)}
+<div class="disclaimer">פרופיל זה הופק ב-BizReady מהפרטים שהוזנו על ידי בעל/ת העסק, נכון לתאריך ההפקה. אינו מהווה אישור רשמי מטעם רשות כלשהי ואינו ייעוץ משפטי/מיסויי/פיננסי.</div>
 </body></html>`;
 }

@@ -33,6 +33,18 @@ const DOC_LABEL: Record<string, string> = {
 };
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
+const FIELD_LABELS: Record<string, string> = {
+  beauty_care: "טיפולים ויופי",
+  food: "מזון",
+  consulting: "ייעוץ, הדרכה ולימוד",
+  tech: "טכנולוגיה ודיגיטל",
+  commerce: "מסחר ומכירות",
+  professional: "שירותים מקצועיים",
+  creative: "אומנות ויצירה",
+  construction: "בנייה ושיפוצים",
+  other: "כללי",
+};
+
 /** Gathers the full business passport (server). Used by the page and the PDF route. */
 export async function loadPassport(): Promise<PassportData | null> {
   const business = await getBusiness();
@@ -96,10 +108,23 @@ export async function loadPassport(): Promise<PassportData | null> {
   push("אימייל רו\"ח", business.accountant_email);
 
   const hasCosts = costs.length > 0;
+  const entityLabel = ENTITY_LABELS[business.entity_type as keyof typeof ENTITY_LABELS] ?? "עוסק";
+
+  // Real registration facts (for the exported business profile) — plain
+  // statements a bank/client/authority understands, not our readiness metrics.
+  const regStatus: string[] = [`מסווג כ${entityLabel}`];
+  if (business.dealer_number) regStatus.push(`מספר עוסק / ח.פ.: ${business.dealer_number}`);
+  if (business.vat_file || business.entity_type === "osek_murshe" || business.entity_type === "company")
+    regStatus.push(business.vat_file ? `רשום במע"מ · תיק ${business.vat_file}` : `רשום במע"מ`);
+  if (business.income_tax_file) regStatus.push(`רשום במס הכנסה · תיק ${business.income_tax_file}`);
+  if (business.bituach_leumi_file) regStatus.push(`רשום בביטוח לאומי · תיק ${business.bituach_leumi_file}`);
+  if (business.accountant_name) regStatus.push(`מיוצג ע"י ${business.accountant_name}`);
 
   return {
     businessName: business.name,
-    entityLabel: ENTITY_LABELS[business.entity_type as keyof typeof ENTITY_LABELS] ?? "עוסק",
+    entityLabel,
+    fieldLabel: business.field ? FIELD_LABELS[business.field] : undefined,
+    regStatus,
     generatedAt: new Date().toLocaleDateString("he-IL"),
     identity,
     levelTitle: level.title,

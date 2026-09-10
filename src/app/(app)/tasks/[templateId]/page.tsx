@@ -6,7 +6,7 @@ import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance"
 import { GENERATOR_BY_TEMPLATE } from "@/lib/documents/generators";
 import { isPro } from "@/lib/subscription";
 import {
-  getBusiness,
+  requireBusiness,
   getBusinessTasks,
   getChecklistItems,
   getDocuments,
@@ -39,7 +39,7 @@ export default async function TaskDetailPage({
   const template = TEMPLATES_BY_ID.get(templateId);
   if (!template) notFound();
 
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const tasks = await getBusinessTasks(business.id);
   const task = tasks.find((t) => t.template_id === templateId);
   if (!task) notFound();

@@ -1,6 +1,6 @@
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { PageTitle } from "@/components/ui";
-import { getBusiness } from "@/lib/data";
+import { requireBusiness } from "@/lib/data";
 import { isPro } from "@/lib/subscription";
 import type { OnboardingAnswers } from "@/lib/types";
 import { NotificationPrefs } from "./notification-prefs";
@@ -8,7 +8,7 @@ import { SettingsForm } from "./settings-form";
 import { SubscriptionBlock } from "./subscription-block";
 
 export default async function SettingsPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   return (
     <div>
       <PageTitle

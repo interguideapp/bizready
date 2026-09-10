@@ -1,10 +1,10 @@
 import { BellOff } from "lucide-react";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
-import { getBusiness, getNotifications } from "@/lib/data";
+import { requireBusiness, getNotifications } from "@/lib/data";
 import { NotificationList } from "./notification-list";
 
 export default async function NotificationsPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const notifications = await getNotifications(business.id);
 
   return (

@@ -1,3 +1,4 @@
+import { todayInIsrael } from "@/lib/dates";
 import Link from "next/link";
 import { ArrowLeft, Zap } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
@@ -5,7 +6,7 @@ import { PriorityBadge } from "@/components/badges";
 import { TaskRow } from "@/components/task-row";
 import { Card, Disclaimer, FadeIn, PageTitle } from "@/components/ui";
 import { CATEGORIES, CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
-import { getBusiness, getBusinessTasks } from "@/lib/data";
+import { requireBusiness, getBusinessTasks } from "@/lib/data";
 import { buildJourney, type Journey, type JourneyNode } from "@/lib/journey";
 import { taskImportance, type Stage } from "@/lib/priority";
 import { LIFE_STAGES, type BusinessTask, type Category } from "@/lib/types";
@@ -16,7 +17,7 @@ export default async function TasksPage({
   searchParams: Promise<{ category?: string }>;
 }) {
   const { category: activeCategory } = await searchParams;
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const tasks = await getBusinessTasks(business.id);
 
   const relevant = tasks.filter((t) => t.is_relevant);
@@ -41,7 +42,7 @@ export default async function TasksPage({
     TEMPLATES_BY_ID,
     stageOf
   );
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInIsrael();
   const dueByTemplate = new Map(tasks.map((t) => [t.template_id, t.due_date]));
   const ranked = journey.nodes
     .map((n) => ({

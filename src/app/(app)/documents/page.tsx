@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FolderOpen, Sparkles } from "lucide-react";
 import { DocumentUpload } from "@/components/document-upload";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
-import { getBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
+import { requireBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { DOC_GENERATORS } from "@/lib/documents/generators";
@@ -19,7 +19,7 @@ const DOC_CATEGORIES: { id: string; label: string }[] = [
 ];
 
 export default async function DocumentsPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const [documents, tasks] = await Promise.all([
     getDocuments(business.id),
     getBusinessTasks(business.id),

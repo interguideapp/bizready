@@ -9,7 +9,7 @@ import { buildIncomeMonths } from "@/lib/finance/income";
 import type { MonthPoint } from "@/components/revenue-chart";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
-  getBusiness,
+  requireBusiness,
   getBusinessTasks,
   getCosts,
   getDocuments,
@@ -31,7 +31,7 @@ import { YEARLY_FIGURES, type OnboardingAnswers } from "@/lib/types";
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
 export default async function InsightsPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const [tasks, documents, costs, products, events] = await Promise.all([
     getBusinessTasks(business.id),
     getDocuments(business.id),

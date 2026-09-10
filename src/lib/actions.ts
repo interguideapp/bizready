@@ -1,5 +1,6 @@
 "use server";
 
+import { todayInIsrael } from "@/lib/dates";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
@@ -15,6 +16,24 @@ import { createClient } from "@/lib/supabase/server";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
+
+/**
+ * The only columns the business card may write. The typed signatures on the
+ * actions below are erased at runtime, so this set is the real boundary.
+ */
+const BUSINESS_CARD_FIELDS = new Set<string>([
+  "name",
+  "dealer_number",
+  "vat_file",
+  "income_tax_file",
+  "bituach_leumi_file",
+  "bank_name",
+  "bank_branch",
+  "bank_account",
+  "accountant_name",
+  "accountant_phone",
+  "accountant_email",
+]);
 
 async function requireUser() {
   const supabase = await createClient();
@@ -42,7 +61,7 @@ export async function completeOnboarding(
         field: answers.field,
         onboarding_answers: answers,
         onboarding_completed_at: new Date().toISOString(),
-        started_at: new Date().toISOString().slice(0, 10),
+        started_at: todayInIsrael(),
       },
       { onConflict: "owner_id" }
     )
@@ -221,26 +240,41 @@ export async function completeTask(
 
   const { data: current } = await supabase
     .from("business_tasks")
-    .select("id, business_id, template_id, status")
+    .select("id, business_id, template_id, status, completion_data")
     .eq("id", taskId)
     .single();
   if (!current) throw new Error("task not found");
+
+  // Merge, never replace. completion_data also carries per-step progress
+  // (__steps_done) and evidence written by the invoicing webhook; a blind
+  // overwrite silently destroyed both, with no way to recover them.
+  const existing = (current.completion_data ?? {}) as Record<string, unknown>;
 
   const { error } = await supabase
     .from("business_tasks")
     .update({
       status: "done",
       completed_at: new Date().toISOString(),
-      completion_data: completionData,
+      completion_data: { ...existing, ...completionData },
       waiting_for: null,
       follow_up_date: null,
     })
     .eq("id", taskId);
   if (error) throw new Error(error.message);
 
-  // evidence that belongs on the business card gets copied there
+  // Evidence that belongs on the business card gets copied there — but ONLY the
+  // columns this template declares via `writesTo`. Server Actions are a public
+  // endpoint and TS types vanish at runtime, so the previous unfiltered splat
+  // let any caller write arbitrary columns (subscription_tier included).
+  const writable = new Set<string>(
+    (TEMPLATES_BY_ID.get(current.template_id)?.completion?.fields ?? [])
+      .map((f) => f.writesTo)
+      .filter((w): w is NonNullable<typeof w> => Boolean(w))
+  );
   const cleaned = Object.fromEntries(
-    Object.entries(businessFields).filter(([, v]) => v && v.trim())
+    Object.entries(businessFields).filter(
+      ([k, v]) => writable.has(k) && typeof v === "string" && v.trim()
+    )
   );
   if (Object.keys(cleaned).length > 0) {
     await supabase
@@ -384,9 +418,16 @@ export async function updateBusinessCard(fields: {
   accountant_email?: string;
 }) {
   const { supabase, user } = await requireUser();
+  // runtime allowlist — the typed signature above is erased at runtime
+  const cleaned = Object.fromEntries(
+    Object.entries(fields as Record<string, unknown>).filter(
+      ([k, v]) => BUSINESS_CARD_FIELDS.has(k) && typeof v === "string"
+    )
+  );
+  if (Object.keys(cleaned).length === 0) return;
   const { error } = await supabase
     .from("businesses")
-    .update(fields)
+    .update(cleaned)
     .eq("owner_id", user.id);
   if (error) throw new Error(error.message);
   revalidatePath("/business");
@@ -410,8 +451,8 @@ export async function addDocument(doc: {
   if (!business) throw new Error("business not found");
 
   const { error } = await supabase.from("documents").insert({
-    business_id: business.id,
     ...doc,
+    business_id: business.id, // after the spread: a client cannot override it
   });
   if (error) throw new Error(error.message);
   revalidatePath("/documents");
@@ -518,9 +559,18 @@ export async function updateNotificationPrefs(prefs: {
   whatsapp_phone: string | null;
 }) {
   const { supabase, user } = await requireUser();
+  // explicit + coerced: never splat client input into a table
+  const clean = {
+    notify_email: Boolean(prefs?.notify_email),
+    notify_whatsapp: Boolean(prefs?.notify_whatsapp),
+    whatsapp_phone:
+      typeof prefs?.whatsapp_phone === "string" && prefs.whatsapp_phone.trim()
+        ? prefs.whatsapp_phone.trim().slice(0, 32)
+        : null,
+  };
   const { error } = await supabase
     .from("businesses")
-    .update(prefs)
+    .update(clean)
     .eq("owner_id", user.id);
   if (error) throw new Error(error.message);
   revalidatePath("/settings");
@@ -559,16 +609,14 @@ export async function markAllNotificationsRead() {
  * (Stripe/Paddle) and only flip the flag on a verified `checkout.completed`
  * webhook. Never ship self-serve free Pro to production.
  */
-export async function startProTrial() {
-  const { supabase, user } = await requireUser();
-  const until = new Date();
-  until.setDate(until.getDate() + 14);
-  const { error } = await supabase
-    .from("businesses")
-    .update({ subscription_tier: "pro", subscription_until: until.toISOString() })
-    .eq("owner_id", user.id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/", "layout");
+export async function startProTrial(): Promise<{ ok: false; error: string }> {
+  // Deliberately inert. This used to set subscription_tier = "pro" with no
+  // payment, no trial-already-used check, and was re-callable indefinitely for
+  // rolling free windows — its own docstring said never to ship it.
+  //
+  // Subscription state is now written in exactly one place: the verified Stripe
+  // checkout webhook (service role). No client-reachable path may grant Pro.
+  return { ok: false, error: "השדרוג ל-Pro ייפתח בקרוב" };
 }
 
 export async function cancelPro() {

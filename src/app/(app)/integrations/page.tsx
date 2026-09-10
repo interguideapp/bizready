@@ -1,7 +1,7 @@
 import { BadgeCheck, Eye, Lock, ShieldCheck, Unplug } from "lucide-react";
 import { PageTitle } from "@/components/ui";
 import { IntegrationsManager, type ProviderInfo } from "@/components/integrations/manager";
-import { getBusiness, getConnections } from "@/lib/data";
+import { requireBusiness, getConnections } from "@/lib/data";
 import { PROVIDERS } from "@/lib/integrations/registry";
 
 /**
@@ -11,7 +11,7 @@ import { PROVIDERS } from "@/lib/integrations/registry";
  * run in the background once the service-role key is set.
  */
 export default async function IntegrationsPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const connections = await getConnections(business.id);
 
   // invoicing-first: expose only the invoicing providers as serializable info

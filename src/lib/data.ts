@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessTask, OnboardingAnswers } from "@/lib/types";
 
@@ -42,6 +43,40 @@ export interface DocumentRow {
   created_at: string;
 }
 
+/**
+ * Thrown when a read the compliance answer depends on fails.
+ *
+ * These reads used to discard their error and return an empty result. Every
+ * screen renders "empty" as "you are all clear" — so a Supabase outage, an RLS
+ * regression or a missing migration produced a confident, false clean bill of
+ * health. That is the most dangerous lie this product can tell, so they now
+ * fail loudly and the (app) error boundary says "we cannot verify your status".
+ */
+export class DataUnavailableError extends Error {
+  constructor(what: string, cause?: string) {
+    super("לא הצלחנו לטעון " + what);
+    this.name = "DataUnavailableError";
+    if (cause) this.cause = cause;
+  }
+}
+
+type DbError = { message: string } | null;
+
+/** A read the compliance answer depends on: fail loudly, never fake an empty. */
+function critical<T>(what: string, data: T | null, error: DbError): T | null {
+  if (error) throw new DataUnavailableError(what, error.message);
+  return data;
+}
+
+/** Genuinely optional data: degrade to a fallback, but never silently. */
+function optional<T>(what: string, data: T | null, error: DbError, fallback: T): T {
+  if (error) {
+    console.error("[data] optional read failed (" + what + "): " + error.message);
+    return fallback;
+  }
+  return data ?? fallback;
+}
+
 /** Current user's business, or null if onboarding hasn't been completed. */
 export async function getBusiness(): Promise<BusinessRow | null> {
   const supabase = await createClient();
@@ -49,35 +84,48 @@ export async function getBusiness(): Promise<BusinessRow | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("businesses")
     .select("*")
     .eq("owner_id", user.id)
     .maybeSingle();
-  return data as BusinessRow | null;
+  return critical("את פרטי העסק", data, error) as BusinessRow | null;
+}
+
+/**
+ * The business for the current request, guaranteed non-null.
+ *
+ * The (app) layout already redirects when onboarding is incomplete; this makes
+ * that guarantee explicit instead of relying on a non-null assertion repeated
+ * across a dozen pages (each of which used to hard-500 if the row was missing).
+ */
+export async function requireBusiness(): Promise<BusinessRow> {
+  const business = await getBusiness();
+  if (!business) redirect("/onboarding");
+  return business;
 }
 
 export async function getBusinessTasks(
   businessId: string
 ): Promise<BusinessTask[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("business_tasks")
     .select(
       "id, business_id, template_id, status, due_date, completed_at, notes, is_relevant, completion_data, follow_up_date, waiting_for"
     )
     .eq("business_id", businessId);
-  return (data ?? []) as BusinessTask[];
+  return (critical("את המשימות", data, error) ?? []) as BusinessTask[];
 }
 
 export async function getDocuments(businessId: string): Promise<DocumentRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("documents")
     .select("*")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false });
-  return (data ?? []) as DocumentRow[];
+  return (critical("את המסמכים", data, error) ?? []) as DocumentRow[];
 }
 
 export interface ChecklistItemRow {
@@ -91,13 +139,13 @@ export async function getChecklistItems(
   businessTaskId: string
 ): Promise<ChecklistItemRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("task_checklist_items")
     .select("id, label, done, sort_order")
     .eq("business_task_id", businessTaskId)
     .order("sort_order")
     .order("created_at");
-  return (data ?? []) as ChecklistItemRow[];
+  return (critical("את הצעדים", data, error) ?? []) as ChecklistItemRow[];
 }
 
 export interface NotificationRow {
@@ -115,23 +163,23 @@ export async function getNotifications(
   businessId: string
 ): Promise<NotificationRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("notifications")
     .select("*")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false })
     .limit(50);
-  return (data ?? []) as NotificationRow[];
+  return (critical("את ההתראות", data, error) ?? []) as NotificationRow[];
 }
 
 export async function getUnreadCount(businessId: string): Promise<number> {
   const supabase = await createClient();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("business_id", businessId)
     .is("read_at", null);
-  return count ?? 0;
+  return optional("מונה ההתראות", count, error, 0);
 }
 
 export interface OfferRow {
@@ -183,13 +231,13 @@ export async function getTaskEvents(
   limit = 40
 ): Promise<TaskEventRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("task_events")
     .select("id, template_id, kind, from_status, to_status, detail, created_at")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  return (data ?? []) as TaskEventRow[];
+  return (critical("את יומן הפעילות", data, error) ?? []) as TaskEventRow[];
 }
 
 export interface ProductRow {
@@ -224,8 +272,7 @@ export async function getCosts(businessId: string): Promise<CostRow[]> {
     .select("*")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false });
-  if (error) return [];
-  return (data ?? []) as CostRow[];
+  return optional("את העלויות", data, error, []) as CostRow[];
 }
 
 // ---------- integrations ----------
@@ -267,13 +314,13 @@ export async function getMetrics(
   sinceIso: string
 ): Promise<MetricRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("sync_metrics")
     .select("metric_date, metric, value")
     .eq("business_id", businessId)
     .gte("metric_date", sinceIso)
     .order("metric_date");
-  return ((data ?? []) as MetricRow[]).map((m) => ({
+  return ((critical("את נתוני ההכנסות", data, error) ?? []) as MetricRow[]).map((m) => ({
     ...m,
     value: Number(m.value),
   }));

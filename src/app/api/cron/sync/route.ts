@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cronAuthorized } from "@/lib/cron-auth";
 import { executeBatch } from "@/lib/integrations/execute";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,9 +9,7 @@ export const maxDuration = 300;
 
 /** Nightly pull for all api-mode connections. Wired in vercel.json. */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  const auth = request.headers.get("authorization");
-  if (secret && auth !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

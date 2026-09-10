@@ -25,7 +25,8 @@ create policy "sync_errors: owner insert" on public.sync_errors
   for insert with check (
     exists (select 1 from public.businesses b where b.id = business_id and b.owner_id = auth.uid ())
   );
-create policy "notifications: owner insert" on public.notifications
-  for insert with check (
-    exists (select 1 from public.businesses b where b.id = business_id and b.owner_id = auth.uid ())
-  );
+
+-- NOTE: a "notifications: owner insert" policy used to live here, referencing a
+-- table that no migration created. That aborted this entire file, so the six
+-- policies above never landed either. The policy now lives in 013, alongside
+-- the CREATE TABLE it depends on.

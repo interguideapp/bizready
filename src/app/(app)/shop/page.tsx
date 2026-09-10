@@ -4,10 +4,10 @@ import { CategoryIcon } from "@/components/category-icon";
 import { OfferCard } from "@/components/offer-card";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
-import { getActiveOffers, getBusiness, getBusinessTasks } from "@/lib/data";
+import { getActiveOffers, requireBusiness, getBusinessTasks } from "@/lib/data";
 
 export default async function ShopPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const [offers, tasks] = await Promise.all([
     getActiveOffers(),
     getBusinessTasks(business.id),

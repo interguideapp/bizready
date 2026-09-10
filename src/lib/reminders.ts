@@ -1,3 +1,4 @@
+import { todayInIsrael, israelParts } from "@/lib/dates";
 import {
   isStatutoryFiling,
   nextStatutoryDueDate,
@@ -40,7 +41,7 @@ function isoDay(d: Date): string {
 
 function daysBetween(fromIso: string, to: Date): number {
   const from = new Date(fromIso + "T00:00:00Z");
-  const toMid = new Date(isoDay(to) + "T00:00:00Z");
+  const toMid = new Date(todayInIsrael(to) + "T00:00:00Z");
   return Math.round((from.getTime() - toMid.getTime()) / 86_400_000);
 }
 

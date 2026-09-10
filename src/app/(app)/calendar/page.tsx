@@ -12,7 +12,7 @@ import {
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { Card, EmptyState, FadeIn, InfoPopover, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { getBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
+import { requireBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
 import {
   computeUpcomingObligations,
   type Obligation,
@@ -54,7 +54,7 @@ const MONTHS = [
 ];
 
 export default async function CalendarPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const pro = isPro(business);
 
   const [tasks, documents] = await Promise.all([

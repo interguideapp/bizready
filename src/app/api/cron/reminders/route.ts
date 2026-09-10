@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cronAuthorized } from "@/lib/cron-auth";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import {
   emailConfigured,
@@ -16,12 +17,10 @@ export const maxDuration = 60;
 
 /**
  * Daily reminder sweep. Wired to Vercel Cron (see vercel.json).
- * Protected by CRON_SECRET so it can't be triggered by the public.
+ * Requires CRON_SECRET (fails closed if unset) — it runs with the service role.
  */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  const auth = request.headers.get("authorization");
-  if (secret && auth !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

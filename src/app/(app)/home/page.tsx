@@ -1,6 +1,7 @@
+import { todayInIsrael } from "@/lib/dates";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
-  getBusiness,
+  requireBusiness,
   getBusinessTasks,
   getDocuments,
   getMetrics,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
-import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
+import { computeUpcomingObligations } from "@/lib/compliance";
 import { buildJourney } from "@/lib/journey";
 import { computeAttention, type Stage } from "@/lib/priority";
 import { computeConfidence } from "@/lib/confidence";
@@ -48,7 +49,7 @@ const EVENT_VERB: Record<string, { verb: string; icon: string }> = {
 };
 
 export default async function HomePage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const today = new Date();
   const [tasks, documents, products, events, metrics] = await Promise.all([
     getBusinessTasks(business.id),
@@ -63,13 +64,7 @@ export default async function HomePage() {
   const profile = computeProfileCompleteness(business, { products: products.length, documents: documents.length });
   const relevant = tasks.filter((t) => t.is_relevant);
   const doneCount = relevant.filter((t) => t.status === "done").length;
-  const todayIso = today.toISOString().slice(0, 10);
-
-  const overdueCount = relevant.filter(
-    (t) =>
-      (t.status === "todo" || t.status === "in_progress") &&
-      t.due_date && t.due_date < todayIso && isStatutoryFiling(t.template_id)
-  ).length;
+  const todayIso = todayInIsrael(today);
 
   const streak = computeStreak(events.map((e) => ({ kind: e.kind, created_at: e.created_at })));
 
@@ -88,6 +83,16 @@ export default async function HomePage() {
   );
   const lockedIds = new Set(journey.nodes.filter((n) => n.state === "locked").map((n) => n.templateId));
   const actionable = obligations.filter((o) => !(o.templateId != null && lockedIds.has(o.templateId)));
+
+  // Overdue comes from exactly ONE place: the obligations engine. It applies the
+  // real anchored statutory dates AND the prerequisite gate — you cannot be late
+  // filing VAT before your VAT file exists. The previous ad-hoc count read the
+  // stale due_date column with no gate, so a brand-new עוסק מורשה was shown a red
+  // "יש חוב אחד באיחור" for an obligation that did not legally exist, while the
+  // calendar simultaneously showed nothing due.
+  const overdueCount = actionable.filter(
+    (o) => o.basis === "statutory" && o.daysUntil < 0
+  ).length;
   const dueByTemplate = new Map(tasks.map((t) => [t.template_id, t.due_date]));
   const attention = computeAttention(
     actionable.map((o) => ({ templateId: o.templateId, title: o.title, dueDate: o.dueDate, daysUntil: o.daysUntil, basis: o.basis, periodLabel: o.periodLabel })),

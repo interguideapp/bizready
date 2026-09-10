@@ -1,14 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { Check, Loader2, ShieldCheck } from "lucide-react";
-import { startProTrial } from "@/lib/actions";
-import { PRO_FEATURES, TRIAL_DAYS } from "@/lib/subscription";
+import { Check, ShieldCheck } from "lucide-react";
+import { PRO_FEATURES } from "@/lib/subscription";
 
 /** The paywall / upgrade card for the Compliance Guardian. */
 export function UpgradeCta({ compact = false }: { compact?: boolean }) {
-  const [pending, startTransition] = useTransition();
-
   return (
     <div className="overflow-hidden rounded-2xl border border-brand-edge bg-gradient-to-l from-brand-tint/70 to-card p-5">
       <div className="mb-2 flex items-center gap-2">
@@ -35,15 +31,14 @@ export function UpgradeCta({ compact = false }: { compact?: boolean }) {
       )}
 
       <button
-        onClick={() => startTransition(() => startProTrial())}
-        disabled={pending}
-        className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+        type="button"
+        disabled
+        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-brand-600/50 px-6 py-2.5 text-sm font-semibold text-white"
       >
-        {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-        התחלת ניסיון {TRIAL_DAYS} ימים חינם
+        השדרוג ייפתח בקרוב
       </button>
-      <p className="mt-2 text-xs text-ink-faint">
-        ללא כרטיס אשראי · אפשר לבטל בכל רגע
+      <p className="mt-2 text-xs text-ink-soft">
+        אנחנו מחברים את התשלום. עד אז — כל מה שיש במערכת פתוח לכם.
       </p>
     </div>
   );

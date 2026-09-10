@@ -1,3 +1,4 @@
+import { todayInIsrael, israelParts } from "@/lib/dates";
 import type { TaskTemplate } from "@/lib/types";
 
 /**
@@ -72,7 +73,7 @@ function iso(d: Date): string {
 
 function daysBetween(fromIso: string, today: Date): number {
   const from = new Date(fromIso + "T00:00:00Z");
-  const todayMid = new Date(iso(today) + "T00:00:00Z");
+  const todayMid = new Date(todayInIsrael(today) + "T00:00:00Z");
   return Math.round((from.getTime() - todayMid.getTime()) / 86_400_000);
 }
 
@@ -147,7 +148,8 @@ export function nextFilingPeriod(
   frequency: VatFrequency
 ): FilingPeriod {
   const step = frequency === "monthly" ? 1 : 2;
-  const tAbs = today.getUTCFullYear() * 12 + today.getUTCMonth();
+  const nowParts = israelParts(today);
+  const tAbs = nowParts.year * 12 + nowParts.month;
   // scan from a couple of periods back so we catch a period that's still open
   for (let endAbs = tAbs - 2 * step; endAbs <= tAbs + 12; endAbs++) {
     // bimonthly periods end on an odd calendar month (Feb=1, Apr=3, …)
@@ -160,14 +162,14 @@ export function nextFilingPeriod(
     }
   }
   // unreachable in practice; fall back to this month's 15th
-  const y = today.getUTCFullYear();
-  const m = today.getUTCMonth();
+  const y = nowParts.year;
+  const m = nowParts.month;
   return { startAbs: tAbs, endAbs: tAbs, dueIso: iso(new Date(Date.UTC(y, m, 15))) };
 }
 
 /** Next April 30 (annual report anchor). */
 export function nextAnnualReport(today: Date): string {
-  const y = today.getUTCFullYear();
+  const y = israelParts(today).year;
   let due = new Date(Date.UTC(y, 3, 30)); // April = month 3
   if (daysBetween(iso(due), today) < 0) due = new Date(Date.UTC(y + 1, 3, 30));
   return iso(due);

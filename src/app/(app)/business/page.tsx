@@ -4,14 +4,14 @@ import { ScoreRing } from "@/components/score-ring";
 import { LogoUploader } from "@/components/logo-uploader";
 import { PriceList } from "@/components/price-list";
 import { Card, PageTitle } from "@/components/ui";
-import { getBusiness, getDocuments, getProducts } from "@/lib/data";
+import { requireBusiness, getDocuments, getProducts } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { createClient } from "@/lib/supabase/server";
 import { BusinessHubTabs } from "@/components/business-hub-tabs";
 import { BusinessCard } from "./business-card";
 
 export default async function BusinessPage() {
-  const business = (await getBusiness())!;
+  const business = await requireBusiness();
   const [products, documents] = await Promise.all([
     getProducts(business.id),
     getDocuments(business.id),

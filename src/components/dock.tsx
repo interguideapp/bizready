@@ -171,7 +171,14 @@ function DockButton({
         active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:text-ink"
       }`}
     >
-      <motion.span style={{ width: iconSize, height: iconSize }} className="flex items-center justify-center">
+      <motion.span
+        key={active ? "active" : "idle"}
+        initial={{ y: active ? -7 : 0, scale: active ? 0.82 : 1 }}
+        animate={{ y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 15 }}
+        style={{ width: iconSize, height: iconSize }}
+        className="flex items-center justify-center"
+      >
         <Icon className="h-full w-full" />
       </motion.span>
 

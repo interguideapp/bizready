@@ -69,43 +69,7 @@ function useNow() {
   return now;
 }
 
-/** Pointer-driven liquid-glass light: parallax the wallpaper and roll a specular
- * highlight across whichever glass card the pointer is over. */
-function useLiquidGlass(rootRef: React.RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || window.matchMedia("(pointer: coarse)").matches) return;
-    let raf = 0;
-    const onMove = (e: PointerEvent) => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const dx = e.clientX / window.innerWidth - 0.5;
-        const dy = e.clientY / window.innerHeight - 0.5;
-        // wallpaper plane (further away, moves more) vs content plane (closer,
-        // moves slightly the other way) → real multi-plane depth
-        root.style.setProperty("--par-x", `${(-dx * 20).toFixed(1)}px`);
-        root.style.setProperty("--par-y", `${(-dy * 20).toFixed(1)}px`);
-        root.style.setProperty("--par-x2", `${(dx * 7).toFixed(1)}px`);
-        root.style.setProperty("--par-y2", `${(dy * 7).toFixed(1)}px`);
-        const card = (e.target as HTMLElement)?.closest?.(".os-card") as HTMLElement | null;
-        if (card) {
-          const r = card.getBoundingClientRect();
-          card.style.setProperty("--mx", `${e.clientX - r.left}px`);
-          card.style.setProperty("--my", `${e.clientY - r.top}px`);
-        }
-      });
-    };
-    root.addEventListener("pointermove", onMove);
-    return () => {
-      root.removeEventListener("pointermove", onMove);
-      cancelAnimationFrame(raf);
-    };
-  }, [rootRef]);
-}
-
 export function HomeOS({ data }: { data: HomeOSData }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  useLiquidGlass(rootRef);
   const now = useNow();
   const time = now
     ? now.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
@@ -117,8 +81,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
   const atRisk = data.confidence.state === "at_risk";
 
   return (
-    <div ref={rootRef} className="os-root relative min-h-[calc(100dvh-1px)] overflow-hidden" dir="rtl">
-      <div className="os-ambient" aria-hidden />
+    <div className="relative min-h-[calc(100dvh-1px)]" dir="rtl">
       <div className="os-glow" aria-hidden />
 
       {/* device status bar — frames the surface as an OS, not a page */}
@@ -131,10 +94,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
         </span>
       </div>
 
-      <div
-        className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-36 pt-6 sm:pt-10"
-        style={{ transform: "translate3d(var(--par-x2, 0), var(--par-y2, 0), 0)", transition: "transform 0.25s cubic-bezier(0.22,1,0.36,1)" }}
-      >
+      <div className="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-36 pt-6 sm:pt-10">
         {/* ===== lock-screen hero ===== */}
         <motion.header
           initial={{ opacity: 0, y: 10 }}

@@ -158,16 +158,19 @@
   --shadow-e-brand: var(--elev-brand);
 }
 
-/* ---------- ambient command-deck backdrop ---------- */
+/* ---------- OS desktop wallpaper ---------- a single living aurora wash,
+   fixed behind everything so screens feel like windows over a desktop (no grid,
+   which reads "web dashboard"). Content panels are glass over this. */
 body {
   @apply bg-surface text-ink antialiased;
   background-image:
-    radial-gradient(60rem 42rem at 84% -10%, var(--glow-c), transparent 60%),
-    radial-gradient(56rem 40rem at 6% 4%, var(--glow-a), transparent 62%),
-    radial-gradient(52rem 38rem at 96% 112%, var(--glow-b), transparent 62%),
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 46px 46px, 46px 46px;
+    radial-gradient(60rem 44rem at 50% -10%, color-mix(in srgb, var(--aurora-from) 22%, transparent), transparent 60%),
+    radial-gradient(70rem 46rem at 50% 112%, color-mix(in srgb, var(--aurora-to) 18%, transparent), transparent 60%),
+    radial-gradient(48rem 40rem at 100% 38%, var(--glow-c), transparent 62%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--surface-3) 80%, var(--aurora-from)),
+      var(--surface-3) 46%,
+      color-mix(in srgb, var(--surface-3) 82%, var(--aurora-to)));
   background-attachment: fixed;
   transition: background-color 0.3s ease;
 }
@@ -186,16 +189,35 @@ body::after {
 }
 
 /* ---------- command-deck utilities ---------- */
-/* a luminous glass panel — top-lit sheen over the tinted glass for real depth */
+/* liquid-glass window — translucent so the desktop wallpaper shows through, a
+   bright top edge for thickness, and a pointer-tracked specular (--mx/--my set
+   app-wide from the shell). Every Card in the app is one of these. */
 .panel {
+  position: relative;
+  isolation: isolate;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 42%),
-    var(--card);
-  border: 1px solid var(--edge);
-  box-shadow: var(--elev-1), var(--inner-glow);
-  backdrop-filter: blur(22px) saturate(1.35);
-  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+    linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.015) 40%, transparent 70%),
+    color-mix(in srgb, var(--card) 80%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    var(--elev-1);
+  backdrop-filter: blur(30px) saturate(1.7);
+  -webkit-backdrop-filter: blur(30px) saturate(1.7);
 }
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(180px circle at var(--mx, 50%) var(--my, -30%), rgba(255, 255, 255, 0.12), transparent 46%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  mix-blend-mode: screen;
+}
+.panel:hover::after { opacity: 1; }
 /* gradient accent text */
 .text-gradient {
   background: linear-gradient(100deg, var(--accent-from), var(--accent-to));
@@ -357,7 +379,7 @@ body::after {
 /* immersive lock-screen backdrop — larger, softer, slowly living aurora.
    The whole layer parallaxes a few px against the pointer for depth. */
 .os-ambient {
-  position: absolute; inset: -4%; overflow: hidden; pointer-events: none; z-index: 0;
+  position: fixed; inset: -4%; overflow: hidden; pointer-events: none; z-index: 0;
   transform: translate3d(var(--par-x, 0), var(--par-y, 0), 0);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -492,4 +514,38 @@ body::after {
   filter: blur(18px);
   animation: dock-breathe 7s ease-in-out infinite;
   pointer-events: none;
+}
+
+/* ---------- OS chrome: scrollbars, selection, focus ---------- */
+/* thin, translucent scrollbars — a default web scrollbar is the biggest
+   "this is a browser" tell. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink-faint) 40%, transparent) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink-faint) 34%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ink-faint) 55%, transparent);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* branded text selection */
+::selection {
+  background: color-mix(in srgb, var(--brand-strong) 40%, transparent);
+  color: var(--ink);
+}
+
+/* calm, on-brand focus ring across the OS */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand-strong) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }

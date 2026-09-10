@@ -13,11 +13,14 @@ export function Toaster() {
       dir="rtl"
       toastOptions={{
         style: {
-          background: "var(--card-solid)",
+          background: "color-mix(in srgb, var(--card) 82%, transparent)",
           color: "var(--ink)",
-          border: "1px solid var(--edge)",
-          boxShadow: "var(--elev-3)",
-          borderRadius: "1rem",
+          border: "1px solid rgba(255,255,255,0.14)",
+          boxShadow:
+            "inset 0 1px 0 0 rgba(255,255,255,0.22), var(--elev-3)",
+          borderRadius: "1.1rem",
+          backdropFilter: "blur(28px) saturate(1.8)",
+          WebkitBackdropFilter: "blur(28px) saturate(1.8)",
           fontFamily: "var(--font-heebo), Heebo, system-ui, sans-serif",
         },
       }}

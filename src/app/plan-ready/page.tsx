@@ -22,7 +22,7 @@ export default async function PlanReadyPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-surface px-6 py-10">
+    <div className="flex min-h-screen flex-col items-center px-6 py-10">
       <div className="w-full max-w-lg text-center">
         <p className="text-sm font-semibold text-gradient">התכנית של {business.name} מוכנה 🎉</p>
         <h1 className="mt-1 text-display text-ink">

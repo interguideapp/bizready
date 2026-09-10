@@ -104,7 +104,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <Link href="/" className="mb-8 text-2xl font-bold text-gradient">
         BizReady
       </Link>

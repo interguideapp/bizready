@@ -107,7 +107,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
+    <div className="flex min-h-screen flex-col">
       {/* progress */}
       <div className="sticky top-0 z-10 bg-surface/95 px-6 pt-6 pb-3 backdrop-blur">
         <div className="mx-auto max-w-lg">

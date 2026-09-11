@@ -30,22 +30,32 @@ begin;
 
 -- Only where the value is provably already in the column, so this cannot run
 -- ahead of 025 and drop something that was never copied. A row whose key lists
--- indices the column does not have is left alone and will show up in the CI
+-- an index the column does not have is left alone and shows up in the CI
 -- assertion rather than being quietly discarded.
+--
+-- The CASE is load-bearing, not defensive noise. jsonb_array_elements_text()
+-- raises 22023 "cannot extract elements from a scalar" on a non-array, and the
+-- first version of this statement put that call in the left arm of an OR whose
+-- right arm was the type check. SQL does not guarantee OR short-circuiting, and
+-- in practice the extraction ran first — so a single row with, say,
+-- '{"__steps_done": 7}' aborted the migration and took the whole set with it.
+-- Coercing a non-array to '[]' means the function is never handed a scalar, and
+-- the row is then treated as contributing nothing (which is true) and has its
+-- key consumed.
 update public.business_tasks t
 set completion_data = t.completion_data - '__steps_done'
 where t.completion_data ? '__steps_done'
-  and (
-    -- the ordinary case: every valid index in the key is present in the column
-    not exists (
-      select 1
-      from jsonb_array_elements_text(t.completion_data -> '__steps_done') as raw(txt)
-      where raw.txt ~ '^[0-9]+$'
-        and not (raw.txt::int = any (coalesce(t.steps_done, '{}'::int[])))
-    )
-    -- or the key was an empty array / held nothing usable, so there is
-    -- nothing it could have contributed
-    or jsonb_typeof(t.completion_data -> '__steps_done') <> 'array'
+  and not exists (
+    select 1
+    from jsonb_array_elements_text(
+      case
+        when jsonb_typeof(t.completion_data -> '__steps_done') = 'array'
+          then t.completion_data -> '__steps_done'
+        else '[]'::jsonb
+      end
+    ) as raw(txt)
+    where raw.txt ~ '^[0-9]+$'
+      and not (raw.txt::int = any (coalesce(t.steps_done, '{}'::int[])))
   );
 
 commit;

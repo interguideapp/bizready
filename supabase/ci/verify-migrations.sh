@@ -355,7 +355,25 @@ begin
                    and column_name='steps_done')
   then raise exception 'business_tasks.steps_done is missing — the 014/025 cutover is incomplete'; end if;
 
-  if exists (select 1 from public.business_tasks where completion_data ? '__steps_done') then
+  -- No row may still carry the key UNLESS the key lists an index the column
+  -- does not have, which is 026's deliberate "never discard uncopied data"
+  -- case. Anything else means 026 did not run, or ran before 025.
+  if exists (
+    select 1 from public.business_tasks t
+    where t.completion_data ? '__steps_done'
+      and not exists (
+        select 1
+        from jsonb_array_elements_text(
+          case
+            when jsonb_typeof(t.completion_data -> '__steps_done') = 'array'
+              then t.completion_data -> '__steps_done'
+            else '[]'::jsonb
+          end
+        ) as raw(txt)
+        where raw.txt ~ '^[0-9]+$'
+          and not (raw.txt::int = any (coalesce(t.steps_done, '{}'::int[])))
+      )
+  ) then
     raise exception '__steps_done survived the migration set — 025/026 did not complete';
   end if;
 end $$;
@@ -398,6 +416,21 @@ begin
     '{"__steps_done": [0, 2], "confirmation": "12345"}'::jsonb,
     '{}'::int[]
   );
+
+  -- A key that is NOT an array. jsonb_array_elements_text() raises 22023 on a
+  -- scalar, and the first version of 026 called it in the left arm of an OR
+  -- whose right arm was the type check — so one row like this aborted the
+  -- entire migration set. Seeded permanently: this is the row that proves the
+  -- set survives malformed bookkeeping.
+  insert into public.business_tasks
+    (business_id, template_id, status, completion_data, steps_done)
+  values (b, 'bookkeeping', 'in_progress', '{"__steps_done": 7}'::jsonb, '{}'::int[]);
+
+  -- A key listing an index the column does NOT have. 026 must leave this
+  -- alone: the value was never copied, so consuming the key would discard it.
+  insert into public.business_tasks
+    (business_id, template_id, status, completion_data, steps_done)
+  values (b, 'invoicing-software', 'in_progress', '{"__steps_done": [0, 2]}'::jsonb, '{9}'::int[]);
 end $$;
 SQL
 
@@ -424,6 +457,23 @@ begin
   if cd ->> 'confirmation' is distinct from '12345' then
     raise exception 'the cutover destroyed completion evidence: %', cd;
   end if;
+
+  -- The malformed row must have survived the set and been left empty.
+  if (select steps_done from public.business_tasks
+      where template_id = 'bookkeeping'
+        and business_id in (select id from public.businesses where name = 'ci-steps'))
+     <> '{}'::int[]
+  then raise exception 'a scalar __steps_done produced a non-empty column'; end if;
+  if (select completion_data ? '__steps_done' from public.business_tasks
+      where template_id = 'bookkeeping'
+        and business_id in (select id from public.businesses where name = 'ci-steps'))
+  then raise exception 'the scalar key was not consumed'; end if;
+
+  -- The uncopied row must have KEPT its key, untouched.
+  if not (select completion_data ? '__steps_done' from public.business_tasks
+          where template_id = 'invoicing-software'
+            and business_id in (select id from public.businesses where name = 'ci-steps'))
+  then raise exception '026 discarded a key whose value was never copied'; end if;
 
   -- THE POINT: the user clears every step, then the pair is applied again.
   -- Before 026 this restored {0,2}, silently contradicting the user.

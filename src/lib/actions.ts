@@ -1239,3 +1239,57 @@ export async function acceptInvite(
   revalidatePath("/", "layout");
   return { ok: true, businessName: (business?.name as string) ?? "העסק" };
 }
+
+/**
+ * Publishes a "a rule that affects you changed" notice.
+ *
+ * Admin-only, and deliberately a human act. The source watcher flags that a
+ * page MOVED; deciding what that means — and whether it changed a deadline, an
+ * amount or nothing at all — requires reading it. Auto-publishing this from a
+ * checksum would be telling users the law changed on the strength of a diff.
+ *
+ * Writing it also acknowledges the source in one step, so the review queue and
+ * the user-facing notice cannot drift apart.
+ */
+export async function publishContentChange(input: {
+  templateId: string;
+  summary: string;
+  changeKind: "deadline" | "amount" | "rule" | "guidance";
+  sourceUrl: string;
+  effectiveFrom?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { supabase } = await requireAdmin();
+
+  // The template must exist in the shipped content, or the notice would name a
+  // task no user has and render as a message about nothing.
+  if (!TEMPLATES_BY_ID.has(input.templateId)) {
+    return { ok: false, error: "לא קיימת משימה עם המזהה הזה." };
+  }
+  const summary = capLength(input.summary, 400);
+  if (!summary) return { ok: false, error: "צריך לכתוב מה השתנה." };
+  if (!/^https:\/\//.test(input.sourceUrl)) {
+    return { ok: false, error: "צריך קישור למקור הרשמי." };
+  }
+
+  const { error } = await supabase.from("content_changelog").insert({
+    template_id: input.templateId,
+    summary,
+    change_kind: input.changeKind,
+    source_url: input.sourceUrl,
+    effective_from: input.effectiveFrom || null,
+  });
+  if (error) {
+    console.error("publishContentChange failed", error.message);
+    return { ok: false, error: "הפרסום נכשל. נסו שוב." };
+  }
+
+  // Same source is now reviewed — clear it from the moved-sources list so the
+  // team is not asked to look at it twice.
+  await supabase
+    .from("source_fingerprints")
+    .update({ acknowledged_at: new Date().toISOString() })
+    .eq("url", input.sourceUrl);
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessTask, OnboardingAnswers } from "@/lib/types";
 import type { EffectiveRole, MemberRow } from "@/lib/members";
+import type { ChangelogEntry } from "@/lib/content/changelog";
 
 export interface BusinessRow {
   id: string;
@@ -562,4 +563,39 @@ export async function getMembers(businessId: string): Promise<MemberRow[]> {
     .eq("business_id", businessId)
     .order("invited_at", { ascending: false });
   return optional("את המשתפים", data, error, []) as MemberRow[];
+}
+
+/**
+ * Recent rule-change notices, newest first, plus what this user has read.
+ *
+ * Returns entries for ALL templates; the caller filters to the ones in this
+ * business's plan (see content/changelog.ts). Filtering in SQL would need the
+ * plan in the query, and the plan lives in code.
+ *
+ * `optional` rather than `critical`: a missing changelog should not take down
+ * the home screen. The user loses a notice, not their compliance status.
+ */
+export async function getContentChanges(): Promise<{
+  entries: ChangelogEntry[];
+  readIds: Set<string>;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { entries: [], readIds: new Set() };
+
+  const [{ data: entries, error }, { data: reads }] = await Promise.all([
+    supabase
+      .from("content_changelog")
+      .select("id, template_id, summary, change_kind, source_url, effective_from, published_at")
+      .order("published_at", { ascending: false })
+      .limit(40),
+    supabase.from("content_changelog_reads").select("changelog_id").eq("user_id", user.id),
+  ]);
+
+  return {
+    entries: optional("עדכוני רגולציה", entries, error, []) as ChangelogEntry[],
+    readIds: new Set((reads ?? []).map((r) => r.changelog_id as string)),
+  };
 }

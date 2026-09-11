@@ -261,6 +261,24 @@ begin
   if b2 is null then raise exception 'unreachable'; end if;
 end $$;
 
+-- 023: the user-facing rule changelog. The notice says "the law changed", so
+-- a session must never be able to publish one.
+do $$
+begin
+  if not exists (select 1 from information_schema.tables
+                 where table_schema='public' and table_name='content_changelog')
+  then raise exception 'content_changelog is missing — users never learn a rule changed'; end if;
+  if not exists (select 1 from pg_policies
+                 where tablename = 'content_changelog' and cmd = 'SELECT')
+  then raise exception 'content_changelog has no read policy — the notices would be invisible'; end if;
+  if exists (select 1 from pg_policies
+             where tablename = 'content_changelog' and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+  then raise exception 'content_changelog is session-writable — a user could publish a fake law change'; end if;
+  -- Per-user read receipts, on the other hand, must be self-writable.
+  if not exists (select 1 from pg_policies where tablename = 'content_changelog_reads')
+  then raise exception 'content_changelog_reads has no policy — nobody could dismiss a notice'; end if;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

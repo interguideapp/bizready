@@ -1,6 +1,7 @@
 import { todayInIsrael } from "@/lib/dates";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
+  getContentChanges,
   requireBusiness,
   getBusinessTasks,
   getDocuments,
@@ -12,6 +13,12 @@ import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, filingsBlockedByDismissal } from "@/lib/compliance";
 import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
+import {
+  CHANGE_LABEL,
+  changeBannerText,
+  isConsequential,
+  relevantChanges,
+} from "@/lib/content/changelog";
 import { buildJourney } from "@/lib/journey";
 import { computeAttention, type Stage } from "@/lib/priority";
 import { computeConfidence } from "@/lib/confidence";
@@ -52,12 +59,13 @@ const EVENT_VERB: Record<string, { verb: string; icon: string }> = {
 export default async function HomePage() {
   const business = await requireBusiness();
   const today = new Date();
-  const [tasks, documents, products, events, metrics] = await Promise.all([
+  const [tasks, documents, products, events, metrics, contentChanges] = await Promise.all([
     getBusinessTasks(business.id),
     getDocuments(business.id),
     getProducts(business.id),
     getTaskEvents(business.id, 40),
     getMetrics(business.id, `${today.getFullYear()}-01-01`),
+    getContentChanges(),
   ]);
 
   const answers = business.onboarding_answers as OnboardingAnswers;
@@ -126,6 +134,29 @@ export default async function HomePage() {
     severityLabel: SEVERITY_LABEL[e.severity],
     consequence: e.consequence,
     overdue: e.daysUntil < 0,
+  }));
+
+  // Targeted to the templates actually in this plan — including completed
+  // ones, because a rule change on something already filed is often MORE
+  // urgent than on something outstanding: the filing may need revisiting.
+  const planTemplateIds = new Set(
+    tasks.filter((t) => t.is_relevant).map((t) => t.template_id)
+  );
+  const ruleChangeList = relevantChanges(
+    contentChanges.entries,
+    planTemplateIds,
+    (id) => TEMPLATES_BY_ID.get(id)?.title,
+    contentChanges.readIds
+  ).slice(0, 3);
+  const ruleChanges = ruleChangeList.map((c) => ({
+    id: c.id,
+    title: c.title,
+    href: c.href,
+    summary: c.summary,
+    kindLabel: CHANGE_LABEL[c.change_kind],
+    sourceUrl: c.source_url,
+    effectiveFrom: c.effective_from,
+    consequential: isConsequential(c.change_kind),
   }));
 
   const urgent = attention.urgent;
@@ -235,6 +266,8 @@ export default async function HomePage() {
     completeness,
     nextDeadline,
     blockedFilings,
+    ruleChanges,
+    ruleChangesBanner: changeBannerText(ruleChangeList),
     exposures,
     tiles: {
       readiness: score.overall,

@@ -62,6 +62,22 @@ export interface HomeOSData {
    * itself is never displayed; it decides the order, and each row states its
    * consequence in words.
    */
+  /**
+   * Rule changes that affect THIS business — targeted by the templates in its
+   * own plan, not broadcast. The source watcher tells the team a page moved;
+   * this is what finally reaches the user.
+   */
+  ruleChanges: {
+    id: string;
+    title: string;
+    href: string;
+    summary: string;
+    kindLabel: string;
+    sourceUrl: string;
+    effectiveFrom: string | null;
+    consequential: boolean;
+  }[];
+  ruleChangesBanner: string | null;
   exposures: {
     title: string;
     href: string;
@@ -230,6 +246,67 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                 ))}
               </div>
               <p className="mt-3 text-xs text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
+            </div>
+          </FadeUp>
+        )}
+
+        {/* ===== a rule that affects YOU changed =====
+            First on the page when present. The source watcher tells the team a
+            page moved; this is the only thing that reaches the user, and a
+            moved deadline can make them late through no fault of their own.
+            Targeted by the templates in their own plan — a broadcast notice
+            would teach them to dismiss these. */}
+        {data.ruleChanges.length > 0 && (
+          <FadeUp delay={0.04}>
+            <div className="os-card rounded-3xl border border-brand-edge p-5">
+              <div className="mb-1 flex items-center gap-2">
+                <BadgeCheck className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+                <h2 className="text-section text-ink">
+                  {data.ruleChangesBanner ?? "עדכון רגולציה"}
+                </h2>
+              </div>
+              <p className="mb-3 text-sm leading-relaxed text-ink-muted">
+                בדקנו מול המקור הרשמי ועדכנו את התוכן. זה מה שהשתנה במה שרלוונטי
+                לכם:
+              </p>
+              <div className="flex flex-col gap-2">
+                {data.ruleChanges.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={c.href}
+                    className={`group flex flex-col gap-1 rounded-2xl border p-3 transition hover:border-brand-edge ${
+                      c.consequential
+                        ? "border-brand-edge bg-brand-tint/30"
+                        : "border-edge-soft bg-surface/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                        {c.title}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-muted">
+                        {c.kindLabel}
+                      </span>
+                      <ArrowLeft
+                        className="h-4 w-4 shrink-0 text-ink-muted transition group-hover:text-brand-strong"
+                        aria-hidden
+                      />
+                    </div>
+                    <p className="text-xs leading-relaxed text-ink-muted">
+                      {c.summary}
+                      {c.effectiveFrom && (
+                        <span className="text-ink-soft">
+                          {" "}
+                          בתוקף מ-
+                          <time dateTime={c.effectiveFrom} dir="ltr">
+                            {c.effectiveFrom.split("-").reverse().join(".")}
+                          </time>
+                        </span>
+                      )}
+                    </p>
+                  </Link>
+                ))}
+              </div>
             </div>
           </FadeUp>
         )}

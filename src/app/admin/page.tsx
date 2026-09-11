@@ -5,6 +5,7 @@ import { CATEGORIES, TASK_TEMPLATES } from "@/lib/content";
 import { getAllOffers, getPartnerApplications, getPartnerLeads, isAdmin } from "@/lib/data";
 import { ApplicationRow } from "@/components/admin/application-row";
 import { OfferManager } from "@/components/admin/offer-manager";
+import { PublishChange } from "@/components/admin/publish-change";
 import { ReviewQueuePanel } from "@/components/admin/review-queue-panel";
 import { buildReviewQueue, januaryFiguresDue } from "@/lib/content/review-queue";
 import { todayInIsrael } from "@/lib/dates";
@@ -61,6 +62,11 @@ export default async function AdminPage() {
         januaryDue={januaryFiguresDue(today)}
         movedSources={movedSources}
       />
+
+      {/* Directly below the moved-sources list, because that is the workflow:
+          the watcher says a page changed, someone reads it, and then writes
+          what it means for users. */}
+      <PublishChange templateIds={templateIds} />
 
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-section text-ink">

@@ -270,6 +270,12 @@ export interface BusinessTask {
   dismissal?: "not_applicable" | "handled_externally" | null;
   dismissal_note?: string | null;
   completion_data?: Record<string, string>;
+  /**
+   * Completed step indices. Authoritative since migration 025; before that the
+   * same list lived under a __steps_done key inside completion_data, sharing an
+   * untyped column with completion evidence.
+   */
+  steps_done?: number[] | null;
   follow_up_date?: string | null;
   waiting_for?: string | null;
 }

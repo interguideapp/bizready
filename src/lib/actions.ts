@@ -283,9 +283,11 @@ export async function completeTask(
     .single();
   if (!current) throw new Error("task not found");
 
-  // Merge, never replace. completion_data also carries per-step progress
-  // (__steps_done) and evidence written by the invoicing webhook; a blind
-  // overwrite silently destroyed both, with no way to recover them.
+  // Merge, never replace. completion_data carries evidence written by the
+  // invoicing webhook, and a blind overwrite silently destroyed it with no way
+  // to recover. Step progress used to live in here too, under a __steps_done
+  // key, and was lost the same way; migration 025 moved it to its own column so
+  // the two can no longer collide.
   const existing = (current.completion_data ?? {}) as Record<string, unknown>;
 
   const { error } = await supabase
@@ -336,28 +338,38 @@ export async function completeTask(
 }
 
 /**
- * Tick a real step of a task on or off. Progress is stored as the completed step
- * indices under `__steps_done` in the task's completion_data (jsonb) — no schema
- * change — so each task tracks how far along its real-world steps you are.
+ * Tick a real step of a task on or off.
+ *
+ * Progress lives in the typed `steps_done` column (migration 025). It used to
+ * be a `__steps_done` key inside completion_data, which meant per-step
+ * progress and completion evidence shared one untyped column — so the
+ * whole-column write in completeTask destroyed both at once.
  */
 export async function toggleTaskStep(taskId: string, stepIndex: number, done: boolean) {
   const { supabase } = await requireUser();
-  const { data: current } = await supabase
+  if (!Number.isInteger(stepIndex) || stepIndex < 0) {
+    // The index arrives from a Server Action, which is a public POST endpoint,
+    // and it is about to land in an int[] that renders index into a step list.
+    throw new Error("invalid step index");
+  }
+
+  const { data: current, error: readError } = await supabase
     .from("business_tasks")
-    .select("id, completion_data")
+    .select("id, steps_done")
     .eq("id", taskId)
     .single();
+  if (readError) throw new Error(readError.message);
   if (!current) throw new Error("task not found");
-  const data = (current.completion_data ?? {}) as Record<string, unknown>;
+
   const set = new Set<number>(
-    Array.isArray(data.__steps_done) ? (data.__steps_done as number[]) : []
+    Array.isArray(current.steps_done) ? (current.steps_done as number[]) : []
   );
   if (done) set.add(stepIndex);
   else set.delete(stepIndex);
-  const next = { ...data, __steps_done: [...set].sort((a, b) => a - b) };
+
   const { error } = await supabase
     .from("business_tasks")
-    .update({ completion_data: next })
+    .update({ steps_done: [...set].sort((a, b) => a - b) })
     .eq("id", taskId);
   if (error) throw new Error(error.message);
   revalidatePath("/tasks", "layout");

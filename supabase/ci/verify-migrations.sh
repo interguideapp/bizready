@@ -345,6 +345,21 @@ begin
   then raise exception 'the sync_errors guard is missing — the failure record is editable'; end if;
 end $$;
 
+-- 025 + 026: the typed step-progress column must exist, and no row may still
+-- carry the key the cutover was supposed to consume. The re-run behaviour is
+-- checked further down, by applying the real migration files a second time.
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='business_tasks'
+                   and column_name='steps_done')
+  then raise exception 'business_tasks.steps_done is missing — the 014/025 cutover is incomplete'; end if;
+
+  if exists (select 1 from public.business_tasks where completion_data ? '__steps_done') then
+    raise exception '__steps_done survived the migration set — 025/026 did not complete';
+  end if;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';
@@ -357,5 +372,87 @@ begin
   end if;
 end $$;
 SQL
+
+# ---------------------------------------------------------------------------
+# The step-progress cutover (025 + 026) must survive being applied twice.
+#
+# This re-applies the REAL migration files rather than a copy of their SQL, so
+# editing a migration cannot leave a test that still passes. It matters because
+# 025's guard is "the column is empty", which cannot distinguish "never
+# migrated" from "the user unticked every step" — the first version shipped
+# claiming an idempotency it did not have, and would have resurrected cleared
+# progress on any replay.
+echo "→ seeding a pre-cutover row"
+psql "$DB_URL" -v ON_ERROR_STOP=1 --quiet <<'SQL'
+do $$
+declare u uuid; b uuid;
+begin
+  insert into auth.users default values returning id into u;
+  insert into public.profiles (id) values (u);
+  insert into public.businesses (owner_id, name) values (u, 'ci-steps') returning id into b;
+  -- pre-cutover shape: bookkeeping key beside real completion evidence
+  insert into public.business_tasks
+    (business_id, template_id, status, completion_data, steps_done)
+  values (
+    b, 'open-vat-file', 'in_progress',
+    '{"__steps_done": [0, 2], "confirmation": "12345"}'::jsonb,
+    '{}'::int[]
+  );
+end $$;
+SQL
+
+echo "→ re-applying 025 and 026 over existing data"
+psql_run supabase/migrations/025_steps_done_cutover.sql
+psql_run supabase/migrations/026_consume_legacy_steps_key.sql
+
+psql "$DB_URL" -v ON_ERROR_STOP=1 --quiet <<'SQL'
+do $$
+declare t uuid; sd int[]; cd jsonb;
+begin
+  select id into t from public.business_tasks where template_id = 'open-vat-file'
+    and business_id in (select id from public.businesses where name = 'ci-steps');
+  if t is null then raise exception 'the seeded row vanished'; end if;
+
+  select steps_done, completion_data into sd, cd from public.business_tasks where id = t;
+
+  if sd <> '{0,2}'::int[] then
+    raise exception '025 did not backfill steps_done from the legacy key: %', sd;
+  end if;
+  if cd ? '__steps_done' then
+    raise exception '026 did not consume the legacy key: %', cd;
+  end if;
+  if cd ->> 'confirmation' is distinct from '12345' then
+    raise exception 'the cutover destroyed completion evidence: %', cd;
+  end if;
+
+  -- THE POINT: the user clears every step, then the pair is applied again.
+  -- Before 026 this restored {0,2}, silently contradicting the user.
+  update public.business_tasks set steps_done = '{}'::int[] where id = t;
+end $$;
+SQL
+
+psql_run supabase/migrations/025_steps_done_cutover.sql
+psql_run supabase/migrations/026_consume_legacy_steps_key.sql
+
+psql "$DB_URL" -v ON_ERROR_STOP=1 --quiet <<'SQL'
+do $$
+declare t uuid; sd int[];
+begin
+  select id into t from public.business_tasks where template_id = 'open-vat-file'
+    and business_id in (select id from public.businesses where name = 'ci-steps');
+  select steps_done into sd from public.business_tasks where id = t;
+  if sd <> '{}'::int[] then
+    raise exception
+      're-running the cutover resurrected progress the user had cleared: %', sd;
+  end if;
+
+  delete from public.business_tasks where id = t;
+  delete from auth.users where id in (
+    select owner_id from public.businesses where name = 'ci-steps'
+  );
+end $$;
+SQL
+
+echo "✓ the step-progress cutover is idempotent over existing data"
 
 echo "✓ migrations apply cleanly and the expected schema is present"

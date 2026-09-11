@@ -78,9 +78,12 @@ export default async function TaskDetailPage({
     .split("\n")
     .map((l) => l.trim().replace(/^\d+\.\s*/, "").replace(/\*\*/g, ""))
     .filter(Boolean);
-  const cd = (task.completion_data ?? {}) as Record<string, unknown>;
-  const stepsDone = Array.isArray(cd.__steps_done)
-    ? (cd.__steps_done as number[]).filter((n) => Number.isInteger(n) && n >= 0 && n < steps.length)
+  // The typed column, not the old jsonb key. Deliberately NO fallback to
+  // completion_data.__steps_done: 025 backfilled it, and a fallback would
+  // resurrect old ticks for anyone who has since unticked every step, because
+  // "the user cleared them" and "never migrated" both look like an empty array.
+  const stepsDone = Array.isArray(task.steps_done)
+    ? task.steps_done.filter((n) => Number.isInteger(n) && n >= 0 && n < steps.length)
     : [];
 
   const statutory = isStatutoryFiling(template.id);

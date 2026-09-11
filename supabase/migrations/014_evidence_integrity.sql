@@ -29,11 +29,14 @@ alter table public.business_tasks
   add column if not exists steps_done int[] not null default '{}';
 
 -- NOTE: the jsonb "__steps_done" key is deliberately NOT migrated or removed
--- here. The application still reads it, and because data.ts now fails loudly on
--- a read error, moving the data before the code cutover would break every task
--- page. This migration only PREPARES the column; the read/write cutover ships
--- as a code+migration pair once 014 is applied. That keeps 014 safe to apply
--- at any time, in any order.
+-- here. The application still read it at the time this shipped, and because
+-- data.ts now fails loudly on a read error, moving the data before the code
+-- cutover would have broken every task page. This migration only PREPARES the
+-- column, which keeps it safe to apply at any time, in any order.
+--
+-- The cutover is migration 025 plus its code half: 025 backfills the column and
+-- the application now reads and writes only the column. The old jsonb key is
+-- retained as history and is no longer read.
 
 -- ---------- 2. attribution + tamper-evident chain on the trail ----------
 -- WHY THERE IS NO ip OR user_agent COLUMN, since an audit trail usually has

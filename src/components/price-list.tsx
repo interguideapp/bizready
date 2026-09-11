@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { addProduct, deleteProduct } from "@/lib/actions";
+import { Table, type Column } from "@/components/table";
 import type { ProductRow } from "@/lib/data";
 
 const UNIT_LABELS: Record<string, string> = {
@@ -43,11 +44,14 @@ export function PriceList({ products }: { products: ProductRow[] }) {
   return (
     <div>
       {products.length > 0 && (
-        <ul className="mb-4 divide-y divide-edge-soft">
-          {products.map((p) => (
-            <ProductLine key={p.id} product={p} />
-          ))}
-        </ul>
+        <div className="mb-4">
+          <Table<ProductRow>
+            caption="המחירון — שירותים ומוצרים עם מחירים"
+            columns={PRICE_COLUMNS}
+            rows={products}
+            rowKey={(p) => p.id}
+          />
+        </div>
       )}
 
       <form onSubmit={submit} className="flex flex-wrap items-center gap-2">
@@ -99,31 +103,57 @@ export function PriceList({ products }: { products: ProductRow[] }) {
   );
 }
 
-function ProductLine({ product }: { product: ProductRow }) {
+/**
+ * Real columns, so a price is announced as a price.
+ *
+ * Sortable by name and by price: a price list is exactly the thing someone
+ * wants ordered cheapest-first, and it was previously stuck in insertion order
+ * with no way to change it.
+ */
+const PRICE_COLUMNS: Column<ProductRow>[] = [
+  {
+    id: "name",
+    header: "שירות או מוצר",
+    sortValue: (p) => p.name,
+    cell: (p) => <span className="font-medium text-ink">{p.name}</span>,
+  },
+  {
+    id: "price",
+    header: "מחיר",
+    numeric: true,
+    // Nulls sort last rather than as zero — "no price set" is not free.
+    sortValue: (p) => (p.price == null ? Number.MAX_SAFE_INTEGER : Number(p.price)),
+    cell: (p) => (
+      <>
+        {p.price != null ? `₪${Number(p.price).toLocaleString("he-IL")}` : "—"}
+        <span className="ms-1 text-xs text-ink-muted">{UNIT_LABELS[p.unit] ?? ""}</span>
+      </>
+    ),
+  },
+  {
+    id: "actions",
+    header: "פעולות",
+    headerHidden: true,
+    className: "w-14",
+    cell: (p) => <DeleteProduct product={p} />,
+  },
+];
+
+function DeleteProduct({ product }: { product: ProductRow }) {
   const [pending, startTransition] = useTransition();
   return (
-    <li className="flex items-center gap-3 py-2.5">
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-        {product.name}
-      </span>
-      <span className="shrink-0 text-sm text-ink-soft">
-        {product.price != null ? `₪${Number(product.price).toLocaleString()}` : "—"}
-        <span className="ms-1 text-xs text-ink-muted">
-          {UNIT_LABELS[product.unit] ?? ""}
-        </span>
-      </span>
-      <button
-        onClick={() => startTransition(() => deleteProduct(product.id))}
-        disabled={pending}
-        aria-label={`מחיקת ${product.name}`}
-        className="shrink-0 rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-2 hover:text-status-overdue"
-      >
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-        ) : (
-          <Trash2 className="h-4 w-4" aria-hidden />
-        )}
-      </button>
-    </li>
+    <button
+      onClick={() => startTransition(() => deleteProduct(product.id))}
+      disabled={pending}
+      aria-label={`מחיקת ${product.name}`}
+      // 44px target: destructive, and previously a 26px hit area.
+      className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface-2 hover:text-status-overdue"
+    >
+      {pending ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      ) : (
+        <Trash2 className="h-4 w-4" aria-hidden />
+      )}
+    </button>
   );
 }

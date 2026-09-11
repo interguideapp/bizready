@@ -5,6 +5,7 @@ import { Loader2, Plus, Trash2, Wallet } from "lucide-react";
 import { addCost, deleteCost } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Button, Card } from "@/components/ui";
+import { Table, type Column } from "@/components/table";
 import { CADENCE_LABEL, monthlyTotal, annualTotal, type CostRow, type Cadence } from "@/lib/costs";
 
 const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
@@ -51,23 +52,54 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
       </div>
 
       {costs.length > 0 && (
-        <div className="mb-4 divide-y divide-edge-soft">
-          {costs.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate text-ink-soft">
-                {c.name}
-                <span className="text-ink-faint"> · {CADENCE_LABEL[c.cadence]}</span>
-              </span>
-              <span className="tnum shrink-0 font-semibold text-ink">{nis(c.amount)}</span>
-              <button
-                onClick={() => startTransition(() => deleteCost(c.id))}
-                aria-label={`מחיקת ${c.name}`}
-                className="shrink-0 rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-2 hover:text-status-overdue"
-              >
-                <Trash2 className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-          ))}
+        <div className="mb-4">
+          {/* Real columns: the cadence was previously appended to the name as
+              "· לחודש", so nothing distinguished a monthly cost from an annual
+              one except reading the sentence. */}
+          <Table<CostRow>
+            caption="העלויות הקבועות של העסק"
+            columns={[
+              {
+                id: "name",
+                header: "על מה",
+                sortValue: (c) => c.name,
+                cell: (c) => <span className="text-ink-soft">{c.name}</span>,
+              },
+              {
+                id: "cadence",
+                header: "תדירות",
+                sortValue: (c) => CADENCE_LABEL[c.cadence],
+                cell: (c) => (
+                  <span className="text-xs text-ink-muted">{CADENCE_LABEL[c.cadence]}</span>
+                ),
+              },
+              {
+                id: "amount",
+                header: "סכום",
+                numeric: true,
+                sortValue: (c) => c.amount,
+                cell: (c) => <span className="font-semibold text-ink">{nis(c.amount)}</span>,
+              },
+              {
+                id: "actions",
+                header: "פעולות",
+                headerHidden: true,
+                className: "w-14",
+                cell: (c) => (
+                  <button
+                    onClick={() => startTransition(() => deleteCost(c.id))}
+                    aria-label={`מחיקת ${c.name}`}
+                    // 44px target, up from 26px, on a destructive control.
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface-2 hover:text-status-overdue"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                ),
+              },
+            ]}
+            rows={costs}
+            rowKey={(c) => c.id}
+          />
         </div>
       )}
 

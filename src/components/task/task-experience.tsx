@@ -53,15 +53,25 @@ export function TaskExperience({
   const done = view.status === "done";
   const [phase, setPhase] = useState<Phase>(done ? "finish" : "understand");
 
-  // progress: understanding is free; acting is half; done is full
-  const progress =
-    view.status === "done"
-      ? 1
-      : view.status === "in_progress" || view.status === "waiting"
-        ? 0.5
-        : phase === "act"
-          ? 0.25
-          : 0.08;
+  // Progress is real work completed, not navigation. It used to report 0.08
+  // for merely opening the page and 0.25 for clicking a tab — numbers that
+  // moved when the user looked at something rather than when they did anything.
+  //
+  // Per-step completion is the honest measure and already existed: StepTracker
+  // records it and the view carries it as stepsDone. Where a task has no steps
+  // to tick, we fall back to its status and say nothing more precise than the
+  // status actually supports.
+  const progress = (() => {
+    if (view.status === "done") return 1;
+    if (view.steps.length > 0) {
+      const ticked = view.stepsDone.filter((i) => i >= 0 && i < view.steps.length).length;
+      // Cap just below 1: every step ticked still is not "done" until the task
+      // is closed with its evidence, and showing 100% before that invites the
+      // user to stop.
+      return Math.min(0.95, ticked / view.steps.length);
+    }
+    return view.status === "in_progress" || view.status === "waiting" ? 0.5 : 0;
+  })();
 
   const cta = archetypePrimaryCta(view);
 

@@ -9,6 +9,7 @@ import {
   Loader2,
   Plug,
   RefreshCw,
+  ShieldAlert,
   Unplug,
 } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -224,6 +225,21 @@ function ProviderTile({ provider, alreadyConnected }: { provider: ProviderInfo; 
       {open && provider.mode === "api" && (
         <form onSubmit={submitApi} className="mt-4 border-t border-edge-soft pt-4">
           <p className="mb-3 text-xs leading-relaxed text-ink-muted">{provider.setupGuide}</p>
+
+          {/* Stated where the decision is actually made. A provider that wants
+              an account password gives us far more access than a scoped token
+              would, and the user deserves to know that before typing it — not
+              to read "בלי סיסמאות" on the page above and then be asked for one. */}
+          {provider.authFields.some((a) => a.type === "password" && a.key === "password") && (
+            <p className="mb-3 flex items-start gap-2 rounded-xl border border-status-progress/30 bg-status-progress-bg p-2.5 text-xs leading-relaxed text-ink-soft">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-progress" aria-hidden />
+              <span>
+                הספק הזה לא מציע טוקן — הוא דורש את סיסמת החשבון עצמה. היא נשמרת
+                מוצפנת ומשמשת לקריאה בלבד, אבל סיסמת חשבון נותנת יותר הרשאות
+                מטוקן. מומלץ ליצור משתמש נפרד עם הרשאות צפייה בלבד.
+              </span>
+            </p>
+          )}
           <div className="flex flex-col gap-2.5">
             {provider.authFields.map((a) => (
               <label key={a.key} className="block">

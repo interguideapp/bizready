@@ -14,7 +14,15 @@ export function CeilingMeter({ ceiling }: { ceiling: number }) {
   const [months, setMonths] = useState<number>(new Date().getMonth() + 1);
 
   const t = Number(turnover) || 0;
-  const usedPct = Math.min(999, Math.round((t / ceiling) * 100));
+  // The true percentage, uncapped. The old Math.min(999, …) was a clamp
+  // showing through to the user, and it sat beside a bar capped at 100% — so
+  // the label and the bar told different stories about the same number.
+  const usedPct = ceiling > 0 ? Math.round((t / ceiling) * 100) : 0;
+  // What the bar can actually draw. Kept separate from the label on purpose:
+  // the bar is full at 100% and the overage is stated in words instead of
+  // being implied by a bar that cannot grow.
+  const barPct = Math.min(100, usedPct);
+  const overBy = Math.max(0, t - ceiling);
   const projected = useMemo(() => {
     if (t <= 0 || months <= 0) return 0;
     return Math.round((t / months) * 12);
@@ -73,14 +81,27 @@ export function CeilingMeter({ ceiling }: { ceiling: number }) {
           <span>{nis(t)}</span>
           <span>תקרה {nis(ceiling)}</span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-surface-3">
+        <div
+          className="h-3 overflow-hidden rounded-full bg-surface-3"
+          role="progressbar"
+          aria-valuenow={barPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="ניצול תקרת עוסק פטור"
+        >
           <div
             className={`h-full rounded-full transition-all ${barColor}`}
-            style={{ width: `${Math.min(100, usedPct)}%` }}
+            style={{ width: `${barPct}%` }}
           />
         </div>
         <p className="mt-1 text-xs font-medium text-ink-soft">
           {usedPct}% מהתקרה נוצלו
+          {/* Said in words rather than left to a bar that cannot grow past
+              full. The label used to be clamped at 999% beside a bar clamped
+              at 100%, so the two contradicted each other. */}
+          {overBy > 0 && (
+            <span className="text-status-overdue"> — חריגה של {nis(overBy)}</span>
+          )}
         </p>
       </div>
 

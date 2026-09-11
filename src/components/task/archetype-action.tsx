@@ -176,13 +176,30 @@ function RegistrationHero({ view }: { view: TaskView }) {
         ) : (
           <p className="mb-3 text-sm text-ink-muted">אין מסמכים מיוחדים להכנה — אפשר לגשת ישר לרשות.</p>
         )}
-        {view.primaryLink && (
-          <a href={view.primaryLink.url} target="_blank" rel="noopener noreferrer">
-            <Button fullWidth disabled={!allReady} icon={<ExternalLink className="h-4 w-4" aria-hidden />}>
-              {allReady ? view.primaryLink.label : "סמנו שהכל מוכן כדי להמשיך"}
+        {/* Never an anchor wrapping a disabled button: the button gets
+            pointer-events-none, the click lands on the anchor, and the gate is
+            bypassed. Until the checklist is complete there is no link here at
+            all — just a disabled button that says why. */}
+        {view.primaryLink &&
+          (allReady ? (
+            <a
+              href={view.primaryLink.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <Button
+                fullWidth
+                icon={<ExternalLink className="h-4 w-4" aria-hidden />}
+              >
+                {view.primaryLink.label}
+              </Button>
+            </a>
+          ) : (
+            <Button fullWidth disabled icon={<ExternalLink className="h-4 w-4" aria-hidden />}>
+              סמנו שהכל מוכן כדי להמשיך
             </Button>
-          </a>
-        )}
+          ))}
         <p className="mt-2 text-center text-xs text-ink-faint">
           כשתקבלו את מספר התיק — עברו ל״לסגור״ ותעדו אותו; הוא יישמר בכרטיס העסק.
         </p>

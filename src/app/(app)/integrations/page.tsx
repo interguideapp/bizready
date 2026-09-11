@@ -1,7 +1,8 @@
 import { BadgeCheck, Eye, Lock, ShieldCheck, Unplug } from "lucide-react";
 import { PageTitle } from "@/components/ui";
 import { IntegrationsManager, type ProviderInfo } from "@/components/integrations/manager";
-import { requireBusiness, getConnections } from "@/lib/data";
+import { requireBusiness, getConnections, getOpenSyncErrors } from "@/lib/data";
+import { ErrorsList } from "./errors-list";
 import { PROVIDERS } from "@/lib/integrations/registry";
 
 /**
@@ -12,7 +13,15 @@ import { PROVIDERS } from "@/lib/integrations/registry";
  */
 export default async function IntegrationsPage() {
   const business = await requireBusiness();
-  const connections = await getConnections(business.id);
+  const [connections, syncErrors] = await Promise.all([
+    getConnections(business.id),
+    // getOpenSyncErrors had no caller: the query existed, the row type existed,
+    // and ErrorsList existed — 63 lines of finished UI that nothing imported.
+    // So when a sync failed, the pipeline recorded the reason and the user was
+    // never shown it. This is where those errors belong: next to the connection
+    // that produced them.
+    getOpenSyncErrors(business.id),
+  ]);
 
   // invoicing-first: expose only the invoicing providers as serializable info
   const providers: ProviderInfo[] = PROVIDERS.filter((p) => p.category === "invoicing").map((p) => ({
@@ -29,16 +38,24 @@ export default async function IntegrationsPage() {
       <PageTitle
         eyebrow="נתונים חיים"
         title="חיבורים"
-        subtitle="מחברים רק את מה שבאמת עוזר — קריאה בלבד, בהסכמה, בלי סיסמאות"
+        subtitle="מחברים רק את מה שבאמת עוזר — קריאה בלבד, בהסכמה, והפרטים מוצפנים"
       />
 
       <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-brand-edge bg-brand-tint/40 p-4 text-sm leading-relaxed text-ink-soft">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-strong" aria-hidden />
         <p>
           מתחילים מ<b className="text-ink">תוכנת החשבוניות</b> — משם מגיע הנתון שמזיז החלטה: מחזור אמיתי
-          למד תקרת עוסק פטור, אימות מספרי הקצאה, וזיהוי חוסרים. הכול <b className="text-ink">קריאה בלבד</b>.
+          למד תקרת עוסק פטור, אימות מספרי הקצאה, וזיהוי חוסרים. הכול <b className="text-ink">קריאה בלבד</b>,
+          והפרטים נשמרים מוצפנים. חלק מהספקים עדיין דורשים שם משתמש וסיסמה ולא טוקן —
+          במקרה כזה נגיד לכם את זה מראש, במסך החיבור.
         </p>
       </div>
+
+      {syncErrors.length > 0 && (
+        <div className="mb-5">
+          <ErrorsList errors={syncErrors} />
+        </div>
+      )}
 
       <IntegrationsManager providers={providers} connections={connections} />
 

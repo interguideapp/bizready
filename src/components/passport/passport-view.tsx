@@ -1,4 +1,6 @@
+import Link from "next/link";
 import {
+  ArrowLeft,
   Award,
   Banknote,
   CalendarClock,
@@ -9,12 +11,21 @@ import {
   ShoppingBag,
   Trophy,
 } from "lucide-react";
-import { Card, Chip, FadeIn, PageTitle } from "@/components/ui";
+import { Card, Chip, EmptyState, FadeIn, PageTitle } from "@/components/ui";
 import type { PassportData } from "@/lib/documents/passport";
 
 /** The on-screen תיק העסק — a bento of official panels. Data-agnostic so it can
  *  be previewed with mock data. */
 export function PassportView({ d }: { d: PassportData }) {
+  // Every panel on this page is conditional on having data. With none of it,
+  // the user saw a score and blank space.
+  const hasAnyPanel =
+    d.identity.length > 0 ||
+    d.obligations.length > 0 ||
+    d.documents.length > 0 ||
+    d.costs.length > 0 ||
+    d.products.length > 0;
+
   return (
     <div className="pb-24 md:pb-8">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -65,6 +76,30 @@ export function PassportView({ d }: { d: PassportData }) {
             )}
           </Card>
         </FadeIn>
+
+        {/* Every panel below is conditional on having data, so with none the
+            page was a score card above empty space. Say what the file is for
+            and where the first entry comes from. */}
+        {!hasAnyPanel && (
+          <FadeIn>
+            <Card className="p-0">
+              <EmptyState
+                icon={<IdCard className="h-6 w-6" aria-hidden />}
+                title="תיק העסק עדיין ריק"
+                subtitle="כאן יופיעו מספרי התיקים ברשויות, המסמכים, ההוצאות והמועדים שלכם — כל מה שהבנק, הרו״ח או לקוח עשויים לבקש. הם נכנסים לכאן לבד, כשאתם משלימים משימות ומזינים פרטים."
+                action={
+                  <Link
+                    href="/business"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+                  >
+                    להזנת פרטי העסק
+                    <ArrowLeft className="h-4 w-4" aria-hidden />
+                  </Link>
+                }
+              />
+            </Card>
+          </FadeIn>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-2">
           {/* identity */}

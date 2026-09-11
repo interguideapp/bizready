@@ -142,24 +142,57 @@ export async function executeBatch(
     }
   }
 
-  // auto-verified tasks — close with evidence + activity event
+  // Machine input PROPOSES evidence; it never asserts compliance.
+  //
+  // This used to set status = "done" directly. Combined with a webhook whose
+  // HMAC was only checked when a secret existed — and a connect path that never
+  // set one — anyone holding the routing token could close a statutory
+  // compliance task and write a matching "auto_verified" event, i.e. forge the
+  // audit trail. A person must confirm, so the proposal is recorded beside the
+  // task and surfaced as a notification instead.
   for (const verify of out.autoVerify) {
+    const { data: current } = await supabase
+      .from("business_tasks")
+      .select("completion_data, status")
+      .eq("id", verify.taskId)
+      .maybeSingle();
+    // never disturb a task the user already closed themselves
+    if (!current || current.status === "done") continue;
+
+    const existing = (current.completion_data ?? {}) as Record<string, unknown>;
     await supabase
       .from("business_tasks")
       .update({
-        status: "done",
-        completed_at: new Date().toISOString(),
-        completion_data: { auto: "true", note: verify.note },
+        completion_data: {
+          ...existing,
+          __proposed_evidence: {
+            note: verify.note,
+            source: connection.provider,
+            at: new Date().toISOString(),
+          },
+        },
       })
       .eq("id", verify.taskId);
+
     await supabase.from("task_events").insert({
       business_id: businessId,
       task_id: verify.taskId,
       template_id: verify.templateId,
-      kind: "auto_verified",
-      to_status: "done",
+      kind: "evidence_proposed",
       detail: verify.note,
     });
+
+    await supabase.from("notifications").upsert(
+      {
+        business_id: businessId,
+        type: "deadline",
+        title: "נמצאה אסמכתא למשימה",
+        body: verify.note + " — אשרו שהמשימה בוצעה כדי לסגור אותה.",
+        template_id: verify.templateId,
+        dedupe_key: ("proposed:" + verify.templateId + ":" + verify.note).slice(0, 180),
+      },
+      { onConflict: "business_id,dedupe_key", ignoreDuplicates: true }
+    );
   }
   for (const ev of out.evidence) {
     await supabase.from("task_events").insert({

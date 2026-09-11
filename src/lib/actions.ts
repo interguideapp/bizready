@@ -1,4 +1,6 @@
 "use server";
+import { randomBytes } from "node:crypto";
+import { seal, open, sealingAvailable } from "@/lib/crypto-box";
 import { sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
 
 import { todayInIsrael } from "@/lib/dates";
@@ -724,13 +726,30 @@ export async function createConnection(
     const test = await adapter.testConnection(creds);
     if (!test.ok) return { ok: false, error: test.error ?? "החיבור נכשל — בדקו את המפתחות" };
   }
+  // Credentials are sealed before they touch the database (AES-256-GCM, key in
+  // CREDENTIALS_KEY). Fails closed: with no key configured we refuse the
+  // connection rather than silently persisting a plaintext API key or password.
+  let sealedCreds: Record<string, unknown> = {};
+  if (adapter.mode === "api") {
+    if (!sealingAvailable()) {
+      return {
+        ok: false,
+        error: "הצפנת המפתחות אינה מוגדרת בשרת — לא נשמור מפתחות ללא הצפנה.",
+      };
+    }
+    sealedCreds = seal(creds);
+  }
+
   const { error } = await supabase.from("integration_connections").insert({
     business_id: businessId,
     provider: adapter.id,
     category: adapter.category,
     mode: adapter.mode,
-    credentials: adapter.mode === "api" ? creds : {},
+    credentials: sealedCreds,
     field_map: fieldMap ?? {},
+    // Every connection gets a signing secret: the webhook token only routes,
+    // it cannot also authenticate (it is displayed and shared by design).
+    webhook_secret: randomBytes(24).toString("hex"),
   });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/integrations");
@@ -755,7 +774,7 @@ export async function syncConnectionNow(
   try {
     const since = conn.last_sync_at ? String(conn.last_sync_at).slice(0, 10) : null;
     const batch = await adapter.pull(
-      conn.credentials as Record<string, string>,
+      open(conn.credentials),
       since,
       (conn.field_map ?? {}) as Record<string, boolean>
     );

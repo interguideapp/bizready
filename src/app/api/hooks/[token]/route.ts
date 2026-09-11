@@ -44,17 +44,27 @@ export async function POST(
 
   const rawBody = await request.text();
 
-  // HMAC check when the connection has a secret
-  if (connection.webhook_secret) {
-    const signature = request.headers.get("x-bizready-signature") ?? "";
-    const expected = createHmac("sha256", connection.webhook_secret)
-      .update(rawBody)
-      .digest("hex");
-    const a = Buffer.from(signature);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      return NextResponse.json({ error: "bad signature" }, { status: 401 });
-    }
+  // Mandatory HMAC. The token only ROUTES the request; the signature
+  // AUTHENTICATES it. The token is shown in the UI, copied to the clipboard and
+  // pasted into third-party automation tools, so it cannot also be the
+  // credential. This check used to run only "if (connection.webhook_secret)"
+  // while the live connect path never set one — so in practice every webhook
+  // was unauthenticated, and an inbound payload could inject revenue figures
+  // and close compliance tasks.
+  if (!connection.webhook_secret) {
+    return NextResponse.json(
+      { error: "connection has no signing secret - reconnect it" },
+      { status: 401 }
+    );
+  }
+  const signature = request.headers.get("x-bizready-signature") ?? "";
+  const expected = createHmac("sha256", connection.webhook_secret)
+    .update(rawBody)
+    .digest("hex");
+  const provided = Buffer.from(signature);
+  const wanted = Buffer.from(expected);
+  if (provided.length !== wanted.length || !timingSafeEqual(provided, wanted)) {
+    return NextResponse.json({ error: "bad signature" }, { status: 401 });
   }
 
   let payload: unknown;

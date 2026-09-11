@@ -47,7 +47,7 @@ export default async function IntegrationsPage() {
         <h2 className="mb-3 font-bold text-ink">איך אנחנו שומרים שזה בטוח</h2>
         <div className="grid gap-2.5 sm:grid-cols-2">
           <SafetyRow icon={<Eye className="h-4 w-4" aria-hidden />} text="קריאה בלבד — אף חיבור לא יכול להזיז כסף או לשנות נתונים" />
-          <SafetyRow icon={<Lock className="h-4 w-4" aria-hidden />} text="טוקנים מאובטחים, לא סיסמאות — ובוודאי לא סיסמת בנק" />
+          <SafetyRow icon={<Lock className="h-4 w-4" aria-hidden />} text="המפתחות נשמרים מוצפנים (AES-256) ולעולם לא נחשפים בדפדפן. לא מבקשים סיסמת בנק." />
           <SafetyRow icon={<Unplug className="h-4 w-4" aria-hidden />} text="אפשר לנתק כל חיבור בלחיצה, בכל רגע" />
           <SafetyRow icon={<BadgeCheck className="h-4 w-4" aria-hidden />} text="שקוף — תמיד רואים מה נמשך, מתי, ולמה" />
         </div>

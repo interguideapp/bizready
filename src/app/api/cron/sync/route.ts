@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { open } from "@/lib/crypto-box";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { executeBatch } from "@/lib/integrations/execute";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
         ? String(connection.last_sync_at).slice(0, 10)
         : null;
       const batch = await adapter.pull(
-        connection.credentials as Record<string, string>,
+        open(connection.credentials),
         since,
         (connection.field_map ?? {}) as Record<string, boolean>
       );

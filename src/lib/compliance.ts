@@ -153,10 +153,9 @@ function periodLabelFor(startAbs: number, endAbs: number): string {
 // ---------- statutory filing calendar ----------
 
 /**
- * The three filings that carry a real, dated legal deadline with penalties.
- * These are the only obligations that may ever show as "overdue".
- */
-/**
+ * The filings that carry a real, dated legal deadline with penalties. These are
+ * the only obligations that may ever show as "overdue".
+ *
  * Derived from the date-rule registry rather than hand-written, so the set of
  * things that may show as "overdue" can never drift from the set of things we
  * can actually date. It used to be typed out twice — here and in
@@ -219,7 +218,6 @@ export function nextAnnualReport(today: Date): string {
   return iso(due);
 }
 
-const ITA_SOURCE = "https://www.gov.il/he/departments/israel_tax_authority";
 
 /** Next occurrence of a fixed calendar date (month is 1-12). */
 export function nextAnnualDate(today: Date, month: number, day: number): string {
@@ -422,7 +420,6 @@ export function computeUpcomingObligations(
 ): Obligation[] {
   const out: Obligation[] = [];
   const freq = reportingFrequency(profile);
-  const freqWord = freq === "monthly" ? "כל חודש" : "אחת לחודשיים";
   // The window for things that are COMING. Sixty days of history keeps a
   // recently-passed renewal or document expiry visible without turning the
   // board into an archive.

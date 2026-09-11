@@ -1,4 +1,4 @@
-import { todayInIsrael, israelParts } from "@/lib/dates";
+import { todayInIsrael } from "@/lib/dates";
 import {
   isStatutoryFiling,
   nextStatutoryDueDate,

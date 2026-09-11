@@ -1,90 +1,60 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CalendarClock, Check, Loader2, RotateCcw } from "lucide-react";
+import { Check, Loader2, XCircle } from "lucide-react";
 import { saveTaskNotes, setTaskStatus } from "@/lib/actions";
 import { CompleteTaskFlow } from "@/components/complete-task-flow";
-import { STATUS_LABELS } from "@/components/badges";
 import {
   DISMISSAL_EXPLAINER,
   DISMISSAL_LABEL,
   type Dismissal,
 } from "@/lib/task-status";
-import type { CompletionSpec, TaskStatus } from "@/lib/types";
-
-const OPEN_STATUSES: Exclude<TaskStatus, "done">[] = [
-  "todo",
-  "in_progress",
-  "waiting",
-  "not_relevant",
-];
+import type { CompletionSpec } from "@/lib/types";
 
 /**
- * Status control. Everything except "done" is a direct switch; closing a task
- * always opens the completion flow so it can never be a single click.
+ * The two task actions a milestone chain cannot decide on its own.
+ *
+ * This used to be the whole status model: a four-button grid (todo / בתהליך /
+ * ממתין / לא רלוונטי) plus a dialog asking the user to type what they were
+ * waiting for and pick a follow-up date. MilestoneTracker replaced all of it,
+ * because the chain already knows who holds the ball at each stage and when we
+ * should look again.
+ *
+ * What genuinely cannot be derived stays here:
+ *   - closing a task, which must capture evidence into the audit trail;
+ *   - removing a task, which needs a REASON, because "not about me" gates a
+ *     dependent statutory duty while "handled elsewhere" satisfies it.
+ *
+ * `autoOpenFlow` lets the tracker's final milestone open the evidence flow
+ * directly, so finishing is one tap from the top of the page instead of a hunt
+ * through a tab.
  */
 export function StatusPicker({
   taskId,
-  status,
   steps,
   completion,
-  waitingFor,
-  followUpDate,
   unlocks = [],
+  autoOpenFlow = false,
 }: {
   taskId: string;
-  status: TaskStatus;
   steps: string[];
   completion?: CompletionSpec;
-  waitingFor: string | null;
-  followUpDate: string | null;
   unlocks?: string[];
+  autoOpenFlow?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
-  const [target, setTarget] = useState<TaskStatus | null>(null);
-  const [showFlow, setShowFlow] = useState(false);
-  const [showWaiting, setShowWaiting] = useState(false);
+  const [showFlow, setShowFlow] = useState(autoOpenFlow);
   const [showDismiss, setShowDismiss] = useState(false);
   const [dismissal, setDismissal] = useState<Dismissal>("not_applicable");
   const [dismissNote, setDismissNote] = useState("");
-  const [reason, setReason] = useState(waitingFor ?? "");
-  const [followUp, setFollowUp] = useState(followUpDate ?? "");
-
-  function pick(s: Exclude<TaskStatus, "done">) {
-    if (s === "waiting") {
-      setShowWaiting(true);
-      return;
-    }
-    // Dismissing is never a single click any more. "Not about me" gates any
-    // statutory duty that depends on this task; "handled elsewhere" satisfies
-    // it. Opposite consequences, so the user has to say which they mean.
-    if (s === "not_relevant") {
-      setShowDismiss(true);
-      return;
-    }
-    setTarget(s);
-    startTransition(() => setTaskStatus(taskId, s));
-  }
 
   function saveDismissal() {
-    setTarget("not_relevant");
     startTransition(async () => {
       await setTaskStatus(taskId, "not_relevant", {
         dismissal,
         dismissalNote: dismissNote.trim() || null,
       });
       setShowDismiss(false);
-    });
-  }
-
-  function saveWaiting() {
-    setTarget("waiting");
-    startTransition(async () => {
-      await setTaskStatus(taskId, "waiting", {
-        waitingFor: reason.trim() || null,
-        followUpDate: followUp || null,
-      });
-      setShowWaiting(false);
     });
   }
 
@@ -101,78 +71,38 @@ export function StatusPicker({
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="סטטוס המשימה">
-        {OPEN_STATUSES.map((s) => {
-          const active = status === s;
-          return (
-            <button
-              key={s}
-              aria-pressed={active}
-              disabled={pending}
-              onClick={() => pick(s)}
-              className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                active
-                  ? s === "in_progress"
-                    ? "border-status-progress bg-status-progress-bg text-status-progress"
-                    : s === "waiting"
-                      ? "border-brand-edge bg-brand-tint text-brand-strong"
-                      : "border-brand-600 bg-brand-tint text-brand-strong"
-                  : "border-edge bg-card text-ink-soft hover:border-edge-strong"
-              }`}
-            >
-              {pending && target === s ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                active && <Check className="h-4 w-4" aria-hidden />
-              )}
-              {STATUS_LABELS[s]}
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex flex-col gap-3">
+      {/*
+        The four-button status grid and the "על מה ממתינים?" dialog used to live
+        here. Both are gone: MilestoneTracker owns where a task is, and derives
+        the status, the waiting reason and the follow-up date from the task's own
+        milestone chain. Asking the user to re-enter all three was the double
+        work they described.
 
-      {/* waiting details */}
-      {showWaiting && (
-        <div className="mt-3 rounded-xl border border-brand-edge bg-brand-tint/40 p-4">
-          <p className="mb-2 text-sm font-semibold text-ink">על מה ממתינים?</p>
-          <input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="למשל: הוגשה בקשה לרשות, ממתין לתשובה"
-            className="mb-2.5 w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
-          />
-          <label className="mb-1 block text-xs font-medium text-ink-muted">
-            תזכורת לבדיקה בתאריך
-          </label>
-          <input
-            type="date"
-            value={followUp}
-            onChange={(e) => setFollowUp(e.target.value)}
-            className="mb-3 w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={saveWaiting}
-              disabled={pending}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
-            >
-              {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-              שמירה
-            </button>
-            <button
-              onClick={() => setShowWaiting(false)}
-              className="rounded-xl px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink"
-            >
-              ביטול
-            </button>
-          </div>
-        </div>
-      )}
+        What is left is the two things a milestone cannot decide on its own.
+      */}
 
-      {/* which kind of "doesn't apply" */}
-      {showDismiss && (
-        <div className="mt-3 rounded-xl border border-edge bg-card p-4">
+      {/* Closing a task is never one click: the evidence goes in the trail. */}
+      <button
+        onClick={() => setShowFlow(true)}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-status-done px-6 py-3 font-semibold text-white transition hover:opacity-90"
+      >
+        <Check className="h-4 w-4" aria-hidden />
+        סיימתי — בואו נסגור את זה
+      </button>
+
+      {/* Removing a task needs a REASON, because the two reasons have opposite
+          consequences for any statutory duty that depends on it. */}
+      {!showDismiss ? (
+        <button
+          onClick={() => setShowDismiss(true)}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-edge px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:border-edge-strong"
+        >
+          <XCircle className="h-4 w-4" aria-hidden />
+          המשימה לא רלוונטית עבורי
+        </button>
+      ) : (
+        <div className="rounded-xl border border-edge bg-card p-4">
           <p className="mb-1 text-sm font-semibold text-ink">למה להסיר את המשימה?</p>
           <p className="mb-3 text-xs leading-relaxed text-ink-muted">
             לשתי התשובות יש משמעות שונה לגמרי עבור חובות שתלויות במשימה הזאת.
@@ -240,41 +170,6 @@ export function StatusPicker({
           </div>
         </div>
       )}
-
-      {/* current waiting summary */}
-      {status === "waiting" && !showWaiting && (waitingFor || followUpDate) && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand-edge bg-brand-tint/30 px-3 py-2.5 text-sm">
-          {waitingFor && <span className="text-ink-soft">{waitingFor}</span>}
-          {followUpDate && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-strong">
-              <CalendarClock className="h-3.5 w-3.5" aria-hidden />
-              בדיקה ב-{new Date(followUpDate + "T00:00:00").toLocaleDateString("he-IL")}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* the only way to close a task */}
-      <div className="mt-3">
-        {status === "done" ? (
-          <button
-            onClick={() => pick("in_progress")}
-            disabled={pending}
-            className="inline-flex items-center gap-2 rounded-xl border border-edge px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:border-edge-strong disabled:opacity-50"
-          >
-            <RotateCcw className="h-4 w-4" aria-hidden />
-            פתיחה מחדש
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowFlow(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-status-done px-6 py-3 font-semibold text-white transition hover:opacity-90"
-          >
-            <Check className="h-4 w-4" aria-hidden />
-            סיימתי — בואו נסגור את זה
-          </button>
-        )}
-      </div>
     </div>
   );
 }

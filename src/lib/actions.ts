@@ -18,6 +18,12 @@ import {
 import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status";
+import {
+  checkBackDate,
+  positionOf,
+  statusForStage,
+  terminalStageFor,
+} from "@/lib/content/milestones";
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
 import { createCheckoutSession } from "@/lib/billing";
@@ -203,6 +209,145 @@ export async function updateAnswers(
  * Move a task between the non-done statuses. Completing a task goes through
  * `completeTask` instead — it requires evidence.
  */
+/**
+ * Move a task to the next אבן דרך — the one click that replaces four.
+ *
+ * Before this, finishing a submission meant: open the task, switch to the
+ * "לסגור" tab, pick "ממתין", type what you were waiting for, and choose a
+ * follow-up date. Every one of those four was something the product already
+ * knew from the task's own milestone chain. So the client sends no state at
+ * all here — only which stage it believed the task was on — and the server
+ * derives the rest.
+ *
+ * `fromStageId` is optimistic concurrency, not ceremony. Advancing is a single
+ * tap on a screen that may have been open for a while, and without this a
+ * double tap or a stale tab would silently skip a stage — which for a filing
+ * would mean the product recording a payment that never happened.
+ */
+export async function advanceStage(taskId: string, fromStageId: string) {
+  const { supabase } = await requireUser();
+
+  const { data: current, error: readError } = await supabase
+    .from("business_tasks")
+    .select("id, business_id, template_id, status, stage")
+    .eq("id", taskId)
+    .single();
+  if (readError) throw new Error(readError.message);
+  if (!current) throw new Error("task not found");
+
+  const position = positionOf({
+    template_id: current.template_id,
+    stage: current.stage,
+    status: current.status,
+  });
+
+  // Refuse to act on a stale view rather than guessing which stage the user
+  // meant. The caller re-reads and shows the real position.
+  if (position.stage.id !== fromStageId) {
+    throw new Error("STALE_STAGE");
+  }
+
+  const next = position.next;
+  if (!next) return;
+
+  // The final hand-over belongs to the completion flow, which captures
+  // evidence into the hash-chained trail and writes real numbers onto the
+  // business card. Closing a task from here would bypass both, so this refuses
+  // even though the UI already routes that click elsewhere.
+  if (position.advanceCompletes) {
+    throw new Error("NEEDS_COMPLETION_FLOW");
+  }
+
+  const nextIndex = position.index + 1;
+  const status = statusForStage(position.chain, nextIndex);
+
+  const { error } = await supabase
+    .from("business_tasks")
+    .update({
+      stage: next.id,
+      status,
+      // Derived, not typed. A hand-off names the specific thing being waited
+      // on; anything else clears it, so a task cannot keep claiming it is
+      // waiting for something once the ball is back with the user.
+      waiting_for: next.owner === "them" ? next.label : null,
+      follow_up_date: checkBackDate(next, todayInIsrael()),
+      completed_at: null,
+    })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+
+  await supabase.from("task_events").insert({
+    business_id: current.business_id,
+    task_id: taskId,
+    template_id: current.template_id,
+    kind: "status_change",
+    from_status: current.status,
+    to_status: status,
+    // The trail records the milestone, not just the coarse status, so an audit
+    // can see that a licence application passed inspection before it was
+    // granted rather than only that the task was "waiting" twice.
+    detail: next.label,
+  });
+
+  revalidatePath("/", "layout");
+}
+
+/**
+ * Step one אבן דרך back, for a misclick.
+ *
+ * Without this the only way out of an accidental advance is the status picker,
+ * which is what this feature replaced. Reverting is logged like any other
+ * change: an audit trail that records only forward progress would misrepresent
+ * what happened.
+ */
+export async function revertStage(taskId: string, fromStageId: string) {
+  const { supabase } = await requireUser();
+
+  const { data: current, error: readError } = await supabase
+    .from("business_tasks")
+    .select("id, business_id, template_id, status, stage")
+    .eq("id", taskId)
+    .single();
+  if (readError) throw new Error(readError.message);
+  if (!current) throw new Error("task not found");
+
+  const position = positionOf({
+    template_id: current.template_id,
+    stage: current.stage,
+    status: current.status,
+  });
+  if (position.stage.id !== fromStageId) throw new Error("STALE_STAGE");
+  if (position.index === 0) return;
+
+  const prevIndex = position.index - 1;
+  const prev = position.chain[prevIndex];
+  const status = statusForStage(position.chain, prevIndex);
+
+  const { error } = await supabase
+    .from("business_tasks")
+    .update({
+      stage: prev.id,
+      status,
+      waiting_for: prev.owner === "them" ? prev.label : null,
+      follow_up_date: checkBackDate(prev, todayInIsrael()),
+      completed_at: null,
+    })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+
+  await supabase.from("task_events").insert({
+    business_id: current.business_id,
+    task_id: taskId,
+    template_id: current.template_id,
+    kind: "status_change",
+    from_status: current.status,
+    to_status: status,
+    detail: `חזרה ל: ${prev.label}`,
+  });
+
+  revalidatePath("/", "layout");
+}
+
 export async function setTaskStatus(
   taskId: string,
   status: Exclude<TaskStatus, "done">,
@@ -239,6 +384,11 @@ export async function setTaskStatus(
       completed_at: null,
       waiting_for: extra?.waitingFor ?? (status === "waiting" ? undefined : null),
       follow_up_date: extra?.followUpDate ?? (status === "waiting" ? undefined : null),
+      // Setting a status by hand is now only reopening a task or dismissing
+      // it. Either way the stored milestone is no longer trustworthy, so clear
+      // it and let the task be placed by this status until the user advances it
+      // again — a stale stage would claim a position nobody chose.
+      stage: null,
       // Leaving not_relevant must clear the reason, or a re-opened task would
       // carry a stale dismissal that the DB check constraint also forbids.
       dismissal,
@@ -294,6 +444,10 @@ export async function completeTask(
     .from("business_tasks")
     .update({
       status: "done",
+      // Land on the terminal milestone, so the chain and the status agree. Without
+      // this a finished task keeps the stage it was on — "ממתין לתעודת עוסק" —
+      // and the tracker would show a completed task as still waiting.
+      stage: terminalStageFor(current.template_id),
       completed_at: new Date().toISOString(),
       completion_data: { ...existing, ...completionData },
       waiting_for: null,

@@ -26,6 +26,7 @@ import { CategoryIcon } from "@/components/category-icon";
 import { PriorityBadge } from "@/components/badges";
 import { DueDateControl } from "@/components/due-date-editor";
 import { StatusPicker, NotesEditor } from "@/components/task-controls";
+import { MilestoneTracker } from "@/components/task/milestone-tracker";
 import { TaskChecklist } from "@/components/task-checklist";
 import { DocumentUpload } from "@/components/document-upload";
 import { OfferCard } from "@/components/offer-card";
@@ -54,6 +55,9 @@ export function TaskExperience({
 }) {
   const done = view.status === "done";
   const [phase, setPhase] = useState<Phase>(done ? "finish" : "understand");
+  // Set when the tracker's final milestone is tapped, so the evidence flow
+  // opens straight away instead of making the user find the "לסגור" tab.
+  const [completionRequested, setCompletionRequested] = useState(false);
 
   // Progress is real work completed, not navigation. It used to report 0.08
   // for merely opening the page and 0.25 for clicking a tab — numbers that
@@ -148,6 +152,18 @@ export function TaskExperience({
         </div>
       )}
 
+      {/* Where the task actually is. Above the tabs on purpose: the status
+          model used to be three clicks deep and people never reached it. */}
+      <div className="mb-4">
+        <MilestoneTracker
+          view={view}
+          onComplete={() => {
+            setCompletionRequested(true);
+            setPhase("finish");
+          }}
+        />
+      </div>
+
       {/* ---------- phase switcher ---------- */}
       <div className="mb-4">
         <SegmentedControl<Phase>
@@ -176,7 +192,9 @@ export function TaskExperience({
                 docCategory={docCategory}
               />
             )}
-            {phase === "finish" && <FinishPhase view={view} />}
+            {phase === "finish" && (
+              <FinishPhase view={view} openCompletion={completionRequested} />
+            )}
           </motion.div>
         </div>
 
@@ -343,7 +361,14 @@ function UnderstandPhase({ view }: { view: TaskView }) {
 
 // ---------- finish phase ----------
 
-function FinishPhase({ view }: { view: TaskView }) {
+function FinishPhase({
+  view,
+  openCompletion,
+}: {
+  view: TaskView;
+  /** The tracker's final milestone was tapped; open the evidence flow at once. */
+  openCompletion: boolean;
+}) {
   return (
     <div className="flex flex-col gap-6">
       {view.afterSubmit && (
@@ -361,14 +386,15 @@ function FinishPhase({ view }: { view: TaskView }) {
           guaranteed to fail. */}
       {view.canEdit ? (
         <Card className="p-4">
+          {/* Remounted when the tracker asks for the flow, so it opens with
+              showFlow already true rather than needing a second tap. */}
           <StatusPicker
+            key={openCompletion ? "flow" : "idle"}
             taskId={view.taskDbId}
-            status={view.status}
             steps={view.steps}
             completion={view.completion}
-            waitingFor={view.waitingFor}
-            followUpDate={view.followUpDate}
             unlocks={view.unlocks}
+            autoOpenFlow={openCompletion}
           />
         </Card>
       ) : (

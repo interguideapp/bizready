@@ -271,6 +271,12 @@ export interface BusinessTask {
   dismissal_note?: string | null;
   completion_data?: Record<string, string>;
   /**
+   * Current milestone id (migration 027), from content/milestones.ts. Null on
+   * rows nobody has advanced since the feature shipped; code then places the
+   * task by its status rather than guessing a stage.
+   */
+  stage?: string | null;
+  /**
    * Completed step indices. Authoritative since migration 025; before that the
    * same list lived under a __steps_done key inside completion_data, sharing an
    * untyped column with completion evidence.

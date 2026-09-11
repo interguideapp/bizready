@@ -3,6 +3,7 @@ import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { resolveArchetype } from "@/lib/content/archetypes";
 import { interpolateFigures } from "@/lib/content/figures";
 import { legalBasisOf } from "@/lib/content/legal-basis";
+import { positionOf } from "@/lib/content/milestones";
 import { resolveTemplate } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
 import { GENERATOR_BY_TEMPLATE, gateDocument } from "@/lib/documents/generators";
@@ -86,6 +87,15 @@ export default async function TaskDetailPage({
     ? task.steps_done.filter((n) => Number.isInteger(n) && n >= 0 && n < steps.length)
     : [];
 
+  // Where this task is in its own process. Derived on the server so the client
+  // never has to reason about the chain — it renders a position and sends back
+  // the stage id it acted from.
+  const position = positionOf({
+    template_id: template.id,
+    stage: task.stage,
+    status: task.status,
+  });
+
   const statutory = isStatutoryFiling(template.id);
   const obligation = statutory
     ? computeUpcomingObligations(
@@ -159,6 +169,15 @@ export default async function TaskDetailPage({
         }
       : null,
     recurrence: template.recurrence ?? null,
+    milestones: {
+      chain: position.chain,
+      currentId: position.stage.id,
+      step: position.step,
+      total: position.total,
+      nextLabel: position.next?.owner === "done" ? null : (position.next?.label ?? null),
+      nextCompletes: position.advanceCompletes,
+      resolvedFromStage: position.resolvedFromStage,
+    },
     completion: template.completion ?? DEFAULT_COMPLETION,
     completionData: task.completion_data ?? {},
     completedAt: task.completed_at,

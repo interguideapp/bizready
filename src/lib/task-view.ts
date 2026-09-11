@@ -9,6 +9,7 @@ import type {
 import type { GeneratedDoc } from "@/lib/documents/generators";
 import type { LegalBasis } from "@/lib/content/legal-basis";
 import type { ReviewAge } from "@/lib/staleness";
+import type { Stage } from "@/lib/content/milestones";
 
 /** Serializable bundle the server page hands to the client TaskExperience. */
 export interface TaskView {
@@ -51,6 +52,26 @@ export interface TaskView {
     sourceUrl: string | null;
   } | null;
   recurrence: Recurrence;
+
+  /**
+   * Where this task is in its own process, and the chain it belongs to.
+   *
+   * This is what replaced the four-value status picker. The chain is content,
+   * so it is safe to send whole: the client renders the position and the one
+   * button that leaves it, and sends back only the stage id it acted from.
+   */
+  milestones: {
+    chain: Stage[];
+    currentId: string;
+    step: number;
+    total: number;
+    /** Present unless the task is finished. */
+    nextLabel: string | null;
+    /** True when the next tap must open the evidence flow instead. */
+    nextCompletes: boolean;
+    /** False when we placed the task by its status because it has no stage. */
+    resolvedFromStage: boolean;
+  };
 
   completion: CompletionSpec;
   completionData: Record<string, string>;

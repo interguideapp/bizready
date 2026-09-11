@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TaskView } from "@/lib/task-view";
 import { DEFAULT_COMPLETION } from "@/lib/types";
 import { reviewAge } from "@/lib/staleness";
+import { positionOf } from "@/lib/content/milestones";
 
 /**
  * The task screen, verified as rendered output.
@@ -31,6 +32,8 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/actions", () => ({
   setTaskStatus: vi.fn(),
+  advanceStage: vi.fn(),
+  revertStage: vi.fn(),
   saveTaskNotes: vi.fn(),
   completeTask: vi.fn(),
   toggleTaskStep: vi.fn(),
@@ -55,6 +58,20 @@ function view(over: Partial<TaskView> = {}): TaskView {
     why: "בלי תיק במע\"מ אסור להתחיל לפעול",
     steps: ["שלב ראשון", "שלב שני"],
     stepsDone: [],
+    // Built from the real registry rather than hand-written, so the fixture
+    // cannot drift from the chains the product actually ships.
+    milestones: (() => {
+      const pos = positionOf({ template_id: "open-vat-file", status: "todo" });
+      return {
+        chain: pos.chain,
+        currentId: pos.stage.id,
+        step: pos.step,
+        total: pos.total,
+        nextLabel: pos.next?.owner === "done" ? null : (pos.next?.label ?? null),
+        nextCompletes: pos.advanceCompletes,
+        resolvedFromStage: pos.resolvedFromStage,
+      };
+    })(),
     pitfalls: [],
     afterSubmit: null,
     basis: "statutory",
@@ -104,15 +121,19 @@ async function openFinishPhase() {
 }
 
 describe("a viewer is not offered controls that would be rejected", () => {
-  it("hides the status picker and explains why", async () => {
+  it("offers a viewer no way to move the task, and says why", async () => {
     await renderTask({
       canEdit: false,
       readOnlyReason: "יש לכם גישת צפייה לתיק הזה.",
     });
-    await openFinishPhase();
-    // The status buttons come from StatusPicker, inside a group with this name.
-    expect(screen.queryByRole("group", { name: "סטטוס המשימה" })).toBeNull();
+    // The milestone tracker is now the only way to advance a task, and it is
+    // on screen from the start rather than behind the "לסגור" tab — so this
+    // checks the control that exists rather than the picker that was deleted.
+    expect(screen.queryByRole("button", { name: /המסמכים מוכנים/ })).toBeNull();
     expect(screen.getByText(/גישת צפייה/)).toBeDefined();
+
+    await openFinishPhase();
+    expect(screen.queryByRole("button", { name: /בואו נסגור/ })).toBeNull();
   });
 
   it("hides the notes editor, which is also a write", async () => {
@@ -122,8 +143,8 @@ describe("a viewer is not offered controls that would be rejected", () => {
 
   it("but an owner gets both", async () => {
     await renderTask({ canEdit: true });
+    expect(screen.getByRole("button", { name: /המסמכים מוכנים/ })).toBeDefined();
     await openFinishPhase();
-    expect(screen.getByRole("group", { name: "סטטוס המשימה" })).toBeDefined();
     expect(screen.getByText("הערות שלי")).toBeDefined();
   });
 

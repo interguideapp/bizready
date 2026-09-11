@@ -48,7 +48,15 @@ export interface HomeOSData {
   name: string;
   confidence: { state: ConfidenceState; headline: string; detail: string };
   oneThing: { title: string; href: string } | null;
-  waiting: { title: string; waitingFor: string | null; followUp: string | null; href: string }[];
+  waiting: {
+    title: string;
+    /** The milestone we are parked on, e.g. "ממתין לתעודת עוסק". */
+    waitingFor: string | null;
+    step: number;
+    total: number;
+    followUp: string | null;
+    href: string;
+  }[];
   quickWins: QuickWin[];
   completeness: { percent: number; missing: { label: string; href: string }[] };
   nextDeadline: { title: string; date: string; daysUntil: number } | null;
@@ -435,9 +443,15 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{w.title}</p>
+                      {/* The milestone label already reads as a state
+                          ("ממתין לתעודת עוסק"), so prefixing it with "ממתין ל"
+                          would stutter. */}
                       <p className="truncate text-xs text-ink-muted">
-                        {w.waitingFor ? `ממתין ל${w.waitingFor}` : "ממתין לתשובה"}
-                        {w.followUp ? ` · מעקב ${w.followUp}` : ""}
+                        {w.waitingFor ?? "ממתין לתשובה"}
+                        <span className="tnum">
+                          {` · שלב ${w.step}/${w.total}`}
+                          {w.followUp ? ` · נבדוק ${w.followUp}` : ""}
+                        </span>
                       </p>
                     </div>
                     <ArrowLeft className="h-4 w-4 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />

@@ -1,5 +1,6 @@
 import { todayInIsrael } from "@/lib/dates";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
+import { positionOf } from "@/lib/content/milestones";
 import {
   getContentChanges,
   requireBusiness,
@@ -194,15 +195,31 @@ export default async function HomePage() {
     ? { title: confidence.theOneThing.title, href: oneThingId && oneThingId !== "calendar" ? `/tasks/${oneThingId}?from=home` : "/calendar" }
     : null;
 
-  // waiting on a third party (handed off, awaiting an authority/approval)
+  // Waiting on someone else — named by the task's own milestone rather than by
+  // free text the user typed into a dialog. "ממתין לגורם חיצוני" was true of
+  // every one of these and useful for none.
   const waiting = tasks
     .filter((t) => t.is_relevant && t.status === "waiting")
-    .map((t) => ({
-      title: TEMPLATES_BY_ID.get(t.template_id)?.title ?? t.template_id,
-      waitingFor: t.waiting_for ?? null,
-      followUp: t.follow_up_date ? new Date(t.follow_up_date + "T00:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }) : null,
-      href: `/tasks/${t.template_id}?from=home`,
-    }))
+    .map((t) => {
+      const pos = positionOf({
+        template_id: t.template_id,
+        stage: t.stage,
+        status: t.status,
+      });
+      return {
+        title: TEMPLATES_BY_ID.get(t.template_id)?.title ?? t.template_id,
+        // The chain wins when it knows where we are. A row from before this
+        // feature has no stage, so anything the user typed back then is better
+        // information than a guess, and is used instead.
+        waitingFor: pos.resolvedFromStage
+          ? pos.stage.label
+          : (t.waiting_for ?? pos.stage.label),
+        step: pos.step,
+        total: pos.total,
+        followUp: t.follow_up_date ? new Date(t.follow_up_date + "T00:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }) : null,
+        href: `/tasks/${t.template_id}?from=home`,
+      };
+    })
     .slice(0, 4);
 
   // quick wins: short, available, not-done tasks + data-completeness actions

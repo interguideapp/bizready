@@ -502,3 +502,25 @@ describe("a period that went unfiled is still owed", () => {
     expect(obs.find((o) => o.daysUntil < 0)!.ruleText).toContain("סמנו אותו כבוצע");
   });
 });
+
+describe("an old unfiled period does not fade away", () => {
+  it("still reports a filing missed ten weeks ago", () => {
+    // The sixty-day window that keeps recent renewals visible was also
+    // dropping long-overdue filings, so the longer someone was late the
+    // quieter the product got. Interest grows with the delay; so must the
+    // visibility.
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "done" }),
+        task({ template_id: "vat-reporting", status: "todo", due_date: "2026-05-15" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      new Date("2026-09-20T09:00:00Z"),
+      { entityType: "osek_murshe", vatFrequency: "bimonthly" }
+    );
+    const late = obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0);
+    expect(late).toHaveLength(1);
+    expect(late[0].daysUntil).toBeLessThan(-100);
+  });
+});

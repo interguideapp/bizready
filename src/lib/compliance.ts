@@ -121,7 +121,6 @@ function heDate(isoDate: string): string {
   return `${d}.${m}.${y}`;
 }
 
-/** "יולי–אוגוסט 2026" or "יולי 2026" when the period is a single month. */
 /**
  * The filing period a given deadline belonged to.
  *
@@ -138,6 +137,7 @@ function periodForDue(dueIso: string, frequency: VatFrequency): { startAbs: numb
   return { startAbs: endAbs - (step - 1), endAbs };
 }
 
+/** "יולי–אוגוסט 2026", or "יולי 2026" when the period is a single month. */
 function periodLabelFor(startAbs: number, endAbs: number): string {
   const sY = Math.floor(startAbs / 12);
   const sM = startAbs % 12;
@@ -423,10 +423,21 @@ export function computeUpcomingObligations(
   const out: Obligation[] = [];
   const freq = reportingFrequency(profile);
   const freqWord = freq === "monthly" ? "כל חודש" : "אחת לחודשיים";
+  // The window for things that are COMING. Sixty days of history keeps a
+  // recently-passed renewal or document expiry visible without turning the
+  // board into an archive.
   const withinHorizon = (dueIso: string) => {
     const d = daysBetween(dueIso, today);
-    return d >= -60 && d <= horizonDays; // keep a little overdue history visible
+    return d >= -60 && d <= horizonDays;
   };
+
+  // A statutory filing that was never filed does NOT age out.
+  //
+  // Under the sixty-day window a VAT report missed ten weeks ago vanished from
+  // the board — so the longer someone was late, the less the product said about
+  // it, which is exactly backwards: interest and penalty grow with the delay.
+  // The debt is owed until it is filed, so it is shown until it is filed.
+  const withinOverdueHorizon = (dueIso: string) => daysBetween(dueIso, today) < 0;
 
   // One truth: a statutory filing obligation is real only once its prerequisites
   // are done. You have no VAT/advances/annual duty before the tax file is even
@@ -478,8 +489,7 @@ export function computeUpcomingObligations(
         entry.rule.anchor === "period_plus" &&
         task.status !== "done" &&
         task.due_date &&
-        daysBetween(task.due_date, today) < 0 &&
-        withinHorizon(task.due_date)
+        withinOverdueHorizon(task.due_date)
       ) {
         const missedPeriod = periodForDue(task.due_date, freq);
         const missedLabel = missedPeriod

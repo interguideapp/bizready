@@ -80,3 +80,53 @@ describe("Hebrew copy stays in one register", () => {
     }
   });
 });
+
+describe("no emoji or text glyphs standing in for icons", () => {
+  /**
+   * Pictographic emoji only. Not a blanket non-ASCII ban — the entire product
+   * is in Hebrew, and the ₪ sign, the bullet, the en dash and the •••• mask are
+   * all legitimate typography.
+   *
+   * The eight that were here read as unfinished in a product a business owner
+   * trusts with their tax files, and two of them were worse than decorative:
+   * "✓ נשמר" was a text glyph doing an icon's job with nothing announced to a
+   * screen reader, and icon: "🔓" was an emoji passed into a slot that expects
+   * a node.
+   */
+  const PICTOGRAPHIC =
+    /[\u{1F300}-\u{1FAFF}\u{2700}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/u;
+
+  /** A line that is only a comment. This file's own prose names the glyphs. */
+  const isComment = (line: string) => /^\s*(\/\/|\*|\/\*)/.test(line);
+
+  it("no pictographic emoji in any component", () => {
+    const offenders: string[] = [];
+    for (const file of walk(SRC)) {
+      const lines = fs.readFileSync(file, "utf8").split("\n");
+      lines.forEach((line, i) => {
+        if (isComment(line)) return;
+        const match = line.match(PICTOGRAPHIC);
+        if (match) {
+          offenders.push(
+            `${path.relative(process.cwd(), file)}:${i + 1} "${match[0]}"`
+          );
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("no mailto: to a personal inbox in shipped UI", () => {
+    // A personal Gmail address was the CTA on the partner card — a second
+    // funnel competing with /partners, which now has rate limiting, length
+    // caps and a honeypot.
+    const offenders: string[] = [];
+    for (const file of walk(SRC)) {
+      const src = fs.readFileSync(file, "utf8");
+      if (/mailto:[^"'`\s]*@(gmail|hotmail|outlook|yahoo)\./i.test(src)) {
+        offenders.push(path.relative(process.cwd(), file));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

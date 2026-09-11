@@ -53,7 +53,9 @@ export function StepTracker({
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-ink">
-          {doneCount === steps.length ? "כל השלבים הושלמו 🎉" : `שלב ${Math.min(doneCount + 1, steps.length)} מתוך ${steps.length}`}
+          {doneCount === steps.length
+            ? "כל השלבים הושלמו"
+            : `שלב ${Math.min(doneCount + 1, steps.length)} מתוך ${steps.length}`}
         </span>
         <span className="tnum text-xs text-ink-muted">{pct}%</span>
       </div>

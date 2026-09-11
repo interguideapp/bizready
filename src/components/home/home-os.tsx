@@ -420,7 +420,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
             </div>
             {data.waiting.length === 0 ? (
               <p className="text-sm text-ink-muted">
-                אין כרגע משימות שממתינות לגורם חיצוני — הכדור אצלכם. 🎯
+                אין כרגע משימות שממתינות לגורם חיצוני — הכדור אצלכם.
               </p>
             ) : (
               <div className="flex flex-col gap-2">

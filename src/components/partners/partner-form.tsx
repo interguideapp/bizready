@@ -60,7 +60,7 @@ export function PartnerForm() {
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-status-done-bg text-status-done">
           <CheckCircle2 className="h-7 w-7" aria-hidden />
         </div>
-        <h3 className="text-title text-ink">הבקשה נשלחה 🎉</h3>
+        <h3 className="text-title text-ink">הבקשה נשלחה</h3>
         <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
           נעבור עליה ונחזור אליכם במייל. תודה שאתם רוצים לעזור לעסקים חדשים בישראל.
         </p>

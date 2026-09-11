@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Megaphone } from "lucide-react";
 
 /**
@@ -21,12 +22,12 @@ export function AdvertiseCard({ context }: { context?: string }) {
           הופיעו כאן כשותף מומלץ — מול עסקים בדיוק ברגע שהם צריכים אתכם
         </p>
       </div>
-      <a
-        href={`mailto:interguide.app@gmail.com?subject=${subject}`}
-        className="shrink-0 rounded-xl border border-edge px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-brand-300 hover:text-brand-strong"
+      <Link
+        href="/partners"
+        className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-edge px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-brand-edge hover:text-brand-strong"
       >
         פרסמו כאן
-      </a>
+      </Link>
     </div>
   );
 }

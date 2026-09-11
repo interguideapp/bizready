@@ -49,7 +49,7 @@ export default async function BusinessPage() {
         <div className="w-full flex-1">
           <h2 className="mb-3 font-bold text-ink">
             {completeness.percent === 100
-              ? "פרופיל מושלם — כל הפרטים במקום 🎉"
+              ? "פרופיל מושלם — כל הפרטים במקום"
               : "מה חסר ל-100%?"}
           </h2>
           <ul className="grid gap-1.5 sm:grid-cols-2">

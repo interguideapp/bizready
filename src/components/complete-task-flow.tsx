@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, CheckCircle2, Loader2, X } from "lucide-react";
+import { Check, CheckCircle2, Loader2, Unlock, X } from "lucide-react";
 import { completeTask } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import type { CompletionSpec } from "@/lib/types";
@@ -52,7 +52,7 @@ export function CompleteTaskFlow({
     startTransition(async () => {
       try {
         await completeTask(taskId, values, businessFields);
-        toast.success("המשימה נסגרה — כל הכבוד! 🎉");
+        toast.success("המשימה נסגרה — כל הכבוד");
         // the payoff: show what finishing this just opened up
         if (unlocks.length > 0) {
           setTimeout(() => {
@@ -61,7 +61,7 @@ export function CompleteTaskFlow({
                 unlocks.length <= 3
                   ? unlocks.join(" · ")
                   : `${unlocks.slice(0, 3).join(" · ")} ועוד ${unlocks.length - 3}`,
-              icon: "🔓",
+              icon: <Unlock className="h-4 w-4 text-brand-strong" aria-hidden />,
               duration: 6000,
             });
           }, 900);

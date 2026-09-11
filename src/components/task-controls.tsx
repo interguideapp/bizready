@@ -310,8 +310,23 @@ export function NotesEditor({
         placeholder="הערות אישיות — מספרי אסמכתא, עם מי דיברתם, מה נשאר..."
         className="w-full rounded-xl border border-edge bg-card px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
       />
-      <p className="mt-1 h-4 text-xs text-ink-faint">
-        {pending ? "שומר..." : saved ? "✓ נשמר" : "נשמר אוטומטית"}
+      {/* aria-live, so a blind user learns the note saved. This was previously
+          a silent tick glyph in the text — a character doing an icon's job,
+          which no screen reader announces as a confirmation. */}
+      <p
+        className="mt-1 flex h-4 items-center gap-1 text-xs text-ink-muted"
+        aria-live="polite"
+      >
+        {pending ? (
+          "שומר..."
+        ) : saved ? (
+          <>
+            <Check className="h-3.5 w-3.5 text-status-done" aria-hidden />
+            נשמר
+          </>
+        ) : (
+          "נשמר אוטומטית"
+        )}
       </p>
     </div>
   );

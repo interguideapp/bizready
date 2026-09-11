@@ -8,6 +8,7 @@ import { OfferManager } from "@/components/admin/offer-manager";
 import { ReviewQueuePanel } from "@/components/admin/review-queue-panel";
 import { buildReviewQueue, januaryFiguresDue } from "@/lib/content/review-queue";
 import { todayInIsrael } from "@/lib/dates";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/home");
@@ -20,6 +21,21 @@ export default async function AdminPage() {
   const pending = applications.filter((a) => a.status === "new").length;
   const today = todayInIsrael();
   const reviewItems = buildReviewQueue(today);
+  // Sources the weekly watcher found changed and nobody has confirmed yet.
+  // Read through the admin's own session: the page is already behind
+  // isAdmin(), and there is no reason to reach for the service role.
+  const supabase = await createClient();
+  const { data: moved } = await supabase
+    .from("source_fingerprints")
+    .select("url, changed_at")
+    .not("changed_at", "is", null)
+    .is("acknowledged_at", null)
+    .order("changed_at", { ascending: false })
+    .limit(20);
+  const movedSources = (moved ?? []).map((row) => ({
+    url: row.url as string,
+    changedAt: row.changed_at as string,
+  }));
   const templateIds = TASK_TEMPLATES.map((t) => t.id);
   const categoryIds = CATEGORIES.map((c) => c.id);
 
@@ -40,7 +56,11 @@ export default async function AdminPage() {
 
       {/* First on the page on purpose: everything below affects revenue, this
           affects whether what we tell users is true. */}
-      <ReviewQueuePanel items={reviewItems} januaryDue={januaryFiguresDue(today)} />
+      <ReviewQueuePanel
+        items={reviewItems}
+        januaryDue={januaryFiguresDue(today)}
+        movedSources={movedSources}
+      />
 
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-section text-ink">

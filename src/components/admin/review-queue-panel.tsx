@@ -20,9 +20,12 @@ import {
 export function ReviewQueuePanel({
   items,
   januaryDue,
+  movedSources = [],
 }: {
   items: ReviewItem[];
   januaryDue: boolean;
+  /** Official pages whose content changed since we last read them. */
+  movedSources?: { url: string; changedAt: string }[];
 }) {
   const summary = reviewQueueSummary(items);
 
@@ -45,6 +48,38 @@ export function ReviewQueuePanel({
             <b>עדכון סכומים שנתי.</b> תחילת השנה — הסכומים לשנת המס החדשה מתפרסמים
             עכשיו. עד שיעודכנו בטבלת הסכומים, המשתמשים רואים את סכומי השנה הקודמת.
           </p>
+        </div>
+      )}
+
+      {/* The other half of change detection. The queue above knows what is OLD;
+          this knows what MOVED — a rule can change the week after it was
+          reviewed and stay "fresh" for a year. */}
+      {movedSources.length > 0 && (
+        <div className="mb-3 rounded-2xl border border-status-overdue/30 bg-status-overdue-bg/40 p-4">
+          <p className="mb-1 flex items-center gap-2 text-sm font-bold text-ink">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-status-overdue" aria-hidden />
+            {movedSources.length} מקורות רשמיים השתנו
+          </p>
+          <p className="mb-2.5 text-xs leading-relaxed text-ink-muted">
+            הדפים האלה שונים ממה שקראנו מהם. זה לא אומר שהחוק השתנה — צריך לקרוא
+            ולאשר. התוכן לא מתעדכן אוטומטית מהסיגנל הזה.
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {movedSources.map((s) => (
+              <li key={s.url}>
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-strong hover:underline"
+                  dir="ltr"
+                >
+                  {s.url}
+                  <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

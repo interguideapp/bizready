@@ -173,6 +173,28 @@ begin
   delete from public.rate_limits where key = 'ci-probe';
 end $$;
 
+-- 020/021: billing idempotency and source watching.
+do $$
+begin
+  if not exists (select 1 from information_schema.tables
+                 where table_schema='public' and table_name='billing_events')
+  then raise exception 'billing_events is missing — a retried Stripe delivery would double-apply'; end if;
+  if not exists (select 1 from information_schema.tables
+                 where table_schema='public' and table_name='source_fingerprints')
+  then raise exception 'source_fingerprints is missing — nothing detects a changed source'; end if;
+  -- Without a read policy the admin console queries it, gets nothing, and
+  -- renders a silent false all-clear.
+  if not exists (select 1 from pg_policies
+                 where tablename = 'source_fingerprints' and cmd = 'SELECT')
+  then raise exception 'source_fingerprints has no SELECT policy — the console would show a false all-clear'; end if;
+  -- ...but it must NOT be writable from a session.
+  if exists (select 1 from pg_policies
+             where tablename = 'source_fingerprints' and cmd in ('INSERT','UPDATE','DELETE'))
+  then raise exception 'source_fingerprints is session-writable — only the watcher may record fingerprints'; end if;
+  if exists (select 1 from pg_policies where tablename = 'billing_events')
+  then raise exception 'billing_events has a policy — billing history must be service-role only'; end if;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

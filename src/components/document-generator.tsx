@@ -130,6 +130,15 @@ export function DocumentGenerator({
           )}
         </div>
 
+        {/* The document's own disclaimer. Every generator carries one and this
+            preview rendered none of them — it only reached the user in the
+            printed output. A generated client agreement or privacy policy is
+            exactly where "this is not legal advice" has to be visible, and for
+            a free account the preview is the ONLY thing they ever see. */}
+        <p className="mt-3 border-t border-edge-soft pt-3 text-xs leading-relaxed text-ink-muted">
+          {doc.disclaimer}
+        </p>
+
         {!isPro && (
           <p className="mt-2 text-center text-xs text-ink-muted">
             {(doc.gatedSectionCount ?? 0) > 0

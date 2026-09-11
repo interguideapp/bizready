@@ -10,7 +10,7 @@ export default function OfflinePage() {
       </div>
       <h1 className="text-lg font-bold text-ink">אין חיבור לאינטרנט</h1>
       <p className="mt-1 max-w-xs text-sm text-ink-muted">
-        התכנית שלך מחכה — ברגע שהחיבור יחזור, רעננו את הדף
+        התכנית שלכם מחכה — ברגע שהחיבור יחזור, רעננו את הדף
       </p>
     </div>
   );

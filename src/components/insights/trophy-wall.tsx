@@ -107,7 +107,7 @@ export function TrophyWall({
       {/* recent wins */}
       {wins.length > 0 && (
         <div className="mt-4 border-t border-edge-soft pt-3">
-          <p className="eyebrow mb-2">נצחונות אחרונים</p>
+          <p className="eyebrow mb-2">ניצחונות אחרונים</p>
           <div className="flex flex-wrap gap-1.5">
             {wins.slice(0, 10).map((w) => (
               <Link

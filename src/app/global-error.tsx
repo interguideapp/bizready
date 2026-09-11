@@ -29,7 +29,7 @@ export default function GlobalError({
         <div style={{ maxWidth: 420, textAlign: "center" }}>
           <h1 style={{ fontSize: 20, marginBottom: 12 }}>המערכת נתקלה בתקלה</h1>
           <p style={{ fontSize: 14, lineHeight: 1.7, color: "#d2dbef", marginBottom: 24 }}>
-            הנתונים שלך לא נפגעו. נסו לטעון מחדש.
+            הנתונים שלכם לא נפגעו. נסו לטעון מחדש.
           </p>
           <button
             onClick={reset}

@@ -19,7 +19,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BizReady — העסק שלך, מוכן באמת",
+  title: "BizReady — העסק שלכם, מוכן באמת",
   description:
     "כל מה שעסק חדש בישראל צריך — רישום, מיסים, ביטוחים, דיגיטל — בתכנית אישית אחת עם מעקב וציון מוכנות",
   manifest: "/manifest.webmanifest",

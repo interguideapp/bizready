@@ -217,7 +217,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
       <FadeIn className="mb-4">
         <Card className="p-6">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-section text-ink"><Rocket className="h-4.5 w-4.5 text-brand-400" aria-hidden />המסע שלך</h2>
+            <h2 className="flex items-center gap-2 text-section text-ink"><Rocket className="h-4.5 w-4.5 text-brand-400" aria-hidden />המסע שלכם</h2>
             <Link href="/tasks" className="text-xs font-medium text-brand-strong hover:opacity-80">כל המשימות ←</Link>
           </div>
           <div className="relative flex items-start">

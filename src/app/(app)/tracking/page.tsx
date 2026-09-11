@@ -52,7 +52,7 @@ export default async function TrackingPage() {
   return (
     <div>
       <PageTitle
-        title="מעקב"
+        title="מעקב פעילות"
         subtitle="מה טופל, מה בתהליך, ועל מה אנחנו ממתינים"
       />
 
@@ -60,7 +60,7 @@ export default async function TrackingPage() {
         <Card>
           <EmptyState
             icon={<History className="h-6 w-6" aria-hidden />}
-            title="עוד לא התחלת לעבוד על משימות"
+            title="עוד לא התחלתם לעבוד על משימות"
             subtitle="ברגע שתסמנו משימה כבתהליך או תסגרו אותה — הכל יופיע כאן"
             action={
               <Link

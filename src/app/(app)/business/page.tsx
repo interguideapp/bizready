@@ -40,7 +40,7 @@ export default async function BusinessPage() {
       <BusinessHubTabs />
       <PageTitle
         title="פרטי העסק"
-        subtitle="ככל שהפרופיל מלא יותר — העסק שלך מסודר, מקצועי וזמין יותר"
+        subtitle="ככל שהפרופיל מלא יותר — העסק שלכם מסודר, מקצועי וזמין יותר"
       />
 
       {/* completeness hero */}

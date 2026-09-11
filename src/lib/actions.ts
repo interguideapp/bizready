@@ -457,13 +457,20 @@ export async function updateBusinessCard(fields: {
       ([k, v]) => BUSINESS_CARD_FIELDS.has(k) && typeof v === "string"
     )
   );
-  if (Object.keys(cleaned).length === 0) return;
+  if (Object.keys(cleaned).length === 0) return { ok: true as const };
   const { error } = await supabase
     .from("businesses")
     .update(cleaned)
     .eq("owner_id", user.id);
-  if (error) throw new Error(error.message);
+  // Returned, not thrown: the caller is a form that has to tell the user their
+  // tax-file and bank details did NOT save. A throw here became an unhandled
+  // rejection in a transition and the user saw nothing.
+  if (error) {
+    console.error("updateBusinessCard failed", error.message);
+    return { ok: false as const, error: "השמירה לא עברה. בדקו את החיבור ונסו שוב." };
+  }
   revalidatePath("/business");
+  return { ok: true as const };
 }
 
 export async function addDocument(doc: {

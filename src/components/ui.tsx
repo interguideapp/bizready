@@ -5,14 +5,10 @@ import { cn } from "@/lib/utils";
 export {
   Button,
   SegmentedControl,
-  Sheet,
-  AccordionRoot,
-  AccordionItem,
   InfoPopover,
-  Hint,
   ProgressRing,
 } from "@/components/primitives";
-export { FadeIn, Stagger, AnimatedNumber, MotionProvider } from "@/components/motion";
+export { FadeIn, Stagger, MotionProvider } from "@/components/motion";
 
 export function Card({
   children,
@@ -78,33 +74,6 @@ export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton rounded-xl", className)} />;
 }
 
-/** A compact stat block: big value + label. */
-export function Stat({
-  value,
-  label,
-  icon,
-  tone,
-}: {
-  value: ReactNode;
-  label: string;
-  icon?: ReactNode;
-  tone?: "overdue";
-}) {
-  return (
-    <Card
-      className={cn(
-        "flex flex-col items-center gap-0.5 px-2 py-3 text-center",
-        tone === "overdue" && "ring-1 ring-status-overdue/30"
-      )}
-    >
-      <span className="tnum flex items-center gap-1.5 text-lg font-bold text-ink">
-        {icon}
-        {value}
-      </span>
-      <span className="text-xs font-medium text-ink-muted">{label}</span>
-    </Card>
-  );
-}
 
 export function PageTitle({
   title,

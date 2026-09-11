@@ -5,6 +5,8 @@ import { Check, Copy, Loader2, Pencil, X } from "lucide-react";
 import { updateBusinessCard } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
+import { Field, FormMessage, Input } from "@/components/form";
+import { Button } from "@/components/primitives";
 import type { BusinessRow } from "@/lib/data";
 
 interface FieldDef {
@@ -78,11 +80,19 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
 
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState(initial);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function save() {
+    setSaveError(null);
     startTransition(async () => {
-      await updateBusinessCard(values);
+      // These are tax-file and bank identifiers. "It looked like it saved" is
+      // not an acceptable outcome, so the result is checked and surfaced.
+      const result = await updateBusinessCard(values);
+      if (!result?.ok) {
+        setSaveError(result?.error ?? "השמירה לא עברה. נסו שוב.");
+        return;
+      }
       setEditing(false);
       toast.success("הפרטים נשמרו");
     });
@@ -90,31 +100,35 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
 
   return (
     <div>
+      {/* The failure message belongs next to the form, not in a toast that has
+          already faded. These are tax-file and bank identifiers. */}
+      {saveError && (
+        <div className="mb-4">
+          <FormMessage tone="error">{saveError}</FormMessage>
+        </div>
+      )}
+
       <div className="mb-4 flex justify-end">
         {editing ? (
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="ghost"
+              icon={<X className="h-4 w-4" aria-hidden />}
               onClick={() => {
                 setValues(initial);
+                setSaveError(null);
                 setEditing(false);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink"
             >
-              <X className="h-4 w-4" aria-hidden />
               ביטול
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={save}
-              disabled={pending}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+              loading={pending}
+              icon={<Check className="h-4 w-4" aria-hidden />}
             >
-              {pending ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                <Check className="h-4 w-4" aria-hidden />
-              )}
               שמירה
-            </button>
+            </Button>
           </div>
         ) : (
           <button
@@ -180,40 +194,54 @@ function FieldRow({
     setTimeout(() => setCopied(false), 1500);
   }
 
+  // In edit mode this is a real labelled input. It used to be a bare <span>
+  // beside a bare <input>, with no htmlFor and no id — eleven unlabelled text
+  // boxes for the user's VAT file, income-tax file, national-insurance file and
+  // bank account.
+  if (editing) {
+    return (
+      <div className="px-5 py-3">
+        <Field label={label} className="sm:flex-row sm:items-center sm:gap-3">
+          <Input
+            value={value}
+            dir={dir}
+            onChange={(e) => onChange(e.target.value)}
+            // Logical property, so the alignment follows the field's own
+            // direction instead of hardcoding "left".
+            className={dir === "ltr" ? "text-start" : undefined}
+          />
+        </Field>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 px-5 py-3">
       <span className="w-32 shrink-0 text-sm text-ink-muted">{label}</span>
-      {editing ? (
-        <input
-          value={value}
-          dir={dir}
-          onChange={(e) => onChange(e.target.value)}
-          className={`min-w-0 flex-1 rounded-lg border border-edge px-3 py-1.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge ${dir === "ltr" ? "text-left" : ""}`}
-        />
-      ) : (
-        <>
-          <span
-            dir={dir}
-            className={`min-w-0 flex-1 truncate text-sm font-medium ${
-              value ? "text-ink" : "text-ink-faint"
-            } ${dir === "ltr" ? "text-left" : ""}`}
-          >
-            {value || "—"}
-          </span>
-          {value && (
-            <button
-              onClick={copy}
-              aria-label={`העתקת ${label}`}
-              className="shrink-0 rounded-lg p-1.5 text-ink-faint transition hover:bg-surface-2 hover:text-brand-strong"
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-status-done" aria-hidden />
-              ) : (
-                <Copy className="h-4 w-4" aria-hidden />
-              )}
-            </button>
+      <span
+        dir={dir}
+        // text-start, not text-left: the value follows its own direction rather
+        // than being pinned to a physical side.
+        className={`min-w-0 flex-1 truncate text-sm font-medium ${
+          value ? "text-ink" : "text-ink-muted"
+        } ${dir === "ltr" ? "text-start" : ""}`}
+      >
+        {value || "—"}
+      </span>
+      {value && (
+        <button
+          onClick={copy}
+          aria-label={`העתקת ${label}`}
+          // 44px minimum hit area: this was a 26px target, one of ~35 controls
+          // in the app that were under the minimum.
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface-2 hover:text-brand-strong"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-status-done" aria-hidden />
+          ) : (
+            <Copy className="h-4 w-4" aria-hidden />
           )}
-        </>
+        </button>
       )}
     </div>
   );

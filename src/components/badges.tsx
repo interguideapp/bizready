@@ -16,43 +16,6 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   not_relevant: "לא רלוונטי לי",
 };
 
-export function StatusBadge({ status }: { status: TaskStatus }) {
-  const config: Record<
-    TaskStatus,
-    { cls: string; icon: React.ReactNode }
-  > = {
-    done: {
-      cls: "bg-status-done-bg text-status-done",
-      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-    },
-    in_progress: {
-      cls: "bg-status-progress-bg text-status-progress",
-      icon: <CircleDashed className="h-3.5 w-3.5" />,
-    },
-    waiting: {
-      cls: "bg-brand-tint text-brand-strong",
-      icon: <Hourglass className="h-3.5 w-3.5" />,
-    },
-    todo: {
-      cls: "bg-status-todo-bg text-status-todo",
-      icon: <Circle className="h-3.5 w-3.5" />,
-    },
-    not_relevant: {
-      cls: "bg-surface-2 text-ink-faint",
-      icon: <EyeOff className="h-3.5 w-3.5" />,
-    },
-  };
-  const { cls, icon } = config[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${cls}`}
-    >
-      {icon}
-      {STATUS_LABELS[status]}
-    </span>
-  );
-}
-
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
   critical: "חובה",
   important: "חשוב",

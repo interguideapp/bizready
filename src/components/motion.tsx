@@ -82,25 +82,3 @@ Stagger.Item = function StaggerItem({
   );
 };
 
-/** A number that springs to its value — for scores, counts, percentages. */
-export function AnimatedNumber({
-  value,
-  className,
-  format = (n) => Math.round(n).toLocaleString("he-IL"),
-}: {
-  value: number;
-  className?: string;
-  format?: (n: number) => string;
-}) {
-  const mv = useMotionValue(0);
-  const sp = useSpring(mv, { stiffness: 90, damping: 20 });
-  const [display, setDisplay] = useState("0");
-
-  useEffect(() => {
-    mv.set(value);
-  }, [mv, value]);
-
-  useEffect(() => sp.on("change", (v) => setDisplay(format(v))), [sp, format]);
-
-  return <span className={className}>{display}</span>;
-}

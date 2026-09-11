@@ -64,39 +64,3 @@ export function ScoreRing({
   );
 }
 
-/** Small per-category progress ring. */
-export function MiniRing({
-  score,
-  size = 44,
-  strokeWidth = 5,
-}: {
-  score: number;
-  size?: number;
-  strokeWidth?: number;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  return (
-    <svg width={size} height={size} className="-rotate-90 shrink-0" aria-hidden>
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="var(--color-surface-3)"
-        strokeWidth={strokeWidth}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="var(--color-brand-600)"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={circumference * (1 - score / 100)}
-      />
-    </svg>
-  );
-}

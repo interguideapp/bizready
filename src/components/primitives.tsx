@@ -1,11 +1,8 @@
 "use client";
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { Drawer } from "vaul";
-import * as Accordion from "@radix-ui/react-accordion";
 import * as Popover from "@radix-ui/react-popover";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { ChevronDown, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { motion } from "motion/react";
 import { spring } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -113,91 +110,7 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-// ---------- Sheet (mobile bottom sheet via vaul) ----------
 
-export function Sheet({
-  open,
-  onOpenChange,
-  title,
-  children,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  title?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
-      <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
-        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mt-24 flex max-h-[92vh] flex-col rounded-t-3xl border-t border-edge bg-card-solid outline-none">
-          <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-edge-strong" />
-          {title && (
-            <Drawer.Title className="px-5 pt-3 text-lg font-bold text-ink">
-              {title}
-            </Drawer.Title>
-          )}
-          <div className="overflow-y-auto px-5 pb-8 pt-3">{children}</div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
-  );
-}
-
-// ---------- Accordion ----------
-
-export function AccordionRoot({
-  children,
-  className,
-  defaultValue,
-}: {
-  children: ReactNode;
-  className?: string;
-  defaultValue?: string;
-}) {
-  return (
-    <Accordion.Root
-      type="single"
-      collapsible
-      defaultValue={defaultValue}
-      className={cn("flex flex-col gap-2.5", className)}
-    >
-      {children}
-    </Accordion.Root>
-  );
-}
-
-export function AccordionItem({
-  value,
-  trigger,
-  children,
-}: {
-  value: string;
-  trigger: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <Accordion.Item
-      value={value}
-      className="overflow-hidden rounded-2xl border border-edge bg-card shadow-e1"
-    >
-      <Accordion.Header>
-        <Accordion.Trigger className="group flex w-full items-center justify-between gap-3 px-4 py-3.5 text-right text-sm font-semibold text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand-edge">
-          {trigger}
-          <ChevronDown
-            className="h-4 w-4 shrink-0 text-ink-faint transition-transform duration-200 group-data-[state=open]:rotate-180"
-            aria-hidden
-          />
-        </Accordion.Trigger>
-      </Accordion.Header>
-      <Accordion.Content className="overflow-hidden data-[state=closed]:animate-acc-up data-[state=open]:animate-acc-down">
-        <div className="px-4 pb-4 pt-0 text-sm leading-relaxed text-ink-soft">
-          {children}
-        </div>
-      </Accordion.Content>
-    </Accordion.Item>
-  );
-}
 
 // ---------- Popover (e.g. "why this date?") ----------
 
@@ -225,26 +138,6 @@ export function InfoPopover({
   );
 }
 
-// ---------- Tooltip ----------
-
-export function Hint({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Tooltip.Provider delayDuration={200}>
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            sideOffset={6}
-            className="z-50 rounded-lg bg-ink px-2.5 py-1.5 text-xs font-medium text-surface shadow-e2 data-[state=delayed-open]:animate-pop-in"
-          >
-            {label}
-            <Tooltip.Arrow className="fill-[var(--ink)]" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
-    </Tooltip.Provider>
-  );
-}
 
 // ---------- Progress ring (compact, animated) ----------
 

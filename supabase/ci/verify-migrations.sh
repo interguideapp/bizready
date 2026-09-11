@@ -142,6 +142,37 @@ begin
   delete from auth.users where id = usr;
 end $$;
 
+-- 017/018/019: the hardening migrations.
+do $$
+begin
+  if not exists (select 1 from pg_policies
+                 where tablename = 'synced_documents' and cmd = 'DELETE')
+  then raise exception 'synced_documents has no DELETE policy — the user cannot erase their customers data'; end if;
+  if not exists (select 1 from information_schema.tables
+                 where table_schema='public' and table_name='rate_limits')
+  then raise exception 'rate_limits is missing — the limiter has no durable store'; end if;
+  if not exists (select 1 from pg_proc where proname = 'rate_limit_hit')
+  then raise exception 'rate_limit_hit() is missing'; end if;
+  if not exists (select 1 from pg_trigger where tgname = 'businesses_subscription_guard')
+  then raise exception 'the subscription guard trigger is missing — Pro is grantable from a session'; end if;
+end $$;
+
+-- The rate limiter must actually count. Two hits inside one window have to
+-- return 1 then 2, or concurrent requests could both pass the limit.
+do $$
+declare a integer; b integer; allowed_b boolean;
+begin
+  select current_count into a from public.rate_limit_hit('ci-probe', 1, 60);
+  select current_count, allowed into b, allowed_b from public.rate_limit_hit('ci-probe', 1, 60);
+  if a <> 1 or b <> 2 then
+    raise exception 'rate_limit_hit did not increment: got % then %', a, b;
+  end if;
+  if allowed_b then
+    raise exception 'rate_limit_hit allowed a second hit against a limit of 1';
+  end if;
+  delete from public.rate_limits where key = 'ci-probe';
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

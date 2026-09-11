@@ -4,14 +4,16 @@ import { ScoreRing } from "@/components/score-ring";
 import { LogoUploader } from "@/components/logo-uploader";
 import { PriceList } from "@/components/price-list";
 import { Card, PageTitle } from "@/components/ui";
-import { requireBusiness, getDocuments, getProducts } from "@/lib/data";
+import { requireBusinessContext, getDocuments, getProducts } from "@/lib/data";
+import { capabilitiesFor } from "@/lib/members";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { createClient } from "@/lib/supabase/server";
 import { BusinessHubTabs } from "@/components/business-hub-tabs";
 import { BusinessCard } from "./business-card";
 
 export default async function BusinessPage() {
-  const business = await requireBusiness();
+  const { business, role } = await requireBusinessContext();
+  const canEditCard = capabilitiesFor(role).editBusinessCard;
   const [products, documents] = await Promise.all([
     getProducts(business.id),
     getDocuments(business.id),
@@ -102,7 +104,7 @@ export default async function BusinessPage() {
 
       {/* registration & contact details */}
       <div className="mt-5">
-        <BusinessCard business={business} />
+        <BusinessCard business={business} canEdit={canEditCard} />
       </div>
     </div>
   );

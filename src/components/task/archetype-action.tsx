@@ -71,7 +71,12 @@ export function ArchetypeAction({
         </h2>
         <Card className="p-5">
           {view.steps.length > 0 ? (
-            <StepTracker taskId={view.taskDbId} steps={view.steps} doneIndices={view.stepsDone} />
+            <StepTracker
+              taskId={view.taskDbId}
+              steps={view.steps}
+              doneIndices={view.stepsDone}
+              readOnly={!view.canEdit}
+            />
           ) : (
             <StepsContent text={view.why} />
           )}

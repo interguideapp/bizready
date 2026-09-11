@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
+  Eye,
   AlertTriangle,
   ArrowRight,
   Banknote,
@@ -261,10 +262,12 @@ export function TaskExperience({
       </div>
 
       {/* ---------- notes ---------- */}
-      <section className="mt-8">
-        <h2 className="mb-3 text-section text-ink">הערות שלי</h2>
-        <NotesEditor taskId={view.taskDbId} initialNotes={view.notes} />
-      </section>
+      {view.canEdit && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-section text-ink">הערות שלי</h2>
+          <NotesEditor taskId={view.taskDbId} initialNotes={view.notes} />
+        </section>
+      )}
     </div>
   );
 }
@@ -358,17 +361,31 @@ function FinishPhase({ view }: { view: TaskView }) {
         </Card>
       )}
 
-      <Card className="p-4">
-        <StatusPicker
-          taskId={view.taskDbId}
-          status={view.status}
-          steps={view.steps}
-          completion={view.completion}
-          waitingFor={view.waitingFor}
-          followUpDate={view.followUpDate}
-          unlocks={view.unlocks}
-        />
-      </Card>
+      {/* A viewer's writes are rejected by the database anyway (migration 022).
+          Hiding the controls and saying why beats offering a button that is
+          guaranteed to fail. */}
+      {view.canEdit ? (
+        <Card className="p-4">
+          <StatusPicker
+            taskId={view.taskDbId}
+            status={view.status}
+            steps={view.steps}
+            completion={view.completion}
+            waitingFor={view.waitingFor}
+            followUpDate={view.followUpDate}
+            unlocks={view.unlocks}
+          />
+        </Card>
+      ) : (
+        view.readOnlyReason && (
+          <Card className="p-4">
+            <p className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-muted">
+              <Eye className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              {view.readOnlyReason}
+            </p>
+          </Card>
+        )
+      )}
 
       {view.status === "done" && (() => {
         // hide internal bookkeeping keys (e.g. __steps_done) and non-text values

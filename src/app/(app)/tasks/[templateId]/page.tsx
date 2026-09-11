@@ -7,8 +7,9 @@ import { resolveTemplate } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
 import { GENERATOR_BY_TEMPLATE, gateDocument } from "@/lib/documents/generators";
 import { isPro } from "@/lib/subscription";
+import { capabilitiesFor } from "@/lib/members";
 import {
-  requireBusiness,
+  requireBusinessContext,
   getBusinessTasks,
   getChecklistItems,
   getDocuments,
@@ -43,7 +44,8 @@ export default async function TaskDetailPage({
   const template = TEMPLATES_BY_ID.get(templateId);
   if (!template) notFound();
 
-  const business = await requireBusiness();
+  const { business, role } = await requireBusinessContext();
+  const caps = capabilitiesFor(role);
   const tasks = await getBusinessTasks(business.id);
   const task = tasks.find((t) => t.template_id === templateId);
   if (!task) notFound();
@@ -175,6 +177,10 @@ export default async function TaskDetailPage({
     checklist: checklist.map((c) => ({ id: c.id, label: c.label, done: c.done })),
     notes: task.notes ?? "",
     pro,
+    canEdit: caps.completeTasks,
+    readOnlyReason: caps.completeTasks
+      ? null
+      : "יש לכם גישת צפייה לתיק הזה. אפשר לראות הכול — לסמן משימות כבוצעו יכול רק בעל העסק או רו״ח עם הרשאת עריכה.",
     businessName: business.name,
     dealerNumber: business.dealer_number,
     unlocks,

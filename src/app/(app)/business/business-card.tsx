@@ -63,7 +63,19 @@ const SECTIONS: { title: string; fields: FieldDef[] }[] = [
   },
 ];
 
-export function BusinessCard({ business }: { business: BusinessRow }) {
+export function BusinessCard({
+  business,
+  canEdit = true,
+}: {
+  business: BusinessRow;
+  /**
+   * False for a collaborator. This card holds the bank account and the tax
+   * file numbers — an accountant genuinely needs to READ them, and changing
+   * them is the owner's decision. The database enforces the same thing: there
+   * is no accountant write policy on the businesses table.
+   */
+  canEdit?: boolean;
+}) {
   const initial: EditableFields = {
     name: business.name ?? "",
     dealer_number: business.dealer_number ?? "",
@@ -109,7 +121,11 @@ export function BusinessCard({ business }: { business: BusinessRow }) {
       )}
 
       <div className="mb-4 flex justify-end">
-        {editing ? (
+        {!canEdit ? (
+          <p className="text-xs leading-relaxed text-ink-muted">
+            גישת צפייה — הפרטים כאן לקריאה בלבד. עדכון שלהם נעשה על ידי בעל העסק.
+          </p>
+        ) : editing ? (
           <div className="flex gap-2">
             <Button
               variant="ghost"

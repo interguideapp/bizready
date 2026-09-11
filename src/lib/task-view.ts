@@ -77,6 +77,14 @@ export interface TaskView {
   notes: string;
 
   pro: boolean;
+  /**
+   * False for a viewer. The database blocks their writes either way (migration
+   * 022), but a UI that offers a control which is guaranteed to fail is worse
+   * than one that explains why it is absent.
+   */
+  canEdit: boolean;
+  /** Shown when canEdit is false, so the absence is explained rather than odd. */
+  readOnlyReason: string | null;
   businessName: string;
   dealerNumber: string | null;
   /** Titles of tasks this one unlocks — shown as a reward on completion. */

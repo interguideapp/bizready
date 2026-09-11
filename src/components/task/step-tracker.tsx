@@ -13,10 +13,17 @@ export function StepTracker({
   taskId,
   steps,
   doneIndices,
+  readOnly = false,
 }: {
   taskId: string;
   steps: string[];
   doneIndices: number[];
+  /**
+   * True for a viewer. Ticking a step is a write, so without this they would
+   * click, watch the optimistic update land, and then see it revert when the
+   * database rejected it — which reads as a bug rather than as a permission.
+   */
+  readOnly?: boolean;
 }) {
   const initial = new Set(doneIndices);
   const [done, setDone] = useOptimistic(
@@ -73,6 +80,7 @@ export function StepTracker({
               )}
               <button
                 type="button"
+                disabled={readOnly}
                 onClick={() => toggle(i)}
                 aria-pressed={isDone}
                 aria-label={`שלב ${i + 1}: ${step}`}
@@ -88,6 +96,7 @@ export function StepTracker({
               </button>
               <button
                 type="button"
+                disabled={readOnly}
                 onClick={() => toggle(i)}
                 className={`flex-1 pt-0.5 text-start text-sm leading-relaxed transition ${
                   isDone ? "text-ink-faint line-through decoration-edge-strong" : isCurrent ? "font-semibold text-ink" : "text-ink-soft"

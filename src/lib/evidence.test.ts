@@ -18,6 +18,29 @@ describe("verifyChain", () => {
     const r = verifyChain([ev("a", null, null), ev("b", null, null)]);
     expect(r.verifiable).toBe(false);
     expect(r.checked).toBe(0);
+    expect(r.unverified).toBe(2);
+  });
+
+  it("counts the rows that predate the chain, so the pack cannot overclaim", () => {
+    // This is the state production is actually in: three events were written
+    // before the hash trigger existed, and everything after them is signed.
+    // The old report said linked:true / checked:2 and the export turned that
+    // into "every record is signed and linked" — false for rows a and b.
+    const r = verifyChain([
+      ev("a", null, null),
+      ev("b", null, null),
+      ev("c", "h1", null),
+      ev("d", "h2", "h1"),
+    ]);
+    expect(r.verifiable).toBe(true);
+    expect(r.linked).toBe(true);
+    expect(r.checked).toBe(2);
+    expect(r.unverified).toBe(2);
+  });
+
+  it("reports zero unverified when the whole trail is signed", () => {
+    const r = verifyChain([ev("a", "h1", null), ev("b", "h2", "h1")]);
+    expect(r.unverified).toBe(0);
   });
 
   it("accepts a correctly linked chain", () => {

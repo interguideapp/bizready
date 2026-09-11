@@ -36,6 +36,16 @@ alter table public.business_tasks
 -- at any time, in any order.
 
 -- ---------- 2. attribution + tamper-evident chain on the trail ----------
+-- WHY THERE IS NO ip OR user_agent COLUMN, since an audit trail usually has
+-- them: they are personal data, and collecting them here would need a lawful
+-- basis, a retention window and a disclosure — in a product that ships a task
+-- teaching users about תיקון 13 and that now implements erasure and retention
+-- itself (017). What the evidence pack has to answer is "who did this, and can
+-- the record be trusted", which actor_id + actor_kind + the hash chain answer
+-- without retaining anyone's IP address indefinitely. Forensic repudiation
+-- ("that login wasn't me") is an auth-layer question, and Supabase already logs
+-- it there. If this is ever revisited, it needs a retention window in 017 and a
+-- line in the privacy policy, not just two more columns.
 alter table public.task_events add column if not exists actor_id uuid;
 -- owner | system | integration
 alter table public.task_events add column if not exists actor_kind text not null default 'owner';

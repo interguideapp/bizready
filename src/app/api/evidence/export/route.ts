@@ -3,10 +3,49 @@ import { getBusiness } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { ENTITY_LABELS } from "@/lib/types";
-import { verifyChain, type EvidenceEvent } from "@/lib/evidence";
+import { verifyChain, type ChainReport, type EvidenceEvent } from "@/lib/evidence";
 import { isStatutoryFiling } from "@/lib/compliance";
 
 export const dynamic = "force-dynamic";
+
+/** Every row predates the signing mechanism: honest, and not the reader's problem to fix. */
+const UNSIGNED_NOTE =
+  "רשומות היומן נוצרו לפני שהופעלה החתימה הדיגיטלית, ולכן לא ניתן לאמת אותן בדרך זו. התיעוד עצמו מלא.";
+
+/**
+ * A broken chain is the one integrity result that must not be softened. It
+ * does not prove wrongdoing — a restore or a manual fix can break linkage too
+ * — so the wording says what was detected and what to do, not what it means.
+ */
+const BROKEN_NOTE =
+  "שרשרת החתימות של היומן אינה רציפה. משמעות הדבר שרשומה הוסרה, נוספה או שונה סדרה — יש לבדוק זאת לפני הסתמכות על המסמך הזה.";
+
+/** Some rows signed, some older than the signing mechanism. State both counts. */
+function partiallySignedNote(chain: ChainReport): string {
+  return (
+    `${chain.checked} רשומות חתומות ומקושרות זו לזו, ` +
+    `ומחיקה או שינוי בהן יישברו את השרשרת. ` +
+    `עוד ${chain.unverified} רשומות מוקדמות נוצרו לפני ` +
+    `שהחתימה הופעלה, ולכן הן מופיעות ביומן אך אינן נכללות באימות.`
+  );
+}
+
+/**
+ * What the integrity check actually proves, in the reader's language.
+ *
+ * There are THREE states, and the previous two-state version reported the
+ * first one whenever ANY row was signed — so an account whose earlier events
+ * predate the chain was told "every record is signed and linked", which was
+ * false for precisely those rows. An evidence pack that overstates its own
+ * completeness is worse than one that admits a gap, because whoever is
+ * checking it can discover the gap themselves.
+ */
+function integrityNote(chain: ChainReport): string {
+  if (!chain.verifiable) return UNSIGNED_NOTE;
+  if (!chain.linked) return BROKEN_NOTE;
+  if (chain.unverified > 0) return partiallySignedNote(chain);
+  return "כל רשומה חתומה ומקושרת לקודמתה. מחיקה, הוספה או שינוי סדר יישברו את השרשרת.";
+}
 
 /**
  * The evidence pack: a machine-readable, timestamped record of what was done,
@@ -73,9 +112,7 @@ export async function GET(request: Request) {
 
     integrity: {
       ...chain,
-      note: chain.verifiable
-        ? "כל רשומה חתומה ומקושרת לקודמתה. מחיקה, הוספה או שינוי סדר יישברו את השרשרת."
-        : "רשומות היומן טרם חתומות (יש להחיל את מיגרציה 014). התיעוד עצמו שלם.",
+      note: integrityNote(chain),
     },
 
     // what was completed, with the evidence captured at the time

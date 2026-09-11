@@ -158,11 +158,11 @@ begin
     id_column := case when t = 'businesses' then 'id' else 'business_id' end;
 
     execute format(
-      'drop policy if exists %L on public.%I',
+      'drop policy if exists %I on public.%I',
       t || ': member read', t
     );
     execute format(
-      'create policy %L on public.%I for select using (public.is_business_member(%I))',
+      'create policy %I on public.%I for select using (public.is_business_member(%I))',
       t || ': member read', t, id_column
     );
   end loop;
@@ -182,11 +182,11 @@ declare
 begin
   foreach t in array writable loop
     execute format(
-      'drop policy if exists %L on public.%I',
+      'drop policy if exists %I on public.%I',
       t || ': accountant insert', t
     );
     execute format(
-      'create policy %L on public.%I for insert with check (public.can_edit_business(business_id))',
+      'create policy %I on public.%I for insert with check (public.can_edit_business(business_id))',
       t || ': accountant insert', t
     );
 
@@ -195,11 +195,11 @@ begin
     -- must not be editable.
     if t <> 'task_events' then
       execute format(
-        'drop policy if exists %L on public.%I',
+        'drop policy if exists %I on public.%I',
         t || ': accountant update', t
       );
       execute format(
-        'create policy %L on public.%I for update using (public.can_edit_business(business_id)) with check (public.can_edit_business(business_id))',
+        'create policy %I on public.%I for update using (public.can_edit_business(business_id)) with check (public.can_edit_business(business_id))',
         t || ': accountant update', t
       );
     end if;

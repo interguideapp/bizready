@@ -436,13 +436,15 @@ body::after {
   will-change: transform, opacity;
 }
 .os-ambient::before {
-  width: 66vw; height: 66vw; top: -18vw; right: -14vw;
+  /* Capped: 66vw on a 2560px display is a 1690x1690 layer under a 70px blur,
+     which is an enormous amount of compositing for a background glow. */
+  width: min(66vw, 900px); height: min(66vw, 900px); top: -18vw; inset-inline-end: -14vw;
   background: radial-gradient(circle at 30% 30%, var(--aurora-from), transparent 62%);
   opacity: 0.32;
   animation: os-drift-a 22s ease-in-out infinite, os-breathe 14s ease-in-out infinite;
 }
 .os-ambient::after {
-  width: 60vw; height: 60vw; bottom: -22vw; left: -16vw;
+  width: min(60vw, 820px); height: min(60vw, 820px); bottom: -22vw; inset-inline-start: -16vw;
   background: radial-gradient(circle at 60% 60%, var(--aurora-to), transparent 62%);
   opacity: 0.28;
   animation: os-drift-b 26s ease-in-out infinite;
@@ -514,7 +516,12 @@ body::after {
 .os-card:hover::after { opacity: 1; }
 .os-card:active { transform: translateY(-1px) scale(0.995); }
 /* a slow living sheen so the glass feels alive even without a pointer */
-.os-card::before {
+/* The travelling sheen is opt-in via .os-sheen rather than applied to every
+   .os-card. It used to run for ever on each one, so the home screen carried
+   one live compositor layer per card on top of the two ambient blobs and the
+   dock halo — battery drain on the mid-range Android that is the likely device,
+   for an effect nobody notices on the twelfth card down. */
+.os-card.os-sheen::before {
   content: "";
   position: absolute;
   inset: 0;

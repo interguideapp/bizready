@@ -68,14 +68,50 @@ export interface HomeOSData {
   activity: { text: string; when: string; icon: string }[];
 }
 
-/** Live HH:MM clock + Hebrew date, derived from the viewer's own device time. */
+/**
+ * Live HH:MM clock + Hebrew date, from the viewer's own device time.
+ *
+ * This used to tick every 1000ms, re-rendering the entire home screen — the
+ * heaviest screen in the app, with four concurrent compositor animations on it
+ * — once a second. The display has no seconds, so 59 of every 60 of those
+ * renders changed nothing at all. On a mid-range Android that is pure battery
+ * drain for no visible effect.
+ *
+ * It now wakes on the minute boundary, and not at all while the tab is hidden.
+ */
 function useNow() {
   const [now, setNow] = useState<Date | null>(null);
+
   useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const tick = () => {
+      const d = new Date();
+      setNow(d);
+      // Align to the next minute rather than drifting on a fixed interval.
+      const msToNextMinute = 60_000 - (d.getSeconds() * 1000 + d.getMilliseconds());
+      timer = setTimeout(tick, msToNextMinute);
+    };
+
+    const start = () => {
+      if (timer) clearTimeout(timer);
+      tick();
+    };
+    const stop = () => {
+      if (timer) clearTimeout(timer);
+      timer = undefined;
+    };
+
+    const onVisibility = () => (document.hidden ? stop() : start());
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
+
   return now;
 }
 
@@ -115,13 +151,9 @@ export function HomeOS({ data }: { data: HomeOSData }) {
           className="flex min-h-[30vh] flex-col items-center justify-center text-center sm:min-h-[38vh] lg:min-h-[42vh]"
         >
           <p className="eyebrow mb-2">{greeting}, {data.name}</p>
-          <motion.div
-            animate={{ scale: [1, 1.012, 1], opacity: [0.96, 1, 0.96] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="tnum text-[clamp(3.6rem,2.5rem+7vw,6.5rem)] font-extralight leading-none tracking-tight text-ink"
-          >
+          <div className="tnum text-[clamp(3.6rem,2.5rem+7vw,6.5rem)] font-extralight leading-none tracking-tight text-ink">
             {time}
-          </motion.div>
+          </div>
           <p className="mt-2 text-sm text-ink-muted">{dateLine}</p>
 
           <div
@@ -157,7 +189,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
         {/* ===== complete the business file ===== */}
         {data.completeness.missing.length > 0 && (
           <FadeUp delay={0.08}>
-            <div className="os-card rounded-3xl p-5">
+            <div className="os-card os-sheen rounded-3xl p-5">
               <div className="mb-1 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <BadgeCheck className="h-4.5 w-4.5 text-brand-400" aria-hidden />

@@ -2,7 +2,12 @@ import Link from "next/link";
 import { FolderOpen, Sparkles } from "lucide-react";
 import { DocumentUpload } from "@/components/document-upload";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
-import { requireBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
+import {
+  DOCUMENTS_PAGE_SIZE,
+  requireBusiness,
+  getBusinessTasks,
+  getDocuments,
+} from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { DOC_GENERATORS } from "@/lib/documents/generators";
@@ -20,10 +25,14 @@ const DOC_CATEGORIES: { id: string; label: string }[] = [
 
 export default async function DocumentsPage() {
   const business = await requireBusiness();
-  const [documents, tasks] = await Promise.all([
+  const [fetched, tasks] = await Promise.all([
     getDocuments(business.id),
     getBusinessTasks(business.id),
   ]);
+  // getDocuments fetches one past the cap so we can tell "exactly the cap" from
+  // "more than the cap" and say which, rather than truncating in silence.
+  const truncated = fetched.length > DOCUMENTS_PAGE_SIZE;
+  const documents = truncated ? fetched.slice(0, DOCUMENTS_PAGE_SIZE) : fetched;
   const supabase = await createClient();
 
   // task association: options + a lookup for the current link
@@ -33,7 +42,7 @@ export default async function DocumentsPage() {
     .sort((a, b) => a.title.localeCompare(b.title, "he"));
   const taskTitleById = new Map(taskOptions.map((t) => [t.id, t.title]));
 
-  // signed URLs for viewing (1 hour)
+  // signed URLs for viewing
   const signedUrls = new Map<string, string>();
   if (documents.length > 0) {
     const { data } = await supabase.storage
@@ -68,6 +77,15 @@ export default async function DocumentsPage() {
         title="מסמכים"
         subtitle="תעודות, אישורים ופוליסות — מתויקים ובמרחק קליק"
       />
+
+      {/* Said out loud rather than silently dropped. A vault that quietly stops
+          showing your oldest certificates is worse than one that admits it. */}
+      {truncated && (
+        <p className="mb-4 rounded-xl border border-edge bg-surface-2 px-4 py-2.5 text-xs leading-relaxed text-ink-muted">
+          מוצגים {DOCUMENTS_PAGE_SIZE} המסמכים האחרונים. יש לכם יותר — הישנים
+          יותר שמורים ונכללים בייצוא הנתונים המלא בהגדרות.
+        </p>
+      )}
 
       {generators.length > 0 && (
         <section className="mb-6">

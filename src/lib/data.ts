@@ -118,13 +118,22 @@ export async function getBusinessTasks(
   return (critical("את המשימות", data, error) ?? []) as BusinessTask[];
 }
 
-export async function getDocuments(businessId: string): Promise<DocumentRow[]> {
+/** Newest first. Capped, because the archive grows without bound otherwise. */
+export const DOCUMENTS_PAGE_SIZE = 200;
+
+export async function getDocuments(
+  businessId: string,
+  limit = DOCUMENTS_PAGE_SIZE
+): Promise<DocumentRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
     .select("*")
     .eq("business_id", businessId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // Fetch one extra so the caller can tell "exactly the limit" from "more
+    // than the limit" and say so, instead of silently truncating.
+    .limit(limit + 1);
   return (critical("את המסמכים", data, error) ?? []) as DocumentRow[];
 }
 

@@ -20,6 +20,11 @@ export function DocumentRowItem({
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // The task list is only materialised into <option> elements once the user
+  // actually reaches for this select. Every row used to render all 70 options
+  // eagerly, so a 100-document archive built 7,000 option nodes on load — for a
+  // control most people never touch.
+  const [optionsReady, setOptionsReady] = useState(false);
 
   function remove() {
     // Was window.confirm: the browser's own LTR dialog with English OS buttons,
@@ -28,6 +33,8 @@ export function DocumentRowItem({
     setConfirmOpen(false);
     startTransition(() => deleteDocument(doc.id));
   }
+
+  const currentTask = doc.task_id ? tasks.find((t) => t.id === doc.task_id) : undefined;
 
   function associate(taskId: string) {
     startTransition(async () => {
@@ -56,14 +63,27 @@ export function DocumentRowItem({
         <select
           value={doc.task_id ?? ""}
           onChange={(e) => associate(e.target.value)}
+          onMouseDown={() => setOptionsReady(true)}
+          onFocus={() => setOptionsReady(true)}
+          onTouchStart={() => setOptionsReady(true)}
           disabled={pending}
           aria-label="שיוך למשימה"
-          className="max-w-[9rem] rounded-lg border border-edge bg-card py-1 ps-6 pe-2 text-xs text-ink-soft outline-none transition focus:border-brand-500"
+          className="min-h-11 max-w-[9rem] rounded-lg border border-edge bg-card py-1 ps-6 pe-2 text-xs text-ink-soft outline-none transition focus:border-brand-500"
         >
           <option value="">ללא שיוך</option>
-          {tasks.map((t) => (
-            <option key={t.id} value={t.id}>{t.title}</option>
-          ))}
+          {optionsReady ? (
+            tasks.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title}
+              </option>
+            ))
+          ) : (
+            // Until then, only the currently selected option needs to exist —
+            // otherwise the control would render blank for an assigned document.
+            currentTask && (
+              <option value={currentTask.id}>{currentTask.title}</option>
+            )
+          )}
         </select>
       </span>
 

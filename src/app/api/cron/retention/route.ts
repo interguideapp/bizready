@@ -3,6 +3,7 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { todayInIsrael } from "@/lib/dates";
 import { SYNCED_DATA_RETENTION_DAYS, retentionCutoff } from "@/lib/privacy";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { beginCronRun, endCronRun } from "@/lib/cron-run";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
+  const run = await beginCronRun(supabase, "retention");
   const today = todayInIsrael();
   const cutoff = retentionCutoff(today);
 
@@ -76,12 +78,16 @@ export async function GET(request: Request) {
   if (pruneError) failures.push(`rate_limits: ${pruneError.message}`);
   else removed["rate_limits"] = Number(pruned ?? 0);
 
-  return NextResponse.json({
+  const summary = {
     ok: failures.length === 0,
     today,
     cutoff,
     retentionDays: SYNCED_DATA_RETENTION_DAYS,
     removed,
     failures,
-  });
+  };
+  // A run where some deletions failed is not a healthy run: retention is our
+  // own legal obligation, so partial success is recorded as failure.
+  await endCronRun(supabase, run, summary.ok, summary);
+  return NextResponse.json(summary);
 }

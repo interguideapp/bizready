@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Command, Inbox, PhoneCall } from "lucide-react";
+import { Activity, Command, Inbox, PhoneCall } from "lucide-react";
 import { CATEGORIES, TASK_TEMPLATES } from "@/lib/content";
 import { getAllOffers, getPartnerApplications, getPartnerLeads, isAdmin } from "@/lib/data";
 import { ApplicationRow } from "@/components/admin/application-row";
@@ -9,6 +9,8 @@ import { PublishChange } from "@/components/admin/publish-change";
 import { ReviewQueuePanel } from "@/components/admin/review-queue-panel";
 import { buildReviewQueue, januaryFiguresDue } from "@/lib/content/review-queue";
 import { todayInIsrael } from "@/lib/dates";
+import { allSweepHealth, type SweepJob } from "@/lib/heartbeat";
+import { SweepHealthPanel } from "@/components/admin/sweep-health-panel";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminPage() {
@@ -37,6 +39,19 @@ export default async function AdminPage() {
     url: row.url as string,
     changedAt: row.changed_at as string,
   }));
+  // Is the scheduled work running? Read through the security-definer summary
+  // rather than the table, so this page needs no extra privilege and never
+  // touches the error text in `detail`.
+  const { data: sweeps } = await supabase.rpc("sweep_health");
+  const sweepHealthRows = allSweepHealth(
+    (sweeps ?? []).map((r: { job: string; last_ok_at: string | null; last_failed_at: string | null }) => ({
+      job: r.job as SweepJob,
+      lastOkAt: r.last_ok_at,
+      lastFailedAt: r.last_failed_at,
+    })),
+    new Date().toISOString()
+  );
+
   const templateIds = TASK_TEMPLATES.map((t) => t.id);
   const categoryIds = CATEGORIES.map((c) => c.id);
 
@@ -67,6 +82,14 @@ export default async function AdminPage() {
           the watcher says a page changed, someone reads it, and then writes
           what it means for users. */}
       <PublishChange templateIds={templateIds} />
+
+      <section className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-section text-ink">
+          <Activity className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+          עבודות מתוזמנות
+        </h2>
+        <SweepHealthPanel health={sweepHealthRows} />
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-section text-ink">

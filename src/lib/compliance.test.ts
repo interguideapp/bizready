@@ -7,6 +7,7 @@ import {
   recommendedDeadline,
   isStatutoryFiling,
   filingsBlockedByDismissal,
+  filingsAwaitingPrerequisite,
   REMINDER_WINDOWS_PRO,
   type ComplianceTask,
 } from "./compliance";
@@ -317,5 +318,83 @@ describe("filingsBlockedByDismissal", () => {
       TEMPLATES_BY_ID
     );
     expect(blocked).toEqual([]);
+  });
+});
+
+describe("duties that have not started yet are named, not hidden in silence", () => {
+  /**
+   * computeUpcomingObligations hides a filing whose prerequisite is unfinished,
+   * and that is correct — there is no VAT duty before the file is open, and
+   * inventing one is what made the home screen report debts nobody owed.
+   *
+   * But an empty board reading "אין חובות עתידיות כרגע" tells a new עוסק they
+   * have no obligations, when the truth is that theirs begin the moment they
+   * finish one task. This is the sentence that has to exist.
+   */
+  const templates = TEMPLATES_BY_ID;
+
+  it("names a VAT duty waiting on an unopened file, and what unlocks it", () => {
+    const pending = filingsAwaitingPrerequisite(
+      [
+        { template_id: "open-vat-file", status: "todo", is_relevant: true },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true },
+      ],
+      templates
+    );
+    expect(pending).toHaveLength(1);
+    expect(pending[0].templateId).toBe("vat-reporting");
+    expect(pending[0].awaiting).toBe("open-vat-file");
+    expect(pending[0].awaitingTitle).toContain("מע");
+  });
+
+  it("says nothing once the prerequisite is done — the duty is real by then", () => {
+    const pending = filingsAwaitingPrerequisite(
+      [
+        { template_id: "open-vat-file", status: "done", is_relevant: true },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true },
+      ],
+      templates
+    );
+    expect(pending).toEqual([]);
+  });
+
+  it("leaves a dismissed prerequisite to the dismissal message", () => {
+    // Two different stories: "finish this and your duty starts" versus "your
+    // own choice is holding a duty back". Mixing them would say both at once.
+    const pending = filingsAwaitingPrerequisite(
+      [
+        {
+          template_id: "open-vat-file",
+          status: "not_relevant",
+          is_relevant: false,
+          dismissal: "not_applicable",
+        },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true },
+      ],
+      templates
+    );
+    expect(pending).toEqual([]);
+  });
+
+  it("does not nag about a filing already completed", () => {
+    const pending = filingsAwaitingPrerequisite(
+      [
+        { template_id: "open-vat-file", status: "todo", is_relevant: true },
+        { template_id: "vat-reporting", status: "done", is_relevant: true },
+      ],
+      templates
+    );
+    expect(pending).toEqual([]);
+  });
+
+  it("treats a prerequisite absent from the plan as satisfied, not pending", () => {
+    // A company opens its files as a legal person, so open-vat-file is simply
+    // not in its plan. That is the alternative-prerequisite convention, and
+    // reading it as a block would invent a blocker for every company.
+    const pending = filingsAwaitingPrerequisite(
+      [{ template_id: "vat-reporting", status: "todo", is_relevant: true }],
+      templates
+    );
+    expect(pending).toEqual([]);
   });
 });

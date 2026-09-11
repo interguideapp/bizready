@@ -528,6 +528,75 @@ export interface BlockedFiling {
   dismissal: Dismissal;
 }
 
+export interface PendingFiling {
+  templateId: string;
+  /** The setup task that has to be finished before this duty begins. */
+  awaiting: string;
+  /** That task's title, for a sentence the user can act on. */
+  awaitingTitle: string;
+}
+
+/**
+ * Statutory duties that exist for this business but have not started yet,
+ * because the setup task that unlocks them is unfinished.
+ *
+ * computeUpcomingObligations deliberately hides these: you genuinely have no
+ * VAT filing duty before the VAT file is open, and inventing a deadline for one
+ * was the defect that made the home screen report debts nobody owed.
+ *
+ * But hiding them with no explanation produces a different false statement. A
+ * new עוסק מורשה who has not opened their file sees an empty board reading
+ * "אין חובות עתידיות כרגע", which reads as "you have no obligations" when the
+ * truth is "your obligations start the moment you finish one task". That is the
+ * single most consequential thing the product could fail to say.
+ *
+ * So this names them WITHOUT a date — there is no honest date to give — and the
+ * surface explains what unlocks each one.
+ *
+ * A filing blocked by a DISMISSAL is not here; that is
+ * filingsBlockedByDismissal, which carries the different message that a user's
+ * own choice is holding a duty back.
+ */
+export function filingsAwaitingPrerequisite(
+  tasks: ComplianceTask[],
+  templates: Map<string, TaskTemplate>
+): PendingFiling[] {
+  const taskById = new Map(tasks.map((t) => [t.template_id, t] as const));
+  const out: PendingFiling[] = [];
+
+  for (const task of tasks) {
+    if (!task.is_relevant) continue;
+    if (!isStatutoryFiling(task.template_id)) continue;
+    // A duty the user has already filed, or dismissed, is not "waiting to
+    // start" — it has its own state and its own message elsewhere.
+    if (task.status === "done" || !task.is_relevant) continue;
+    const template = templates.get(task.template_id);
+    if (!template) continue;
+
+    for (const dep of template.depends_on) {
+      const dt = taskById.get(dep);
+      // Absent from the plan is the alternative-prerequisite convention (a
+      // company opens files as a legal person, not as an עוסק), not a block.
+      if (!dt) continue;
+      // A dismissed prerequisite is the other function's story.
+      if (!dt.is_relevant) continue;
+      const met = satisfiesDependency(
+        { status: dt.status as TaskStatus, is_relevant: dt.is_relevant, dismissal: dt.dismissal },
+        { statutory: true }
+      );
+      if (met) continue;
+      out.push({
+        templateId: task.template_id,
+        awaiting: dep,
+        awaitingTitle: templates.get(dep)?.title ?? dep,
+      });
+      break; // one explanation per duty is enough to act on
+    }
+  }
+
+  return out;
+}
+
 export function filingsBlockedByDismissal(
   tasks: ComplianceTask[],
   templates: Map<string, TaskTemplate>

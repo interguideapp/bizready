@@ -4,6 +4,7 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { executeBatch } from "@/lib/integrations/execute";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { beginCronRun, endCronRun } from "@/lib/cron-run";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
+  const run = await beginCronRun(supabase, "sync");
   const { data: connections, error } = await supabase
     .from("integration_connections")
     .select("*")
@@ -78,5 +80,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, synced, failed });
+  const summary = { ok: true, synced, failed };
+  await endCronRun(supabase, run, true, summary);
+  return NextResponse.json(summary);
 }

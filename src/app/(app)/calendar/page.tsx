@@ -1,9 +1,11 @@
+import Link from "next/link";
 import {
   AlertTriangle,
   CalendarClock,
   ExternalLink,
   FileClock,
   HelpCircle,
+  Hourglass,
   Landmark,
   Receipt,
   RefreshCw,
@@ -16,8 +18,10 @@ import { TEMPLATES_BY_ID } from "@/lib/content";
 import { requireBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
 import {
   computeUpcomingObligations,
+  filingsAwaitingPrerequisite,
   type Obligation,
   type ObligationKind,
+  type PendingFiling,
 } from "@/lib/compliance";
 import { isPro } from "@/lib/subscription";
 import type { OnboardingAnswers } from "@/lib/types";
@@ -90,9 +94,44 @@ export default async function CalendarPage() {
     }
   );
 
-  // group by month for the timeline
+  // OVERDUE COMES OUT OF THE TIMELINE.
+  //
+  // The engine keeps 60 days of overdue history, and grouping everything by
+  // month buried a late filing under last month's heading, styled like any
+  // other row, at the top of a long scroll. The one thing on this page that
+  // costs money every day it is ignored was the easiest thing to miss.
+  const overdue = obligations.filter((o) => o.daysUntil < 0);
+  const upcoming = obligations.filter((o) => o.daysUntil >= 0);
+
+  // Statutory duties this business has but that have not started, because the
+  // setup task unlocking them is unfinished. Without these the board can show
+  // nothing at all to a new עוסק and read as "you have no obligations".
+  const pendingFilings = filingsAwaitingPrerequisite(
+    tasks.map((t) => ({
+      template_id: t.template_id,
+      status: t.status,
+      is_relevant: t.is_relevant,
+      dismissal: t.dismissal,
+      completion_data: t.completion_data,
+    })),
+    TEMPLATES_BY_ID
+  );
+
+  // The dates the user set for themselves. Shown as their own thing rather than
+  // mixed into the statutory rows, because a target you chose and a date the
+  // law fixed are not the same kind of fact.
+  const personalTargets = tasks
+    .filter((t) => t.is_relevant && t.status !== "done" && t.personal_due_date)
+    .map((t) => ({
+      templateId: t.template_id,
+      title: TEMPLATES_BY_ID.get(t.template_id)?.title ?? t.template_id,
+      date: t.personal_due_date as string,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // group the FUTURE by month for the timeline
   const byMonth = new Map<string, Obligation[]>();
-  for (const ob of obligations) {
+  for (const ob of upcoming) {
     const d = new Date(ob.dueDate + "T00:00:00Z");
     const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
     const list = byMonth.get(key) ?? [];
@@ -108,7 +147,7 @@ export default async function CalendarPage() {
   const visibleCount = visibleMonths.reduce((n, [, list]) => n + list.length, 0);
   // The old copy advertised obligations.length — the TOTAL, including the month
   // the user could already see.
-  const hiddenCount = obligations.length - visibleCount;
+  const hiddenCount = upcoming.length - visibleCount;
   const hiddenMonthCount = allMonths.length - visibleMonths.length;
 
   return (
@@ -124,12 +163,94 @@ export default async function CalendarPage() {
         </div>
       )}
 
-      {obligations.length === 0 ? (
+      {/* Late first, never behind the paywall: being late is not a premium
+          feature, and this is the section the whole page exists for. */}
+      {overdue.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-status-overdue/40 bg-status-overdue/5 p-4">
+          <h2 className="mb-1 flex items-center gap-2 text-section text-status-overdue">
+            <AlertTriangle className="h-4.5 w-4.5" aria-hidden />
+            {overdue.length === 1 ? "חובה אחת עברה את המועד" : `${overdue.length} חובות עברו את המועד`}
+          </h2>
+          <p className="mb-3 text-xs leading-relaxed text-ink-soft">
+            איחור בדיווח או בתשלום צובר ריבית והצמדה מהיום הראשון. כדאי לטפל
+            בזה לפני כל השאר.
+          </p>
+          <Card className="divide-y divide-edge-soft">
+            {overdue.map((ob) => (
+              <ObligationRow key={ob.id} ob={ob} />
+            ))}
+          </Card>
+        </div>
+      )}
+
+      {/* Duties that exist but have not begun. Named without a date, because
+          there is no honest date to give until the prerequisite is done. */}
+      {pendingFilings.length > 0 && (
+        <Card className="mb-5 p-4">
+          <h2 className="mb-1 flex items-center gap-2 text-section text-ink">
+            <Hourglass className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+            חובות שיתחילו בהמשך
+          </h2>
+          <p className="mb-3 text-xs leading-relaxed text-ink-soft">
+            אלה חובות חוקיות שחלות על העסק שלכם, אבל טרם התחילו — ולכן אין להן
+            עדיין תאריך. ברגע שתסיימו את המשימה שפותחת אותן, הן יופיעו כאן עם
+            מועד מדויק.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {pendingFilings.map((f: PendingFiling) => (
+              <li key={f.templateId} className="text-sm">
+                <Link
+                  href={`/tasks/${f.templateId}?from=calendar`}
+                  className="font-medium text-ink hover:text-brand-strong"
+                >
+                  {TEMPLATES_BY_ID.get(f.templateId)?.title ?? f.templateId}
+                </Link>
+                <span className="text-ink-muted">
+                  {" — ממתין ל"}
+                  <Link
+                    href={`/tasks/${f.awaiting}?from=calendar`}
+                    className="font-medium text-brand-strong hover:underline"
+                  >
+                    {f.awaitingTitle}
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* The user's own dates, kept visibly separate from the law's. */}
+      {personalTargets.length > 0 && (
+        <Card className="mb-5 p-4">
+          <h2 className="mb-2 flex items-center gap-2 text-section text-ink">
+            <CalendarClock className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+            היעדים שקבעתם לעצמכם
+          </h2>
+          <ul className="flex flex-col gap-1.5">
+            {personalTargets.map((t) => (
+              <li key={t.templateId} className="flex items-baseline justify-between gap-3 text-sm">
+                <Link
+                  href={`/tasks/${t.templateId}?from=calendar`}
+                  className="truncate font-medium text-ink hover:text-brand-strong"
+                >
+                  {t.title}
+                </Link>
+                <span className="tnum shrink-0 text-xs text-ink-muted">
+                  {new Date(t.date + "T00:00:00").toLocaleDateString("he-IL")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {obligations.length === 0 && pendingFilings.length === 0 && personalTargets.length === 0 ? (
         <Card>
           <EmptyState
             icon={<CalendarClock className="h-6 w-6" aria-hidden />}
-            title="אין חובות עתידיות כרגע"
-            subtitle="ברגע שתהיה משימה מחזורית, פוליסה עם תאריך חידוש או מסמך עם תפוגה — הכל יופיע כאן כציר זמן"
+            title="אין כרגע חובה עם תאריך"
+            subtitle="בדקנו את כל החובות שחלות על העסק שלכם — אין כרגע אחת עם מועד קרוב, ואין אחת שממתינה להתחיל. ברגע שתהיה משימה מחזורית, פוליסה עם חידוש או מסמך עם תפוגה — הכל יופיע כאן לפי תאריך."
           />
         </Card>
       ) : (

@@ -6,6 +6,7 @@ import { FILING_RULES } from "@/lib/content/filing-rules";
 import { legalBasisOf } from "@/lib/content/legal-basis";
 import { compareSource, type SourceFingerprint } from "@/lib/content/source-watch";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { beginCronRun, endCronRun } from "@/lib/cron-run";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
+  const run = await beginCronRun(supabase, "source-watch");
   const urls = watchedUrls();
 
   const { data: existing } = await supabase
@@ -125,7 +127,7 @@ export async function GET(request: Request) {
     if (error) unavailable.push(`${url} (store failed: ${error.message})`);
   }
 
-  return NextResponse.json({
+  const summary = {
     // Reported honestly: a run where half the fetches failed is not a clean run.
     ok: unavailable.length === 0,
     watched: urls.length,
@@ -136,5 +138,7 @@ export async function GET(request: Request) {
     note:
       "A changed source means a human must read it. Content is never updated " +
       "from this signal.",
-  });
+  };
+  await endCronRun(supabase, run, summary.ok, summary);
+  return NextResponse.json(summary);
 }

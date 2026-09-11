@@ -11,6 +11,7 @@ import {
 import { pushConfigured, sendPush } from "@/lib/notify/push";
 import { computeReminders, type ReminderTask } from "@/lib/reminders";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { beginCronRun, endCronRun } from "@/lib/cron-run";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -25,6 +26,9 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
+  // Heartbeat: this sweep is what sends every reminder, so its silence has to
+  // be observable. See lib/heartbeat.ts.
+  const run = await beginCronRun(supabase, "reminders");
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bizready.app";
   const today = new Date();
 
@@ -34,7 +38,10 @@ export async function GET(request: Request) {
       "id, owner_id, name, entity_type, onboarding_answers, notify_email, notify_whatsapp, whatsapp_phone, notify_push, subscription_tier, subscription_until"
     )
     .not("onboarding_completed_at", "is", null);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await endCronRun(supabase, run, false, { error: error.message });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   let notificationsCreated = 0;
   let recurringReset = 0;
@@ -162,7 +169,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
+  const summary = {
     ok: true,
     businesses: businesses?.length ?? 0,
     notificationsCreated,
@@ -170,7 +177,9 @@ export async function GET(request: Request) {
     emailsSent,
     whatsappSent,
     pushSent,
-  });
+  };
+  await endCronRun(supabase, run, true, summary);
+  return NextResponse.json(summary);
 }
 
 type Admin = ReturnType<typeof createAdminClient>;

@@ -54,6 +54,94 @@ begin
   then raise exception 'businesses.whatsapp_phone is missing'; end if;
 end $$;
 
+-- 014: evidence integrity. The hash chain is what makes the trail tamper-evident,
+-- so a migration set that lost the trigger would ship an audit log that only
+-- looks append-only.
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                 where table_name='task_events' and column_name='hash')
+  then raise exception 'task_events.hash is missing — the evidence chain is not installed'; end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_name='task_events' and column_name='prev_hash')
+  then raise exception 'task_events.prev_hash is missing'; end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_name='task_events' and column_name='actor_id')
+  then raise exception 'task_events.actor_id is missing — events would be unattributed'; end if;
+  if not exists (select 1 from pg_trigger where tgname = 'task_events_chain_tr')
+  then raise exception 'the task_events hash-chain trigger is missing'; end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_name='task_events' and column_name='seq')
+  then raise exception 'task_events.seq is missing — the chain would have no unambiguous order'; end if;
+end $$;
+
+-- 015: the dismissal split. Without these, task-status.ts reads every dismissal
+-- as legacy/unclarified and no user can ever record "handled externally".
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                 where table_name='business_tasks' and column_name='dismissal')
+  then raise exception 'business_tasks.dismissal is missing'; end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'business_tasks_dismissal_valid')
+  then raise exception 'the dismissal value check constraint is missing'; end if;
+end $$;
+
+-- 016: no foreign key may point at the unused task_templates mirror. One did,
+-- and because that mirror had drifted to 62 rows against the 70 the code ships,
+-- it rejected the bulk plan insert for every company and partnership — breaking
+-- onboarding for two of the four entity types.
+do $$
+declare offenders text := '';
+begin
+  select coalesce(string_agg(conname, ' '), '') into offenders
+  from pg_constraint where confrelid = 'public.task_templates'::regclass;
+  if offenders <> '' then
+    raise exception 'foreign keys still point at the unused task_templates mirror:%', offenders;
+  end if;
+end $$;
+
+-- The chain must actually chain. Asserting the columns exist is not enough: a
+-- trigger that computed a constant, or looked up the wrong predecessor, would
+-- pass every structural check above and prove nothing in production.
+--
+-- Both events go in inside ONE transaction on purpose. They therefore share
+-- created_at exactly, which is precisely the case that used to fall back to
+-- ordering by a random uuid.
+do $$
+declare usr uuid; biz uuid; tsk uuid; h1 text; h2 text; p2 text;
+begin
+  insert into auth.users default values returning id into usr;
+  insert into public.profiles (id) values (usr);
+
+  insert into public.businesses (owner_id, name, entity_type)
+  values (usr, 'ci-chain-probe', 'osek_patur')
+  returning id into biz;
+
+  insert into public.business_tasks (business_id, template_id, status)
+  values (biz, 'open-vat-file', 'todo') returning id into tsk;
+
+  insert into public.task_events (business_id, task_id, template_id, kind)
+  values (biz, tsk, 'open-vat-file', 'status_change') returning hash into h1;
+
+  insert into public.task_events (business_id, task_id, template_id, kind)
+  values (biz, tsk, 'open-vat-file', 'status_change')
+  returning hash, prev_hash into h2, p2;
+
+  if h1 is null or h2 is null then
+    raise exception 'the chain trigger did not compute a hash';
+  end if;
+  if p2 is distinct from h1 then
+    raise exception 'chain broken: prev_hash % does not match the previous hash %', p2, h1;
+  end if;
+  if h1 = h2 then
+    raise exception 'two events hashed identically — the chain proves nothing';
+  end if;
+
+  -- clean up: cascades through businesses -> tasks -> events
+  delete from auth.users where id = usr;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

@@ -18,5 +18,12 @@ export async function GET(request: Request) {
    </body>`
   );
 
-  return new NextResponse(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+  // PII (tax file numbers, bank account): never cached, never indexed
+  return new NextResponse(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store, max-age=0",
+      "X-Robots-Tag": "noindex, nofollow",
+    },
+  });
 }

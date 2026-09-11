@@ -3,6 +3,7 @@ import {
   Banknote,
   CalendarClock,
   Download,
+  FileJson,
   FileText,
   IdCard,
   ShoppingBag,
@@ -16,17 +17,28 @@ import type { PassportData } from "@/lib/documents/passport";
 export function PassportView({ d }: { d: PassportData }) {
   return (
     <div className="pb-24 md:pb-8">
-      <div className="mb-5 flex items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <PageTitle eyebrow="הפרופיל הרשמי" title="תיק העסק" subtitle="כל העסק במקום אחד — לבנק, לרו״ח, ולשקט הנפשי שלכם" />
-        <a
-          href="/api/passport/print"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-e-brand transition hover:from-brand-500 hover:to-brand-400"
-        >
-          <Download className="h-4 w-4" aria-hidden />
-          הורדה כ-PDF
-        </a>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <a
+            href="/api/passport/print"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-e-brand transition hover:from-brand-500 hover:to-brand-400"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            פרופיל עסקי (PDF)
+          </a>
+          {/* The verifiable record — what was done, when, and with what evidence.
+              Distinct from the profile above, which describes the business. */}
+          <a
+            href="/api/evidence/export"
+            className="inline-flex items-center gap-2 rounded-xl border border-edge-strong px-4 py-2.5 text-sm font-semibold text-ink-soft transition hover:border-brand-edge hover:text-ink"
+          >
+            <FileJson className="h-4 w-4" aria-hidden />
+            תיק הוכחות
+          </a>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">

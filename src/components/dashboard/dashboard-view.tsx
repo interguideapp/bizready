@@ -99,13 +99,13 @@ export function DashboardView({ data }: { data: DashboardData }) {
               <span className={`eyebrow ${risk ? "text-status-overdue" : ""}`}>{risk ? "דורש טיפול" : "הדבר האחד עכשיו"}</span>
               <Link
                 href={link(data.oneThing.templateId)}
-                className="inline-flex items-center gap-2.5 rounded-full px-6 py-3.5 text-[17px] font-bold text-[#0a0813] shadow-e-brand transition hover:opacity-95"
+                className="inline-flex items-center gap-2.5 rounded-full px-6 py-3.5 text-lg font-bold text-[#0a0813] shadow-e-brand transition hover:opacity-95"
                 style={{ background: risk ? "linear-gradient(100deg,#fb7185,#f43f5e)" : AURORA, color: risk ? "#fff" : "#0a0813" }}
               >
                 {risk ? "לטפל עכשיו" : data.oneThing.title}
                 <ArrowLeft className="h-[18px] w-[18px]" aria-hidden />
               </Link>
-              <span className="text-[13px] text-ink-muted">{data.oneThing.meta}</span>
+              <span className="text-sm text-ink-muted">{data.oneThing.meta}</span>
             </div>
           ) : (
             <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-status-done-bg px-4 py-2.5 text-sm font-bold text-status-done">
@@ -126,7 +126,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
             <Reactor score={data.scoreOverall} />
             <div className="relative min-w-0 flex-1">
               <p className="eyebrow">רמה {data.level.level} · מתוך 5</p>
-              <p className="mt-1 text-[17px] font-bold leading-tight text-gradient">{data.level.title}</p>
+              <p className="mt-1 text-lg font-bold leading-tight text-gradient">{data.level.title}</p>
               <div className="mt-3.5">
                 <div className="mb-1.5 flex items-center justify-between text-xs">
                   <span className="text-ink-muted">{data.level.nextTitle ? "לרמה הבאה" : "הרמה הגבוהה ביותר"}</span>
@@ -160,7 +160,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               {data.week.map((w) => (
-                <Link key={w.templateId + w.daysUntil} href={link(w.templateId)} className="inline-flex items-center gap-2 rounded-full border border-edge-soft bg-surface/40 px-3 py-1.5 text-[13px] transition hover:border-brand-edge">
+                <Link key={w.templateId + w.daysUntil} href={link(w.templateId)} className="inline-flex items-center gap-2 rounded-full border border-edge-soft bg-surface/40 px-3 py-1.5 text-sm transition hover:border-brand-edge">
                   <CalendarClock className="h-3.5 w-3.5 text-brand-400" aria-hidden />
                   <span className="text-ink-soft">{w.title}</span>
                   <span className={`tnum text-xs font-semibold ${w.daysUntil <= 2 ? "text-status-progress" : "text-ink-muted"}`}>{daysPhrase(w.daysUntil)}</span>
@@ -239,7 +239,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
                     {done ? <Check className="h-6 w-6" aria-hidden /> : <span className="tnum text-sm font-bold">{pct}%</span>}
                   </span>
                   <div className="text-center">
-                    <div className={`text-[13.5px] font-bold ${current ? "text-brand-strong" : done ? "text-ink" : "text-ink-muted"}`}>{s.title}</div>
+                    <div className={`text-sm font-bold ${current ? "text-brand-strong" : done ? "text-ink" : "text-ink-muted"}`}>{s.title}</div>
                     <div className="tnum text-xs text-ink-muted">{s.done}/{s.total}</div>
                   </div>
                 </div>
@@ -273,7 +273,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
             )}
             <Link
               href="/settings"
-              className="mt-5 flex items-center gap-2.5 border-t border-edge-soft pt-4 text-[13px] text-ink-muted transition hover:text-brand-strong"
+              className="mt-5 flex items-center gap-2.5 border-t border-edge-soft pt-4 text-sm text-ink-muted transition hover:text-brand-strong"
             >
               <SlidersHorizontal className="h-4 w-4 text-brand-400" aria-hidden />
               <span>השתנה משהו בעסק? <span className="font-semibold text-ink-soft">כיילו את התכנית</span> — נראה לכם מה ישתנה לפני שמאשרים</span>
@@ -351,7 +351,7 @@ function Reactor({ score }: { score: number }) {
         <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#reactor)" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - pct) }} transition={spring} style={{ filter: "drop-shadow(0 0 11px var(--accent-glow))" }} />
       </svg>
       <span className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="tnum text-[34px] font-bold leading-none text-ink">{Math.round(score)}</span>
+        <span className="tnum text-4xl font-bold leading-none text-ink">{Math.round(score)}</span>
         <span className="eyebrow mt-1.5">מוכנות</span>
       </span>
     </span>

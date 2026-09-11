@@ -177,8 +177,13 @@
   --font-sans: var(--font-heebo), "Heebo", system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --radius-card: 1.15rem;
-  --radius-field: 0.75rem;
+  /* Four radii, and only four. There were nine in the Tailwind classes plus
+     six more in raw CSS, --radius-field was declared and read by nothing, and
+     .os-card hardcoded 26px beside a --radius-card of 1.15rem — two answers to
+     "how round is a card". */
+  --radius-field: 0.75rem; /* inputs, small controls */
+  --radius-card: 1.15rem; /* panels, cards */
+  --radius-shell: 1.625rem; /* the large OS cards (was a bare 26px) */
 
   --shadow-e1: var(--elev-1);
   --shadow-e2: var(--elev-2);
@@ -467,7 +472,7 @@ body::after {
    specular highlight that follows the pointer (--mx/--my set per card in JS). */
 .os-card {
   position: relative;
-  border-radius: 26px;
+  border-radius: var(--radius-shell);
   isolation: isolate;
   overflow: hidden;
   /* Opaque base under the glass. The white gradient above peaks at 0.12, which
@@ -588,5 +593,8 @@ body::after {
 :focus-visible {
   outline: 2px solid color-mix(in srgb, var(--brand-strong) 70%, transparent);
   outline-offset: 2px;
-  border-radius: 6px;
+  /* inherit, not 6px: the hardcoded radius drew a near-rectangle around every
+     one of the 59 rounded-full controls in the app. The ring should trace the
+     shape it is focusing. */
+  border-radius: inherit;
 }

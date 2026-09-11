@@ -149,6 +149,29 @@ describe("no text is rendered below the legible floor", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("no arbitrary font size at all — the scale is the scale", () => {
+    // There were 11 arbitrary sizes across 45 occurrences, six of them inside a
+    // 3.5px band, including text-[10.5px], text-[11.5px] and text-[13.5px].
+    // Half-pixel values are the signature of eyeballing rather than a scale,
+    // and a type scale with 22 steps is not a scale.
+    const offenders: string[] = [];
+    for (const file of walk(SRC_DIR)) {
+      const src = fs.readFileSync(file, "utf8");
+      for (const m of src.matchAll(/text-\[[\d.]+(?:px|rem)\]/g)) {
+        offenders.push(`${path.relative(process.cwd(), file)}: ${m[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("the focus ring traces the shape it focuses", () => {
+    // :focus-visible hardcoded border-radius: 6px, so on all 59 rounded-full
+    // controls the ring was a near-rectangle around a circle.
+    const focusBlock = CSS.slice(CSS.indexOf(":focus-visible"));
+    const block = focusBlock.slice(0, focusBlock.indexOf("}"));
+    expect(block).toContain("border-radius: inherit");
+  });
+
   it(`no CSS rule sets a font-size under ${MIN_TEXT_PX}px`, () => {
     // .eyebrow hardcoded 0.66rem (10.56px) and was used 25 times, six of them
     // inside .os-card.

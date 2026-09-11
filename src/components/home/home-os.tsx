@@ -144,7 +144,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="eyebrow">הצעד הבא</p>
-                  <p className="truncate text-[15px] font-bold text-ink">{data.oneThing.title}</p>
+                  <p className="truncate text-base font-bold text-ink">{data.oneThing.title}</p>
                 </div>
                 <ArrowLeft className="h-5 w-5 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />
               </div>
@@ -174,7 +174,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                   <Link
                     key={i}
                     href={m.href}
-                    className="group inline-flex items-center gap-1.5 rounded-full border border-edge-soft bg-surface/50 px-3 py-1.5 text-[13px] text-ink-soft transition hover:border-brand-edge hover:text-ink"
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-edge-soft bg-surface/50 px-3 py-1.5 text-sm text-ink-soft transition hover:border-brand-edge hover:text-ink"
                   >
                     <Circle className="h-3.5 w-3.5 text-ink-faint transition group-hover:text-brand-400" aria-hidden />
                     {m.label}

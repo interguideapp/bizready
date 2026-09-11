@@ -4,6 +4,7 @@ import { seal, open, sealingAvailable } from "@/lib/crypto-box";
 import { sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
 
 import { todayInIsrael } from "@/lib/dates";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
@@ -18,6 +19,7 @@ import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status";
 import { deleteAccountCompletely } from "@/lib/privacy";
+import { capLength, check } from "@/lib/rate-limit";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
@@ -857,25 +859,60 @@ export async function submitPartnerApplication(input: {
   tier: "free" | "featured";
   website?: string;
   message?: string;
+  /**
+   * Honeypot. A real person never fills this in because it is not rendered
+   * visibly; a script that fills every field in the form does.
+   */
+  confirmUrl?: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const businessName = input.businessName?.trim();
-  const contactName = input.contactName?.trim();
-  const email = input.email?.trim();
+  // A public, unauthenticated write. It had no rate limit, no length caps and
+  // no bot trap, so anyone could flood the admin inbox and make us the
+  // custodian of arbitrary third-party personal data.
+  if (input.confirmUrl) {
+    // Report success to the bot rather than telling it what tripped.
+    return { ok: true };
+  }
+
+  const businessName = capLength(input.businessName, 120);
+  const contactName = capLength(input.contactName, 120);
+  const email = capLength(input.email, 254);
   if (!businessName || !contactName || !email || !input.serviceType) {
     return { ok: false, error: "נא למלא שם עסק, איש קשר, אימייל ותחום." };
   }
+  // Shape check only — we are not the authority on what a deliverable address
+  // is, but an entry with no @ is certainly not one.
+  if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(email)) {
+    return { ok: false, error: "כתובת האימייל לא נראית תקינה." };
+  }
+
+  const headerBag = await headers();
+  const ip =
+    headerBag.get("x-vercel-forwarded-for")?.split(",")[0].trim() ||
+    headerBag.get("x-real-ip") ||
+    "unknown";
+  const limit = await check(`partner-application:${ip}`, 5, 60 * 60 * 1000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "נשלחו כבר כמה בקשות מהכתובת הזאת. נסו שוב בעוד שעה.",
+    };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("partner_applications").insert({
     business_name: businessName,
     contact_name: contactName,
     email,
-    phone: input.phone?.trim() || null,
-    service_type: input.serviceType,
+    phone: capLength(input.phone, 40) || null,
+    service_type: capLength(input.serviceType, 60),
     tier: input.tier === "featured" ? "featured" : "free",
-    website: input.website?.trim() || null,
-    message: input.message?.trim() || null,
+    website: capLength(input.website, 300) || null,
+    message: capLength(input.message, 2000) || null,
   });
-  if (error) return { ok: false, error: "השליחה נכשלה. נסו שוב." };
+  if (error) {
+    console.error("submitPartnerApplication failed", error.message);
+    return { ok: false, error: "השליחה נכשלה. נסו שוב." };
+  }
   return { ok: true };
 }
 

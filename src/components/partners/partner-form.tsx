@@ -46,6 +46,8 @@ export function PartnerForm() {
         tier,
         website: String(f.get("website") ?? ""),
         message: String(f.get("message") ?? ""),
+        // Honeypot: see the hidden field at the end of the form.
+        confirmUrl: String(f.get("confirmUrl") ?? ""),
       });
       if (res.ok) setDone(true);
       else setError(res.error ?? "השליחה נכשלה.");
@@ -68,6 +70,22 @@ export function PartnerForm() {
 
   return (
     <form onSubmit={onSubmit} className="panel rounded-card p-6">
+      {/* Bot trap. Hidden from sight AND from assistive technology, and outside
+          the tab order, so no real person can reach it — while a script that
+          fills every input in the form will. The server treats a filled value
+          as a submission to drop. Cheaper and less hostile than a CAPTCHA. */}
+      <div className="sr-only" aria-hidden>
+        <label htmlFor="confirmUrl">Leave this field empty</label>
+        <input
+          id="confirmUrl"
+          name="confirmUrl"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          defaultValue=""
+        />
+      </div>
+
       {/* tier picker */}
       <div className="mb-5 grid grid-cols-2 gap-2.5">
         {(["free", "featured"] as const).map((t) => {

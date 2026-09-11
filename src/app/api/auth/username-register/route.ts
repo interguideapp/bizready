@@ -19,7 +19,7 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
  * is needed. Requires SUPABASE_SERVICE_ROLE_KEY.
  */
 export async function POST(request: Request) {
-  const limit = check(`register:${clientIp(request)}`, RATE_LIMIT, RATE_WINDOW_MS);
+  const limit = await check(`register:${clientIp(request)}`, RATE_LIMIT, RATE_WINDOW_MS);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "יותר מדי נסיונות הרשמה. נסו שוב מאוחר יותר." },

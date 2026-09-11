@@ -23,7 +23,7 @@ export async function POST(
   if (!/^[0-9a-f-]{36}$/i.test(token)) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-  const limit = check(`hook:${token}`, 120, 60_000);
+  const limit = await check(`hook:${token}`, 120, 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "rate limited" },

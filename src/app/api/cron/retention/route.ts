@@ -69,6 +69,13 @@ export async function GET(request: Request) {
     .lt("sent_at", cutoff);
   if (logError) failures.push(`reminder_log: ${logError.message}`);
 
+  // Rate-limit windows are consulted for seconds and then dead weight.
+  const { data: pruned, error: pruneError } = await supabase.rpc("rate_limit_prune", {
+    p_older_than_seconds: 86_400,
+  });
+  if (pruneError) failures.push(`rate_limits: ${pruneError.message}`);
+  else removed["rate_limits"] = Number(pruned ?? 0);
+
   return NextResponse.json({
     ok: failures.length === 0,
     today,

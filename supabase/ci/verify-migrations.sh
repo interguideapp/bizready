@@ -112,7 +112,8 @@ do $$
 declare usr uuid; biz uuid; tsk uuid; h1 text; h2 text; p2 text;
 begin
   insert into auth.users default values returning id into usr;
-  insert into public.profiles (id) values (usr);
+  -- profiles is created by the on_auth_user_created trigger; inserting it by
+  -- hand collides on the primary key.
 
   insert into public.businesses (owner_id, name, entity_type)
   values (usr, 'ci-chain-probe', 'osek_patur')
@@ -229,7 +230,7 @@ declare
 begin
   insert into auth.users default values returning id into u1;
   insert into auth.users default values returning id into u2;
-  insert into public.profiles (id) values (u1), (u2);
+  -- profiles rows come from the on_auth_user_created trigger.
 
   insert into public.businesses (owner_id, name) values (u1, 'ci-a') returning id into b1;
   insert into public.businesses (owner_id, name) values (u2, 'ci-b') returning id into b2;
@@ -406,7 +407,7 @@ do $$
 declare u uuid; b uuid;
 begin
   insert into auth.users default values returning id into u;
-  insert into public.profiles (id) values (u);
+  -- profiles row comes from the on_auth_user_created trigger.
   insert into public.businesses (owner_id, name) values (u, 'ci-steps') returning id into b;
   -- pre-cutover shape: bookkeeping key beside real completion evidence
   insert into public.business_tasks

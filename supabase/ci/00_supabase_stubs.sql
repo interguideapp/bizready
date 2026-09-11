@@ -8,8 +8,15 @@ create extension if not exists pgcrypto;
 create schema if not exists auth;
 create schema if not exists storage;
 
+-- 001_init puts an AFTER INSERT trigger on this table (handle_new_user) which
+-- reads new.raw_user_meta_data, so a stub holding only an id makes every
+-- "insert into auth.users" in the assertions fail with "record new has no
+-- field raw_user_meta_data". These are the columns the real table has that
+-- anything here touches.
 create table if not exists auth.users (
-  id uuid primary key default gen_random_uuid ()
+  id uuid primary key default gen_random_uuid (),
+  email text,
+  raw_user_meta_data jsonb
 );
 
 -- Mirrors the real implementation: PostgREST puts the verified JWT into

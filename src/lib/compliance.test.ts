@@ -398,3 +398,107 @@ describe("duties that have not started yet are named, not hidden in silence", ()
     expect(pending).toEqual([]);
   });
 });
+
+describe("a period that went unfiled is still owed", () => {
+  /**
+   * The worst one-truth break found in this pass.
+   *
+   * nextFilingPeriod returns the next deadline that has NOT passed, which is
+   * the right answer to "when do I file next" and the wrong one to "what do I
+   * owe". The moment a period goes unfiled the two diverge — and on 20 Sep,
+   * with the 15 Sep VAT deadline missed, the reminder sweep said "באיחור" from
+   * the stored column while this engine reported the next period 56 days out.
+   * Two surfaces, opposite answers, about a filing that accrues interest daily.
+   */
+  const profile = { entityType: "osek_murshe" as const, vatFrequency: "bimonthly" as const };
+  const sep20 = new Date("2026-09-20T09:00:00Z");
+
+  const vatTasks = (over: Partial<ComplianceTask> = {}): ComplianceTask[] => [
+    task({ template_id: "open-vat-file", status: "done" }),
+    task({ template_id: "vat-reporting", status: "todo", due_date: "2026-09-15", ...over }),
+  ];
+
+  it("reports the missed period as overdue", () => {
+    const obs = computeUpcomingObligations(vatTasks(), TEMPLATES_BY_ID, [], sep20, profile);
+    const late = obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0);
+    expect(late).toHaveLength(1);
+    expect(late[0].dueDate).toBe("2026-09-15");
+    expect(late[0].daysUntil).toBe(-5);
+  });
+
+  it("names which period was missed, so it can be filed", () => {
+    // "you are late" is not actionable without knowing late for WHAT.
+    const obs = computeUpcomingObligations(vatTasks(), TEMPLATES_BY_ID, [], sep20, profile);
+    const late = obs.find((o) => o.daysUntil < 0)!;
+    expect(late.periodLabel).toBe("יולי–אוגוסט 2026");
+  });
+
+  it("still shows the next period as well, because both are true", () => {
+    const obs = computeUpcomingObligations(vatTasks(), TEMPLATES_BY_ID, [], sep20, profile);
+    const vat = obs.filter((o) => o.templateId === "vat-reporting");
+    expect(vat).toHaveLength(2);
+    expect(vat.some((o) => o.daysUntil > 0)).toBe(true);
+  });
+
+  it("says nothing once the filing is marked done", () => {
+    const obs = computeUpcomingObligations(
+      vatTasks({ status: "done" }),
+      TEMPLATES_BY_ID,
+      [],
+      sep20,
+      profile
+    );
+    expect(obs.filter((o) => o.daysUntil < 0)).toEqual([]);
+  });
+
+  it("does not invent a missed period before the deadline passes", () => {
+    const sep10 = new Date("2026-09-10T09:00:00Z");
+    const obs = computeUpcomingObligations(vatTasks(), TEMPLATES_BY_ID, [], sep10, profile);
+    expect(obs.filter((o) => o.daysUntil < 0)).toEqual([]);
+  });
+
+  it("keeps the prerequisite gate — no missed period before the file is open", () => {
+    // The whole point of the gate: a business with no VAT file owes no VAT
+    // report, so a stale due_date on the row must not manufacture a debt.
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "todo" }),
+        task({ template_id: "vat-reporting", status: "todo", due_date: "2026-09-15" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      sep20,
+      profile
+    );
+    expect(obs.filter((o) => o.templateId === "vat-reporting")).toEqual([]);
+  });
+
+  it("does not double-report when the stored date is the upcoming one", () => {
+    const obs = computeUpcomingObligations(
+      vatTasks({ due_date: "2026-11-15" }),
+      TEMPLATES_BY_ID,
+      [],
+      sep20,
+      profile
+    );
+    expect(obs.filter((o) => o.templateId === "vat-reporting")).toHaveLength(1);
+  });
+
+  it("labels a monthly filer's missed period as a single month", () => {
+    const obs = computeUpcomingObligations(
+      vatTasks(),
+      TEMPLATES_BY_ID,
+      [],
+      sep20,
+      { ...profile, vatFrequency: "monthly" }
+    );
+    const late = obs.find((o) => o.daysUntil < 0)!;
+    expect(late.periodLabel).toBe("אוגוסט 2026");
+  });
+
+  it("tells the user what to do if they already filed it", () => {
+    // Otherwise the only way out of a false alarm is to ignore the product.
+    const obs = computeUpcomingObligations(vatTasks(), TEMPLATES_BY_ID, [], sep20, profile);
+    expect(obs.find((o) => o.daysUntil < 0)!.ruleText).toContain("סמנו אותו כבוצע");
+  });
+});

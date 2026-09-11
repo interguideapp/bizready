@@ -96,6 +96,7 @@ export default async function HomePage() {
         is_relevant: t.is_relevant,
         dismissal: t.dismissal,
         completion_data: t.completion_data,
+        due_date: t.due_date,
       })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
@@ -266,6 +267,7 @@ export default async function HomePage() {
       is_relevant: t.is_relevant,
       dismissal: t.dismissal,
       completion_data: t.completion_data,
+        due_date: t.due_date,
     })),
     TEMPLATES_BY_ID
   ).map((b) => ({

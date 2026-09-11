@@ -62,6 +62,17 @@ export interface ComplianceTask {
   /** not_applicable / handled_externally. null on rows predating the split. */
   dismissal?: Dismissal | null;
   completion_data?: Record<string, string> | null;
+  /**
+   * The deadline stored on the row.
+   *
+   * Needed to answer "did a period go by unfiled", which no amount of calendar
+   * arithmetic can decide: nextFilingPeriod deliberately returns the next
+   * deadline that has NOT passed, so on its own this engine can never report a
+   * missed VAT or advances period. The reminder sweep leaves this column in the
+   * past for a task nobody filed, which makes it the only record that the
+   * period was missed.
+   */
+  due_date?: string | null;
 }
 
 export interface ComplianceDocument {
@@ -111,6 +122,22 @@ function heDate(isoDate: string): string {
 }
 
 /** "יולי–אוגוסט 2026" or "יולי 2026" when the period is a single month. */
+/**
+ * The filing period a given deadline belonged to.
+ *
+ * Deadlines are the 15th of the month AFTER the period ends, so the period end
+ * is one month before the deadline's month. Used to label a period that was
+ * missed, where there is no forward calculation to lean on.
+ */
+function periodForDue(dueIso: string, frequency: VatFrequency): { startAbs: number; endAbs: number } | null {
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dueIso);
+  if (!m) return null;
+  const dueAbs = Number(m[1]) * 12 + (Number(m[2]) - 1);
+  const endAbs = dueAbs - 1;
+  const step = frequency === "monthly" ? 1 : 2;
+  return { startAbs: endAbs - (step - 1), endAbs };
+}
+
 function periodLabelFor(startAbs: number, endAbs: number): string {
   const sY = Math.floor(startAbs / 12);
   const sM = startAbs % 12;
@@ -433,6 +460,49 @@ export function computeUpcomingObligations(
     // the self-employed national-insurance advance had none.
     const entry = filingRuleFor(task.template_id);
     if (entry) {
+      // A PERIOD THAT WENT UNFILED.
+      //
+      // nextFilingPeriod returns the next deadline that has not passed, which
+      // is the right answer to "when do I file next" and the wrong one to
+      // "what do I owe". The moment a period goes unfiled the two diverge, and
+      // this engine could only ever see the future one — so the reminder sweep
+      // said "באיחור" from the stored column while the obligations board showed
+      // the next period 56 days out. Two surfaces, opposite answers, about a
+      // filing that accrues interest daily.
+      //
+      // The stored deadline is the only record that a period passed unfiled:
+      // the sweep rolls it forward only for a COMPLETED task, so on an open one
+      // it stays in the past. Emitted in addition to the upcoming period,
+      // because both are true — you owe a late report and another is coming.
+      if (
+        entry.rule.anchor === "period_plus" &&
+        task.status !== "done" &&
+        task.due_date &&
+        daysBetween(task.due_date, today) < 0 &&
+        withinHorizon(task.due_date)
+      ) {
+        const missedPeriod = periodForDue(task.due_date, freq);
+        const missedLabel = missedPeriod
+          ? periodLabelFor(missedPeriod.startAbs, missedPeriod.endAbs)
+          : null;
+        out.push({
+          id: `${entry.kind}:${task.template_id}:missed:${task.due_date}`,
+          kind: entry.kind,
+          basis: "statutory",
+          title: template.title,
+          dueDate: task.due_date,
+          templateId: template.id,
+          daysUntil: daysBetween(task.due_date, today),
+          periodLabel: missedLabel,
+          ruleText:
+            `${entry.periodNoun} ${missedLabel ?? ""} הייתה אמורה להיות מוגשת עד ` +
+            `${heDate(task.due_date)} ולא סומנה כמוגשת. איחור בדיווח ובתשלום צובר ` +
+            `ריבית והצמדה מהיום הראשון. אם הדיווח כבר הוגש — סמנו אותו כבוצע כדי ` +
+            `שנפסיק להתריע.`,
+          sourceUrl: entry.source,
+        });
+      }
+
       const occurrence = occurrenceFor(entry, today, freq, profile);
       if (occurrence && withinHorizon(occurrence.dueIso)) {
         out.push({

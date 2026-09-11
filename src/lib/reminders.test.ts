@@ -15,6 +15,117 @@ function task(partial: Partial<ReminderTask> & { template_id: string }): Reminde
   };
 }
 
+/**
+ * A personal deadline (migration 028) next to a legal one.
+ *
+ * The dangerous direction is a user's preference being allowed to establish a
+ * legal fact. The home screen shipped with exactly that defect before the
+ * audit: two places computed "overdue" from different inputs and the wrong one
+ * invented statutory debts. A personal target must be able to pull a reminder
+ * earlier and must never be able to say "באיחור".
+ */
+describe("a personal deadline alongside a statutory one", () => {
+  it("nudges on the user's earlier date instead of the legal one", () => {
+    const { notifications } = computeReminders(
+      [
+        task({
+          template_id: "vat-reporting",
+          due_date: "2026-08-17",
+          personal_due_date: "2026-07-22",
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe("deadline");
+    // The reminder is keyed to the date the user asked to be reminded on.
+    expect(notifications[0].dedupe_key).toContain("2026-07-22");
+  });
+
+  it("never lets a personal date declare a statutory filing late", () => {
+    // Personal target already passed; the legal deadline has not. Calling this
+    // "באיחור" would be a fabricated legal claim.
+    const { notifications } = computeReminders(
+      [
+        task({
+          template_id: "vat-reporting",
+          due_date: "2026-08-17",
+          personal_due_date: "2026-07-10",
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications.some((n) => n.type === "overdue")).toBe(false);
+  });
+
+  it("still reports a genuinely late statutory filing", () => {
+    // The legal date has passed. A personal date in the future must not
+    // suppress that either — the law does not care about the user's plan.
+    const { notifications } = computeReminders(
+      [
+        task({
+          template_id: "vat-reporting",
+          due_date: "2026-07-15",
+          personal_due_date: "2026-08-01",
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications.some((n) => n.type === "overdue")).toBe(true);
+    // Keyed to the legal date it is late against, not to the personal plan.
+    expect(
+      notifications.find((n) => n.type === "overdue")!.dedupe_key
+    ).toContain("2026-07-15");
+  });
+
+  it("cannot postpone a statutory reminder by choosing a later date", () => {
+    // A later personal target on a statutory filing is ignored for nudging:
+    // the legal date is still what matters.
+    const { notifications } = computeReminders(
+      [
+        task({
+          template_id: "vat-reporting",
+          due_date: "2026-07-23",
+          personal_due_date: "2026-09-30",
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].dedupe_key).toContain("2026-07-23");
+  });
+
+  it("lets a personal date fully replace the date on a non-statutory task", () => {
+    // No legal fact to protect here, so the user's date simply is the deadline.
+    const { notifications } = computeReminders(
+      [
+        task({
+          template_id: "open-vat-file",
+          due_date: "2026-09-30",
+          personal_due_date: "2026-07-22",
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].dedupe_key).toContain("2026-07-22");
+  });
+
+  it("works with a personal date and no system date at all", () => {
+    const { notifications } = computeReminders(
+      [task({ template_id: "open-vat-file", due_date: null, personal_due_date: "2026-07-22" })],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(notifications).toHaveLength(1);
+  });
+});
+
 describe("computeReminders", () => {
   it("raises a deadline notification within the 7-day window", () => {
     const { notifications } = computeReminders(

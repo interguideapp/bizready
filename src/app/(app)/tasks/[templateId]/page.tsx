@@ -182,6 +182,12 @@ export default async function TaskDetailPage({
     completionData: task.completion_data ?? {},
     completedAt: task.completed_at,
     waitingFor: task.waiting_for ?? null,
+    todayIso: todayInIsrael(),
+    personalDueDate: task.personal_due_date ?? null,
+    // The obligation the compliance engine computed, when there is one. Taken
+    // from there rather than recomputed so the picker cannot disagree with the
+    // rest of the product about when a filing is due.
+    statutoryDueDate: statutory && obligation ? obligation.dueDate : null,
     followUpDate: task.follow_up_date ?? null,
     docsNeeded: template.docs_needed,
     estCost: template.est_cost ? interpolateFigures(template.est_cost) : undefined,

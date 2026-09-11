@@ -539,9 +539,18 @@ export async function setTaskDueDate(taskId: string, dueDate: string | null) {
     .single();
   if (!current) throw new Error("task not found");
 
+  // Rejecting a malformed date here rather than letting Postgres decide: this
+  // arrives from a Server Action, which is a public POST endpoint.
+  if (dueDate !== null && !/^d{4}-d{2}-d{2}$/.test(dueDate)) {
+    throw new Error("invalid date");
+  }
+
   const { error } = await supabase
     .from("business_tasks")
-    .update({ due_date: dueDate })
+    // personal_due_date, NOT due_date (migration 028). The reminder sweep owns
+    // due_date and rolls it to the next statutory period, so a user's date
+    // stored there would be erased by the next cron run without a trace.
+    .update({ personal_due_date: dueDate })
     .eq("id", taskId);
   if (error) throw new Error(error.message);
 
@@ -551,8 +560,8 @@ export async function setTaskDueDate(taskId: string, dueDate: string | null) {
     template_id: current.template_id,
     kind: "deadline_set",
     detail: dueDate
-      ? `דדליין נקבע ל-${new Date(dueDate + "T00:00:00").toLocaleDateString("he-IL")}`
-      : "הדדליין הוסר",
+      ? `דדליין אישי נקבע ל-${new Date(dueDate + "T00:00:00").toLocaleDateString("he-IL")}`
+      : "הדדליין האישי הוסר",
   });
   revalidatePath("/", "layout");
 }

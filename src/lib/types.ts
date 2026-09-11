@@ -260,6 +260,12 @@ export interface BusinessTask {
   template_id: string;
   status: TaskStatus;
   due_date: string | null;
+  /**
+   * The deadline the USER chose (migration 028). Distinct from due_date, which
+   * the reminder sweep owns and rewrites per statutory period. Wins over it for
+   * display and reminders; neither decides statutory status.
+   */
+  personal_due_date?: string | null;
   completed_at: string | null;
   notes: string | null;
   is_relevant: boolean;

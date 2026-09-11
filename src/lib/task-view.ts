@@ -79,6 +79,23 @@ export interface TaskView {
   waitingFor: string | null;
   followUpDate: string | null;
 
+  /**
+   * Today in Israel, from the server.
+   *
+   * The deadline picker offers "in a week" and the like, and computing that
+   * from the browser clock would put a user in a different timezone — or with a
+   * wrong system clock — a day out on a date whose lateness carries interest.
+   */
+  todayIso: string;
+  /** The deadline the user set for themselves, if any (migration 028). */
+  personalDueDate: string | null;
+  /**
+   * The date the law requires, when the filing-rules registry can compute one.
+   * Null for a task with no statutory rule, and for a rule whose date the
+   * authority has not published yet.
+   */
+  statutoryDueDate: string | null;
+
   docsNeeded: string[];
   estCost?: string;
   estTime?: string;

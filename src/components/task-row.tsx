@@ -15,6 +15,7 @@ export function TaskRow({
   priority,
   status,
   dueDate,
+  personalDueDate,
   waitingFor,
   followUpDate,
   state,
@@ -27,6 +28,8 @@ export function TaskRow({
   priority: TaskPriority;
   status: TaskStatus;
   dueDate: string | null;
+  /** Shown beside the legal date when the user set a target of their own. */
+  personalDueDate?: string | null;
   waitingFor?: string | null;
   followUpDate?: string | null;
   state?: NodeState;
@@ -59,7 +62,20 @@ export function TaskRow({
           )}
           {!done && !locked && <PriorityBadge priority={priority} />}
           {!done && !locked && status !== "waiting" && (
-            <DueBadge dueDate={dueDate} basis={isStatutoryFiling(templateId) ? "statutory" : "recommended"} />
+            <>
+              <DueBadge dueDate={dueDate} basis={isStatutoryFiling(templateId) ? "statutory" : "recommended"} />
+              {/* A personal target is a second, weaker fact: it never replaces
+                  the legal date in the badge, it sits next to it. */}
+              {personalDueDate && personalDueDate !== dueDate && (
+                <span className="tnum text-xs text-ink-muted">
+                  יעד:{" "}
+                  {new Date(personalDueDate + "T00:00:00").toLocaleDateString("he-IL", {
+                    day: "numeric",
+                    month: "numeric",
+                  })}
+                </span>
+              )}
+            </>
           )}
           {locked && blockedBy && blockedBy.length > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">

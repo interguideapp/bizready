@@ -14,6 +14,8 @@ export interface ReminderTask {
   status: TaskStatus;
   is_relevant: boolean;
   due_date: string | null;
+  /** The deadline the user set themselves (migration 028). */
+  personal_due_date?: string | null;
   completed_at: string | null;
   follow_up_date?: string | null;
   waiting_for?: string | null;
@@ -163,10 +165,10 @@ export function computeReminders(
       continue;
     }
 
-    // open task with a due date
+    // open task with a due date, from either source
     if (
       (task.status === "todo" || task.status === "in_progress") &&
-      task.due_date
+      (task.due_date || task.personal_due_date)
     ) {
       // An open recurring HABIT whose date has gone stale gets rolled forward.
       // Without this it kept its original due_date forever, and because the
@@ -175,21 +177,46 @@ export function computeReminders(
       //
       // Statutory filings are deliberately excluded: their date must be allowed
       // to fall into the past so a genuinely late filing still reports overdue.
-      let effectiveDue = task.due_date;
-      if (template.recurrence && !statutory && daysBetween(task.due_date, today) < 0) {
-        const rolled = rollForward(task.due_date, template.recurrence, today);
-        if (rolled !== task.due_date) {
-          effectiveDue = rolled;
-          recurringResets.push({
-            taskId: task.id,
-            templateId: task.template_id,
-            newDueDate: rolled,
-          });
+      let systemDue = task.due_date;
+      if (systemDue && template.recurrence && !statutory && daysBetween(systemDue, today) < 0) {
+        const rolled = rollForward(systemDue, template.recurrence, today);
+        if (rolled !== systemDue) {
+          const previous = systemDue;
+          systemDue = rolled;
+          if (rolled !== previous) {
+            recurringResets.push({
+              taskId: task.id,
+              templateId: task.template_id,
+              newDueDate: rolled,
+            });
+          }
         }
       }
 
-      const daysLeft = daysBetween(effectiveDue, today);
-      if (daysLeft < 0) {
+      // HOW A PERSONAL DEADLINE INTERACTS WITH A LEGAL ONE (migration 028).
+      //
+      // Non-statutory: the user's date simply is the deadline. It is their
+      // task and there is no legal fact to protect.
+      //
+      // Statutory: their date can only pull the reminder EARLIER. It cannot
+      // postpone the legal date, and — the important half — it can never
+      // establish lateness. Judging "באיחור" from a personal target would let
+      // a preference fabricate a legal breach, which is the defect the home
+      // screen shipped with before the audit: two sources deciding overdue,
+      // and the wrong one inventing debts.
+      const personal = task.personal_due_date ?? null;
+      const nudgeDue = statutory
+        ? personal && systemDue && personal < systemDue
+          ? personal
+          : (systemDue ?? personal)
+        : (personal ?? systemDue);
+      const lateDue = statutory ? systemDue : nudgeDue;
+
+      if (!nudgeDue) continue;
+
+      const daysLeft = daysBetween(nudgeDue, today);
+      const daysLate = lateDue ? daysBetween(lateDue, today) : 0;
+      if (daysLate < 0) {
         // A red "overdue" is only honest for a real statutory deadline. A
         // recommended one-off (open your files, get insurance…) that slipped
         // past its suggested date is never an "איחור" — we stay quiet.
@@ -199,7 +226,7 @@ export function computeReminders(
             title: `באיחור: ${template.title}`,
             body: "חרגתם מהמועד החוקי — כדאי לטפל בהקדם כדי לא לצבור קנסות.",
             template_id: task.template_id,
-            dedupe_key: `overdue:${task.template_id}:${effectiveDue}`,
+            dedupe_key: `overdue:${task.template_id}:${lateDue}`,
           });
         }
       } else {
@@ -218,7 +245,7 @@ export function computeReminders(
                 ? "דדליין מתקרב — יש עוד זמן להתארגן."
                 : "דדליין מתקרב.",
             template_id: task.template_id,
-            dedupe_key: `deadline:${task.template_id}:${effectiveDue}:${window}`,
+            dedupe_key: `deadline:${task.template_id}:${nudgeDue}:${window}`,
           });
         }
       }

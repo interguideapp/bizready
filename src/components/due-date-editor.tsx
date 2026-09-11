@@ -1,87 +1,78 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { CalendarClock, Loader2, X } from "lucide-react";
-import { setTaskDueDate } from "@/lib/actions";
+import { useState } from "react";
+import { CalendarClock } from "lucide-react";
 import { DueBadge } from "@/components/badges";
+import { DeadlinePicker } from "@/components/task/deadline-picker";
+import { formatHe } from "@/lib/deadline-options";
 
-/** Lets the user set/change/clear a personal deadline on a task. */
-export function DueDateEditor({
+/**
+ * The date row in the task header: what is due, and the control to set a target.
+ *
+ * This used to hide the editor entirely whenever `basis` was "statutory", on
+ * the reasoning that a date fixed by law is not the user's to change. The date
+ * is not — but the reminder is, and that reasoning left people unable to ask for
+ * a head start on precisely the filings that carry penalties. Migration 028
+ * separates the two columns so both can exist: the law's date stays, and a
+ * personal target sits beside it.
+ */
+export function DueDateControl({
   taskId,
+  templateId,
   dueDate,
+  basis = "recommended",
+  todayIso,
+  personalDueDate,
+  statutoryDueDate,
+  canEdit = true,
 }: {
   taskId: string;
+  templateId: string;
   dueDate: string | null;
+  basis?: "statutory" | "recommended";
+  todayIso: string;
+  personalDueDate: string | null;
+  statutoryDueDate: string | null;
+  canEdit?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(dueDate ?? "");
-  const [pending, startTransition] = useTransition();
 
-  function save(next: string | null) {
-    startTransition(async () => {
-      await setTaskDueDate(taskId, next);
-      setEditing(false);
-    });
-  }
-
-  if (!editing) {
+  if (editing) {
     return (
-      <button
-        onClick={() => setEditing(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-edge px-2.5 py-1 text-xs font-medium text-ink-soft transition hover:border-brand-300 hover:text-brand-strong"
-      >
-        <CalendarClock className="h-3.5 w-3.5" aria-hidden />
-        {dueDate ? "שינוי דדליין" : "קביעת דדליין"}
-      </button>
+      <DeadlinePicker
+        taskId={taskId}
+        templateId={templateId}
+        todayIso={todayIso}
+        personalDueDate={personalDueDate}
+        statutoryDueDate={statutoryDueDate}
+        onDone={() => setEditing(false)}
+      />
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="rounded-lg border border-edge bg-card px-2 py-1 text-xs outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
-      />
-      <button
-        onClick={() => value && save(value)}
-        disabled={pending || !value}
-        className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:opacity-40"
-      >
-        {pending && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />}
-        שמירה
-      </button>
-      {dueDate && (
-        <button
-          onClick={() => save(null)}
-          disabled={pending}
-          className="rounded-lg p-1 text-ink-faint hover:text-status-overdue"
-          aria-label="הסרת דדליין"
-        >
-          <X className="h-3.5 w-3.5" aria-hidden />
-        </button>
-      )}
-    </span>
-  );
-}
-
-/** The badge + edit control together, for the task header. */
-export function DueDateControl({
-  taskId,
-  dueDate,
-  basis = "recommended",
-}: {
-  taskId: string;
-  dueDate: string | null;
-  basis?: "statutory" | "recommended";
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex flex-wrap items-center gap-1.5">
       <DueBadge dueDate={dueDate} basis={basis} />
-      {/* statutory dates are fixed by law — only personal/recommended dates are editable */}
-      {basis !== "statutory" && (
-        <DueDateEditor taskId={taskId} dueDate={dueDate} />
+
+      {/* The personal target, shown as a separate fact from the legal date so
+          the two are never confused for one another. */}
+      {personalDueDate && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-edge px-2.5 py-1 text-xs text-ink-soft">
+          <CalendarClock className="h-3.5 w-3.5 text-brand-400" aria-hidden />
+          <span>
+            היעד שלכם: <span className="tnum">{formatHe(personalDueDate)}</span>
+          </span>
+        </span>
+      )}
+
+      {canEdit && (
+        <button
+          onClick={() => setEditing(true)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-edge px-2.5 py-1 text-xs font-medium text-ink-soft transition hover:border-brand-300 hover:text-brand-strong"
+        >
+          <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+          {personalDueDate ? "שינוי היעד" : "קביעת יעד"}
+        </button>
       )}
     </span>
   );

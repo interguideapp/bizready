@@ -113,8 +113,13 @@ export function TaskExperience({
             {!done && (
               <DueDateControl
                 taskId={view.taskDbId}
+                templateId={view.templateId}
                 dueDate={view.obligation ? view.obligation.dueDate : view.dueDate}
                 basis={view.basis}
+                todayIso={view.todayIso}
+                personalDueDate={view.personalDueDate}
+                statutoryDueDate={view.statutoryDueDate}
+                canEdit={view.canEdit}
               />
             )}
             {view.recurrence && (

@@ -1,4 +1,6 @@
 import { todayInIsrael } from "@/lib/dates";
+import { effectiveDeadline } from "@/lib/deadline-options";
+import { isStatutoryFiling } from "@/lib/compliance";
 import Link from "next/link";
 import { ArrowLeft, ListChecks, Zap } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
@@ -212,7 +214,16 @@ function CategorySection({
               title={template.title}
               priority={template.priority}
               status={task.status}
-              dueDate={task.due_date}
+              // The one precedence rule, so the list and the task page can
+              // never show different dates for the same task.
+              dueDate={
+                effectiveDeadline({
+                  personal: task.personal_due_date,
+                  system: task.due_date,
+                  statutory: isStatutoryFiling(task.template_id),
+                }).date
+              }
+              personalDueDate={task.personal_due_date ?? null}
               waitingFor={task.waiting_for}
               followUpDate={task.follow_up_date}
               state={node?.state}

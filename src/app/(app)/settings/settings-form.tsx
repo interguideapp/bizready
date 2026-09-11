@@ -340,7 +340,7 @@ function ChangePreview({
               {items.map((c) => (
                 <li key={c.templateId} className="flex items-baseline gap-2 text-sm">
                   <span className="text-ink">{c.title}</span>
-                  <span className="text-[11px] text-ink-faint">{catTitle(c.categoryId)}</span>
+                  <span className="text-xs text-ink-faint">{catTitle(c.categoryId)}</span>
                 </li>
               ))}
             </ul>

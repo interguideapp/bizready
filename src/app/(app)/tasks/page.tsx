@@ -90,7 +90,7 @@ export default async function TasksPage({
                       <div className="mt-0.5 flex items-center gap-1.5">
                         <PriorityBadge priority={n.priority} />
                         {n.unlocks.length > 0 && (
-                          <span className="text-[11px] text-brand-strong">פותח {n.unlocks.length}</span>
+                          <span className="text-xs text-brand-strong">פותח {n.unlocks.length}</span>
                         )}
                       </div>
                     </div>

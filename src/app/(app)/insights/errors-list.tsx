@@ -42,7 +42,7 @@ function ErrorRow({ error }: { error: SyncErrorRow }) {
           {CODE_LABELS[error.code] ?? error.code}
         </p>
         <p className="text-xs text-ink-muted">{error.message}</p>
-        <p className="mt-0.5 text-[11px] text-ink-faint">
+        <p className="mt-0.5 text-xs text-ink-faint">
           {new Date(error.occurred_at).toLocaleString("he-IL")}
         </p>
       </div>

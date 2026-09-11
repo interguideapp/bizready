@@ -20,11 +20,11 @@ export function ApplicationRow({ app }: { app: PartnerApplicationRow }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-bold text-ink">{app.business_name}</p>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_TONE[app.status] ?? STATUS_TONE.new}`}>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_TONE[app.status] ?? STATUS_TONE.new}`}>
               {STATUS_LABEL[app.status] ?? app.status}
             </span>
             {app.tier === "featured" && (
-              <span className="rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold text-brand-strong">מודגש</span>
+              <span className="rounded-full bg-brand-tint px-2 py-0.5 text-xs font-semibold text-brand-strong">מודגש</span>
             )}
           </div>
           <p className="mt-0.5 text-sm text-ink-soft">{app.service_type}</p>

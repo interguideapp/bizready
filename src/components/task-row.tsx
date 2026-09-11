@@ -52,7 +52,7 @@ export function TaskRow({
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {isNext && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-xs font-bold text-white">
               <Zap className="h-3 w-3" aria-hidden />
               הצעד הבא
             </span>
@@ -62,13 +62,13 @@ export function TaskRow({
             <DueBadge dueDate={dueDate} basis={isStatutoryFiling(templateId) ? "statutory" : "recommended"} />
           )}
           {locked && blockedBy && blockedBy.length > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-ink-muted">
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-ink-muted">
               <Lock className="h-3 w-3" aria-hidden />
               נפתח אחרי: {blockedBy[0]}{blockedBy.length > 1 ? ` +${blockedBy.length - 1}` : ""}
             </span>
           )}
           {!done && !locked && unlocksCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-strong">
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-strong">
               <Unlock className="h-3 w-3" aria-hidden />
               פותח {unlocksCount}
             </span>

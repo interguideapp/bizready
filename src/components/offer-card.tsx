@@ -27,7 +27,7 @@ export function OfferCard({
           <Tag className="h-3.5 w-3.5" aria-hidden />
           הצעת שותף
         </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-strong">
+        <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-brand-strong">
           {featured && <Sparkles className="h-3 w-3" aria-hidden />}
           מקודם
         </span>

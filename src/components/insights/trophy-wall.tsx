@@ -96,7 +96,7 @@ export function TrophyWall({
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-ink-soft">{b.title}</p>
-                  <p className="text-[11px] leading-tight text-ink-muted">{b.description}</p>
+                  <p className="text-xs leading-tight text-ink-muted">{b.description}</p>
                 </div>
               </div>
             ))}

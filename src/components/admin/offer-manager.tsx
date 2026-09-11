@@ -51,7 +51,7 @@ function OfferItem({ offer }: { offer: OfferRow }) {
           <p className="truncate font-semibold text-ink">{offer.title}</p>
           {offer.is_featured && <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-strong" aria-hidden />}
         </div>
-        <p className="tnum truncate text-[11px] text-ink-muted" dir="ltr">
+        <p className="tnum truncate text-xs text-ink-muted" dir="ltr">
           {offer.template_id ?? offer.category_id ?? "כללי"} · {offer.commission_type ?? "—"}
         </p>
       </div>

@@ -96,7 +96,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
 
       {/* device status bar — frames the surface as an OS, not a page */}
       <div className="relative z-10 mx-auto flex max-w-3xl items-center justify-between px-6 pt-4 text-ink-soft/70">
-        <span className="text-[11px] font-semibold tracking-wide">{dateLine || "‏"}</span>
+        <span className="text-xs font-semibold tracking-wide">{dateLine || "‏"}</span>
         <span className="flex items-center gap-1.5">
           <Signal className="h-3.5 w-3.5" aria-hidden />
           <Wifi className="h-3.5 w-3.5" aria-hidden />
@@ -181,7 +181,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                   </Link>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
+              <p className="mt-3 text-xs text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
             </div>
           </FadeUp>
         )}
@@ -207,7 +207,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{b.title}</p>
-                      <p className="truncate text-[11px] text-ink-muted">
+                      <p className="truncate text-xs text-ink-muted">
                         {"תלוי ב: " + b.blockedByTitle}
                       </p>
                     </div>
@@ -218,7 +218,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                   </Link>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] leading-relaxed text-ink-muted">
+              <p className="mt-3 text-xs leading-relaxed text-ink-muted">
                 אם זה בעצם מטופל אצלכם מחוץ ל-BizReady — פתחו את המשימה ושנו את
                 סיבת ההסרה, ונחזיר את המועדים.
               </p>
@@ -255,7 +255,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">{w.title}</p>
-                      <p className="truncate text-[11px] text-ink-muted">
+                      <p className="truncate text-xs text-ink-muted">
                         {w.waitingFor ? `ממתין ל${w.waitingFor}` : "ממתין לתשובה"}
                         {w.followUp ? ` · מעקב ${w.followUp}` : ""}
                       </p>
@@ -287,13 +287,13 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
                         <Ic name={q.icon} className="h-4.5 w-4.5" />
                       </span>
-                      <span className="tnum flex items-center gap-1 text-[11px] text-ink-faint">
+                      <span className="tnum flex items-center gap-1 text-xs text-ink-faint">
                         <Clock3 className="h-3 w-3" aria-hidden />~{q.minutes} ד׳
                       </span>
                     </div>
                     <div>
                       <p className="text-sm font-bold text-ink">{q.label}</p>
-                      <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">{q.sublabel}</p>
+                      <p className="mt-0.5 text-xs leading-snug text-ink-muted">{q.sublabel}</p>
                     </div>
                   </Link>
                 ))}
@@ -396,7 +396,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                       <Ic name={a.icon} className="h-3.5 w-3.5" />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-ink-soft">{a.text}</span>
-                    <span className="shrink-0 text-[11px] text-ink-faint">{a.when}</span>
+                    <span className="shrink-0 text-xs text-ink-faint">{a.when}</span>
                   </div>
                 ))}
               </div>
@@ -457,7 +457,7 @@ function OSTile({
         style={{ backdropFilter: "blur(24px) saturate(1.4)" }}
       >
         {detail}
-        <Link href={href} className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-brand-strong">
+        <Link href={href} className="mt-2 flex items-center gap-1 text-xs font-semibold text-brand-strong">
           לפרטים המלאים <ArrowLeft className="h-3 w-3" aria-hidden />
         </Link>
       </div>

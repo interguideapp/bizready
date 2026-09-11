@@ -91,7 +91,7 @@ function ConnectionRow({ conn, label }: { conn: ConnectionInfo; label: string })
           <div className="flex items-center gap-2">
             <p className="font-bold text-ink">{label}</p>
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                 conn.status === "error"
                   ? "bg-status-overdue-bg text-status-overdue"
                   : "bg-status-done-bg text-status-done"
@@ -145,7 +145,7 @@ function ConnectionRow({ conn, label }: { conn: ConnectionInfo; label: string })
       {webhookUrl && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-surface px-3 py-2">
           <Link2 className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden />
-          <code dir="ltr" className="min-w-0 flex-1 truncate text-[11px] text-ink-soft">{webhookUrl}</code>
+          <code dir="ltr" className="min-w-0 flex-1 truncate text-xs text-ink-soft">{webhookUrl}</code>
           <button
             onClick={() => { navigator.clipboard?.writeText(webhookUrl); toast.success("הועתק"); }}
             aria-label="העתקה"
@@ -199,7 +199,7 @@ function ProviderTile({ provider, alreadyConnected }: { provider: ProviderInfo; 
           </span>
           <div>
             <p className="font-semibold text-ink">{provider.label}</p>
-            <p className="text-[11px] uppercase tracking-wide text-ink-faint">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">
               {provider.mode === "api" ? "API ישיר" : provider.mode === "webhook" ? "Webhook" : "קובץ CSV"}
             </p>
           </div>

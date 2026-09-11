@@ -192,7 +192,7 @@ function DockButton({
       </motion.span>
 
       {badge > 0 && (
-        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-overdue px-1 text-[10px] font-bold text-white">
+        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-overdue px-1 text-xs font-bold text-white">
           {badge > 9 ? "9+" : badge}
         </span>
       )}
@@ -214,7 +214,7 @@ function DockButton({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.9 }}
             transition={{ duration: 0.14 }}
-            className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-lg border border-white/10 bg-card px-2.5 py-1 text-[11px] font-medium text-ink shadow-lg backdrop-blur-xl"
+            className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-lg border border-white/10 bg-card px-2.5 py-1 text-xs font-medium text-ink shadow-lg backdrop-blur-xl"
           >
             {item.label}
           </motion.span>

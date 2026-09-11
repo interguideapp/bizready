@@ -84,7 +84,7 @@ export function PartnerForm() {
               <span className={`block text-sm font-bold ${active ? "text-brand-strong" : "text-ink"}`}>
                 {t === "free" ? "רישום חינם" : "מודגש (בתשלום)"}
               </span>
-              <span className="mt-0.5 block text-[11px] text-ink-muted">
+              <span className="mt-0.5 block text-xs text-ink-muted">
                 {t === "free" ? "עמלה רק על המרה" : "מיקום בולט + תג Verified"}
               </span>
             </button>
@@ -136,7 +136,7 @@ export function PartnerForm() {
         {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
         שליחת הבקשה
       </button>
-      <p className="mt-3 text-center text-[11px] text-ink-faint">
+      <p className="mt-3 text-center text-xs text-ink-faint">
         אין התחייבות. נחזור אליכם לפני שמפרסמים משהו.
       </p>
     </form>

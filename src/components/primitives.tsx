@@ -281,7 +281,7 @@ export function ProgressRing({
         />
       </svg>
       {children && (
-        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-ink-soft">
+        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-ink-soft">
           {children}
         </span>
       )}

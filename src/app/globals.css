@@ -15,11 +15,18 @@
   --surface-3: #dbe1f0;
   --card: rgba(255, 255, 255, 0.7);
   --card-solid: #ffffff;
+  /* Opaque backing for any glass surface that carries text. See the note on
+     --glass-base in the dark block below: a translucent card over an animated
+     background has no fixed contrast ratio, so text on it cannot be proven
+     accessible at all. */
+  --glass-base: #ffffff;
 
   --ink: #0b1222;
   --ink-soft: #39435c;
   --ink-muted: #626e8c;
-  --ink-faint: #939db8;
+  /* Raised from #939db8, which computed to 2.71:1 — far under the 4.5:1 AA
+     threshold, on a product that sells accessibility compliance. */
+  --ink-faint: #6b748e;
 
   --edge: rgba(12, 20, 40, 0.1);
   --edge-soft: rgba(12, 20, 40, 0.06);
@@ -63,11 +70,31 @@
   --surface-3: #131d33;
   --card: rgba(17, 25, 44, 0.55);
   --card-solid: #0e1626;
+  /* ---------------------------------------------------------------------
+     The opaque backing under every text-bearing glass surface.
+
+     .os-card used to paint color-mix(var(--card) 64%, transparent) — about 35%
+     opaque — directly over .os-ambient, which is an infinitely animating 22s/26s
+     blurred gradient. So the luminance BEHIND the text oscillated, and no static
+     token value could guarantee a contrast ratio against it. Measured against
+     the blob at its brightest, --ink-faint came out at 2.18:1 and --ink-muted at
+     4.54:1: one invisible, one borderline, in an app that ships a critical,
+     statute-backed task about תקן ישראלי 5568 (WCAG AA).
+
+     This is why the fix is a surface change and not a new hex code. With an
+     opaque base the ratio is arithmetic, which is what lets contrast.test.ts
+     prove it and keep proving it. #131b30 sits slightly above --card-solid so the
+     card still reads as lifted off the wallpaper.
+     --------------------------------------------------------------------- */
+  --glass-base: #131b30;
 
   --ink: #f2f5ff;
   --ink-soft: #d2dbef;
   --ink-muted: #a3b0ce;
-  --ink-faint: #6b7695;
+  /* Raised from #6b7695 (2.65:1 even on the opaque base) to clear AA at 4.63:1.
+     It is now the LIGHTEST text the system permits — anything fainter is
+     decoration, not information. */
+  --ink-faint: #96a1bc;
 
   --edge: rgba(255, 255, 255, 0.08);
   --edge-soft: rgba(255, 255, 255, 0.05);
@@ -124,6 +151,7 @@
   --color-surface-3: var(--surface-3);
   --color-card: var(--card);
   --color-card-solid: var(--card-solid);
+  --color-glass-base: var(--glass-base);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-muted: var(--ink-muted);
@@ -201,9 +229,11 @@ body::after {
   isolation: isolate;
   /* a stable frosted backing (mixed toward the dark surface, not transparent) so
      text always has enough contrast — glass, but readable first. */
+  /* The sheen stays; the bottom layer is opaque so text contrast is fixed and
+     testable rather than dependent on whatever is scrolling underneath. */
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.012) 42%, transparent 72%),
-    color-mix(in srgb, var(--card) 92%, var(--surface));
+    var(--glass-base);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
@@ -245,8 +275,11 @@ body::after {
 }
 /* micro eyebrow label — the small tracked uppercase caption above a value */
 .eyebrow {
-  font-size: 0.66rem;
-  line-height: 1;
+  /* was 0.66rem (10.56px), used 25 times including six inside .os-card. A
+     passing contrast ratio does not make 10px text readable; 12px is the floor
+     the system now enforces, asserted by a11y/contrast.test.ts. */
+  font-size: 0.75rem;
+  line-height: 1.1;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -437,9 +470,11 @@ body::after {
   border-radius: 26px;
   isolation: isolate;
   overflow: hidden;
+  /* Opaque base under the glass. The white gradient above peaks at 0.12, which
+     is the worst case contrast.test.ts measures against. */
   background:
     linear-gradient(140deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03) 36%, transparent 66%),
-    color-mix(in srgb, var(--card) 64%, transparent);
+    var(--glass-base);
   backdrop-filter: blur(40px) saturate(2);
   -webkit-backdrop-filter: blur(40px) saturate(2);
   border: 1px solid rgba(255, 255, 255, 0.12);

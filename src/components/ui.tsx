@@ -101,7 +101,7 @@ export function Stat({
         {icon}
         {value}
       </span>
-      <span className="text-[11px] font-medium text-ink-muted">{label}</span>
+      <span className="text-xs font-medium text-ink-muted">{label}</span>
     </Card>
   );
 }

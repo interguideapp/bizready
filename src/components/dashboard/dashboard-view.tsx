@@ -113,7 +113,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
             </div>
           )}
 
-          <p className="mt-4 flex items-center gap-1.5 text-[11.5px] text-ink-faint">
+          <p className="mt-4 flex items-center gap-1.5 text-xs text-ink-faint">
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
             מבוסס על מקורות רשמיים · מתעדכן כשהחוק משתנה
           </p>
@@ -128,7 +128,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
               <p className="eyebrow">רמה {data.level.level} · מתוך 5</p>
               <p className="mt-1 text-[17px] font-bold leading-tight text-gradient">{data.level.title}</p>
               <div className="mt-3.5">
-                <div className="mb-1.5 flex items-center justify-between text-[11px]">
+                <div className="mb-1.5 flex items-center justify-between text-xs">
                   <span className="text-ink-muted">{data.level.nextTitle ? "לרמה הבאה" : "הרמה הגבוהה ביותר"}</span>
                   {data.level.nextTitle && <span className="tnum font-bold" style={{ color: "var(--aurora-from)" }}>{data.level.nextGap} נק׳</span>}
                 </div>
@@ -139,7 +139,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
               {data.streak > 0 && (
                 <div className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-status-progress">
                   <Flame className="h-4 w-4 animate-aura" aria-hidden /><span className="tnum">{data.streak}</span>
-                  <span className="text-[11px] font-medium text-ink-muted">שבועות רצף</span>
+                  <span className="text-xs font-medium text-ink-muted">שבועות רצף</span>
                 </div>
               )}
             </div>
@@ -163,7 +163,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
                 <Link key={w.templateId + w.daysUntil} href={link(w.templateId)} className="inline-flex items-center gap-2 rounded-full border border-edge-soft bg-surface/40 px-3 py-1.5 text-[13px] transition hover:border-brand-edge">
                   <CalendarClock className="h-3.5 w-3.5 text-brand-400" aria-hidden />
                   <span className="text-ink-soft">{w.title}</span>
-                  <span className={`tnum text-[11px] font-semibold ${w.daysUntil <= 2 ? "text-status-progress" : "text-ink-muted"}`}>{daysPhrase(w.daysUntil)}</span>
+                  <span className={`tnum text-xs font-semibold ${w.daysUntil <= 2 ? "text-status-progress" : "text-ink-muted"}`}>{daysPhrase(w.daysUntil)}</span>
                 </Link>
               ))}
             </div>
@@ -240,7 +240,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
                   </span>
                   <div className="text-center">
                     <div className={`text-[13.5px] font-bold ${current ? "text-brand-strong" : done ? "text-ink" : "text-ink-muted"}`}>{s.title}</div>
-                    <div className="tnum text-[11px] text-ink-muted">{s.done}/{s.total}</div>
+                    <div className="tnum text-xs text-ink-muted">{s.done}/{s.total}</div>
                   </div>
                 </div>
               );
@@ -292,7 +292,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
                 {data.earnedBadges.slice(0, 6).map((b) => (
                   <div key={b.id} className="flex flex-col items-center gap-2 rounded-2xl border border-brand-edge bg-brand-tint/40 p-3 text-center">
                     <span className="flex h-10 w-10 items-center justify-center rounded-full text-white shadow-e-brand" style={{ background: AURORA }}><Ic name={b.icon} className="h-5 w-5" /></span>
-                    <span className="text-[10.5px] font-bold leading-tight text-ink">{b.title}</span>
+                    <span className="text-xs font-bold leading-tight text-ink">{b.title}</span>
                   </div>
                 ))}
               </div>
@@ -302,7 +302,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
             {data.recentWins.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5 border-t border-edge-soft pt-3">
                 {data.recentWins.slice(0, 6).map((w) => (
-                  <Link key={w.templateId} href={`/tasks/${w.templateId}`} className="inline-flex items-center gap-1 rounded-full border border-edge-soft bg-surface/40 px-2.5 py-1 text-[11px] text-ink-soft transition hover:border-brand-edge">
+                  <Link key={w.templateId} href={`/tasks/${w.templateId}`} className="inline-flex items-center gap-1 rounded-full border border-edge-soft bg-surface/40 px-2.5 py-1 text-xs text-ink-soft transition hover:border-brand-edge">
                     <CheckCircle2 className="h-3 w-3 text-status-done" aria-hidden />{w.title}
                   </Link>
                 ))}
@@ -322,7 +322,7 @@ function StepRow({ step, lead }: { step: DashStep; lead?: boolean }) {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-faint"><Lock className="h-4 w-4" aria-hidden /></span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink-soft">{step.title}</p>
-          <p className="truncate text-[11px] text-ink-faint">{step.blockedByTitle ? `יפתח אחרי: ${step.blockedByTitle}` : step.categoryTitle}</p>
+          <p className="truncate text-xs text-ink-faint">{step.blockedByTitle ? `יפתח אחרי: ${step.blockedByTitle}` : step.categoryTitle}</p>
         </div>
       </div>
     );
@@ -332,7 +332,7 @@ function StepRow({ step, lead }: { step: DashStep; lead?: boolean }) {
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-strong"><CategoryIcon name={step.icon} className="h-4.5 w-4.5" /></span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-ink">{step.title}</p>
-        <p className="truncate text-[11px] text-ink-muted">{step.categoryTitle}</p>
+        <p className="truncate text-xs text-ink-muted">{step.categoryTitle}</p>
       </div>
       <ArrowLeft className="h-4 w-4 shrink-0 text-ink-faint transition group-hover:text-brand-strong" aria-hidden />
     </Link>

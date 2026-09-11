@@ -82,11 +82,11 @@ export function ReviewQueuePanel({
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-1.5">
                     <span className="text-sm font-semibold text-ink">{item.title}</span>
-                    <span className="rounded-full border border-edge-soft bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-muted">
+                    <span className="rounded-full border border-edge-soft bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-muted">
                       {item.kind === "figure" ? "סכום" : BASIS_LABEL[item.legalBasis]}
                     </span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                         item.urgency === "now"
                           ? "bg-status-overdue-bg text-status-overdue"
                           : "bg-surface-2 text-ink-muted"
@@ -96,7 +96,7 @@ export function ReviewQueuePanel({
                     </span>
                   </div>
                   <p className="text-xs text-ink-muted">{item.reason}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-ink-muted" dir="ltr">
+                  <p className="mt-0.5 font-mono text-xs text-ink-muted" dir="ltr">
                     {item.id}
                   </p>
                 </div>

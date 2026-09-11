@@ -6,6 +6,7 @@ import {
   REMINDER_WINDOWS_PRO,
   type ComplianceProfile,
 } from "@/lib/compliance";
+import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
 export interface ReminderTask {
@@ -14,6 +15,11 @@ export interface ReminderTask {
   status: TaskStatus;
   is_relevant: boolean;
   due_date: string | null;
+  /**
+   * not_applicable / handled_externally. Needed for the prerequisite gate: a
+   * dismissed setup task must not be what starts a penalty-bearing duty running.
+   */
+  dismissal?: Dismissal | null;
   /** The deadline the user set themselves (migration 028). */
   personal_due_date?: string | null;
   completed_at: string | null;
@@ -86,12 +92,37 @@ export function computeReminders(
   const notifications: NotificationDraft[] = [];
   const recurringResets: RecurringReset[] = [];
 
+  // THE PREREQUISITE GATE, which this engine did not have.
+  //
+  // computeUpcomingObligations has applied it since the audit: a statutory
+  // filing duty is real only once the setup task that unlocks it is done, because
+  // you owe no VAT report before the VAT file exists. This engine skipped the
+  // check entirely — so a new עוסק מורשה whose plan gave vat-reporting a
+  // plan-build date, and who had not opened the file yet, was EMAILED,
+  // PUSHED and WhatsApp'd "באיחור: דיווח מע"מ" for a duty that did not legally
+  // exist. The same defect A9 removed from the home screen, in the loudest
+  // channel the product has.
+  //
+  // satisfiesDependency owns the rule for every engine, and { statutory: true }
+  // is what stops a mere "not relevant" on the setup task from opening the gate.
+  const taskById = new Map(tasks.map((t) => [t.template_id, t] as const));
+  const prereqsMet = (template: TaskTemplate) =>
+    template.depends_on.every((dep) => {
+      const dt = taskById.get(dep);
+      return satisfiesDependency(
+        dt && { status: dt.status as TaskStatus, is_relevant: dt.is_relevant, dismissal: dt.dismissal },
+        { statutory: true }
+      );
+    });
+
   for (const task of tasks) {
     if (!task.is_relevant) continue;
     const template = templates.get(task.template_id);
     if (!template) continue;
 
     const statutory = isStatutoryFiling(task.template_id);
+    // No duty yet means nothing to remind about, and certainly nothing late.
+    if (statutory && !prereqsMet(template)) continue;
 
     // ---------- a completed recurring task: has the next cycle arrived? ----------
     if (template.recurrence && task.status === "done" && task.completed_at) {

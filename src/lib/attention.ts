@@ -31,6 +31,7 @@ export async function loadAttention(business: BusinessRow): Promise<AttentionIte
       template_id: t.template_id,
       status: t.status,
       is_relevant: t.is_relevant,
+      dismissal: t.dismissal ?? null,
       due_date: t.due_date,
       personal_due_date: t.personal_due_date ?? null,
       completed_at: t.completed_at,

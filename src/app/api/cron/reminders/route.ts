@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     const { data: tasks } = await supabase
       .from("business_tasks")
       .select(
-        "id, template_id, status, is_relevant, due_date, completed_at, follow_up_date, waiting_for"
+        "id, template_id, status, is_relevant, dismissal, due_date, personal_due_date, completed_at, follow_up_date, waiting_for"
       )
       .eq("business_id", biz.id);
 

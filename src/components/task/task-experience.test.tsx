@@ -178,3 +178,50 @@ describe("the provenance of a legal claim is actually on screen", () => {
     expect(screen.getAllByText("בחירה עסקית").length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Progress, which is now derived from real step ticks rather than invented.
+ *
+ * Two fixes meet in this number. It used to report 8% for merely opening the
+ * page and 25% for clicking a tab — invented figures in a product whose whole
+ * claim is accuracy. And the ticks themselves moved out of a magic jsonb key
+ * into a typed column (migrations 025/026), so this is the read side of that
+ * cutover. The screen is behind a login and no browser here can reach it, so
+ * these assertions are the only thing standing between the cutover and a
+ * silent regression.
+ */
+describe("step progress is derived, not invented", () => {
+  it("reports the share of steps actually ticked", async () => {
+    await renderTask({ steps: ["א", "ב", "ג", "ד"], stepsDone: [0, 2], status: "in_progress" });
+    expect(screen.getByText("50%")).toBeDefined();
+  });
+
+  it("shows nothing for an untouched task, rather than a courtesy figure", async () => {
+    await renderTask({ steps: ["א", "ב"], stepsDone: [], status: "todo" });
+    expect(screen.getByText("0%")).toBeDefined();
+  });
+
+  it("stops just short of full while the task is still open", async () => {
+    // Every step ticked is not the same as filed. Showing 100% here invites
+    // the user to stop before the evidence is in.
+    await renderTask({ steps: ["א", "ב"], stepsDone: [0, 1], status: "in_progress" });
+    expect(screen.getByText("95%")).toBeDefined();
+    expect(screen.queryByText("100%")).toBeNull();
+  });
+
+  it("ignores a stored index that no longer has a step", async () => {
+    // The real scenario this guards: step indices persist in the database, but
+    // the step LIST lives in content and gets edited. A task that had six steps
+    // and now has two would otherwise count index 5 towards its progress and
+    // report the user further along than they are.
+    await renderTask({ steps: ["א", "ב"], stepsDone: [0, 5, 9], status: "in_progress" });
+    expect(screen.getByText("50%")).toBeDefined();
+  });
+
+  it("ignores a negative index without crashing the screen", async () => {
+    // steps_done is an int[] fed from a Server Action, so a hostile or buggy
+    // client can put anything in it. The task page must still render.
+    await renderTask({ steps: ["א", "ב"], stepsDone: [-1, 1], status: "in_progress" });
+    expect(screen.getByText("50%")).toBeDefined();
+  });
+});

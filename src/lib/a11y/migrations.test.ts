@@ -28,7 +28,81 @@ function migrations(): { name: string; sql: string }[] {
     .map((name) => ({ name, sql: fs.readFileSync(path.join(DIR, name), "utf8") }));
 }
 
+/**
+ * Every .sql file CI applies, not only the numbered migrations.
+ *
+ * The stub file runs FIRST and defines auth.uid(), so if it aborts, every
+ * assertion after it is describing a database that does not resemble
+ * production. It earns the same scrutiny as a migration.
+ */
+function sqlFiles(): { name: string; sql: string }[] {
+  const dirs = [DIR, path.join(process.cwd(), "supabase/ci")];
+  return dirs.flatMap((dir) =>
+    fs.existsSync(dir)
+      ? fs
+          .readdirSync(dir)
+          .filter((f) => f.endsWith(".sql"))
+          .sort()
+          .map((name) => ({
+            name: path.relative(process.cwd(), path.join(dir, name)),
+            sql: fs.readFileSync(path.join(dir, name), "utf8"),
+          }))
+      : []
+  );
+}
+
+/**
+ * Strip every VALID dollar-quote delimiter and return the leftovers.
+ *
+ * Valid is `$$` or `$tag$`, and a positional parameter like `$1` is fine too.
+ * Anything left over is a delimiter that lost a character — which is exactly
+ * how the CI stub's function-body opener became a bare `$` while the file still
+ * read plausibly. The balance check below cannot see that case: zero
+ * occurrences of `$$` is an even number.
+ */
+function orphanDollars(sql: string): string[] {
+  const stripped = sql
+    .split("\n")
+    .filter((line) => !/^\s*--/.test(line))
+    .join("\n")
+    // A `$` inside a quoted string is data, not a delimiter — 002 anchors a
+    // username regex with one. SQL doubles an embedded quote, so consume that.
+    .replace(/'(?:[^']|'')*'/g, "''")
+    .replace(/\$[A-Za-z_][A-Za-z0-9_]*\$/g, "")
+    .replace(/\$\$/g, "")
+    .replace(/\$\d+/g, "");
+  return stripped
+    .split("\n")
+    .filter((line) => line.includes("$"))
+    .map((line) => line.trim());
+}
+
 describe("every migration is structurally sound", () => {
+  it("no dollar-quote delimiter has lost a character", () => {
+    // This bug has now happened twice, in two different ways: once mangling a
+    // `do $$` into `do $`, and once turning a function body's opening `$$` into
+    // `$` while leaving the total count even — so the balance check below
+    // passed. A lone `$` is never valid in these files, so assert that
+    // directly rather than asserting symmetry.
+    const bad: string[] = [];
+    for (const { name, sql } of sqlFiles()) {
+      for (const line of orphanDollars(sql)) bad.push(`${name}: ${line}`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("the CI stub defines the auth function every policy depends on", () => {
+    // auth.uid() was hardcoded to null, so not one policy or membership helper
+    // could be exercised behaviourally — CI could only assert they existed.
+    const stub = sqlFiles().find((f) => f.name.includes("00_supabase_stubs"));
+    expect(stub, "the CI stub file is missing").toBeDefined();
+    expect(stub!.sql).toMatch(/function auth\.uid/);
+    expect(
+      stub!.sql,
+      "auth.uid() must read the session claim, not return a constant"
+    ).toMatch(/request\.jwt\.claims/);
+  });
+
   it("dollar-quoted blocks are balanced", () => {
     // `do $$ ... end $$;` — an odd count means one got truncated to `$`, which
     // is a syntax error at apply time and invisible on review.

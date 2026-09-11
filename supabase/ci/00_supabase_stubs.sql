@@ -12,9 +12,18 @@ create table if not exists auth.users (
   id uuid primary key default gen_random_uuid ()
 );
 
--- RLS policies reference this; in CI it just needs to exist and be stable.
+-- Mirrors the real implementation: PostgREST puts the verified JWT into
+-- request.jwt.claims, and auth.uid() reads the subject out of it. Keeping that
+-- shape here is what lets CI test policies AS a user rather than only assert
+-- that they exist — with nothing set it returns null, so fail-closed checks
+-- still hold.
 create or replace function auth.uid () returns uuid
-  language sql stable as $$ select null::uuid $$;
+  language sql stable as $$
+  select nullif(
+    nullif(current_setting('request.jwt.claims', true), '')::json ->> 'sub',
+    ''
+  )::uuid
+$$;
 
 create table if not exists storage.buckets (
   id text primary key,

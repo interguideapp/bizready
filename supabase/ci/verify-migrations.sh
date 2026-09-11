@@ -248,6 +248,63 @@ begin
     raise exception 'can_edit_business returned true with no authenticated user';
   end if;
 
+  -- ---- the half that actually matters: WHO gets what ----
+  -- Fail-closed is proved above. This proves the grant is not too wide, by
+  -- acting as each party in turn. Without this, "viewer = read only" is a
+  -- claim in a comment rather than a tested property, and a viewer who could
+  -- complete a statutory filing would write into someone else's hash-chained
+  -- audit trail.
+  perform set_config('request.jwt.claims', json_build_object('sub', u1)::text, true);
+  if not public.is_business_member(b1) then
+    raise exception 'the OWNER is not a member of their own business';
+  end if;
+  if not public.can_edit_business(b1) then
+    raise exception 'the OWNER cannot edit their own business — 022 broke the owner path';
+  end if;
+  if public.is_business_member(b2) then
+    raise exception 'CROSS-TENANT: u1 is a member of a business they have no relationship to';
+  end if;
+
+  -- u2 holds a viewer membership on b1 (inserted above).
+  perform set_config('request.jwt.claims', json_build_object('sub', u2)::text, true);
+  if not public.is_business_member(b1) then
+    raise exception 'a VIEWER cannot read the business they were invited to';
+  end if;
+  if public.can_edit_business(b1) then
+    raise exception 'a VIEWER can edit — read-only access does not mean read-only';
+  end if;
+
+  -- Promote the same row to accountant: now editing is the point.
+  update public.business_members set role = 'accountant'
+    where business_id = b1 and user_id = u2;
+  if not public.can_edit_business(b1) then
+    raise exception 'an ACCOUNTANT cannot edit — the collaborator cannot do the work';
+  end if;
+
+  -- An invitation that was never accepted grants nothing, or an emailed token
+  -- alone would be access.
+  update public.business_members set accepted_at = null
+    where business_id = b1 and user_id = u2;
+  if public.is_business_member(b1) then
+    raise exception 'an UNACCEPTED invitation already grants access';
+  end if;
+  update public.business_members set accepted_at = now()
+    where business_id = b1 and user_id = u2;
+
+  -- And revocation must take effect for the helpers, not merely set a column.
+  update public.business_members set revoked_at = now()
+    where business_id = b1 and user_id = u2;
+  if public.is_business_member(b1) then
+    raise exception 'a REVOKED member still has read access';
+  end if;
+  if public.can_edit_business(b1) then
+    raise exception 'a REVOKED accountant can still edit';
+  end if;
+  update public.business_members set revoked_at = null
+    where business_id = b1 and user_id = u2;
+
+  perform set_config('request.jwt.claims', null, true);
+
   -- A revoked membership must stop counting.
   update public.business_members set revoked_at = now() where business_id = b1;
   if exists (

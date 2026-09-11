@@ -1,10 +1,10 @@
 import { todayInIsrael } from "@/lib/dates";
 import Link from "next/link";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, ListChecks, Zap } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
 import { PriorityBadge } from "@/components/badges";
 import { TaskRow } from "@/components/task-row";
-import { Card, Disclaimer, FadeIn, PageTitle } from "@/components/ui";
+import { Card, Disclaimer, EmptyState, FadeIn, PageTitle } from "@/components/ui";
 import { CATEGORIES, CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { requireBusiness, getBusinessTasks } from "@/lib/data";
 import { buildJourney, type Journey, type JourneyNode } from "@/lib/journey";
@@ -62,6 +62,28 @@ export default async function TasksPage({
   return (
     <div>
       <PageTitle eyebrow="מפת הפעולה" title="המשימות שלכם" subtitle="לפי סדר החשיבות — מה לעשות עכשיו, ומה נפתח בהמשך" />
+
+      {/* No plan means no rows at all, and the page was a heading above blank
+          space. Rebuilding from the answers is the actual fix, so that is what
+          the action offers. */}
+      {journey.nodes.length === 0 && (
+        <Card className="p-0">
+          <EmptyState
+            icon={<ListChecks className="h-6 w-6" aria-hidden />}
+            title="אין עדיין תכנית"
+            subtitle="לא מצאנו משימות שמתאימות לעסק שלכם. זה קורה אם השאלון נקטע באמצע, או אם עדכון פרטים הסיר את כל המשימות. אפשר לכייל את התכנית מחדש מההגדרות."
+            action={
+              <Link
+                href="/settings"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
+              >
+                לכיול התכנית
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+              </Link>
+            }
+          />
+        </Card>
+      )}
 
       {/* what's important now */}
       {!activeCategory && importantNow.length > 0 && (

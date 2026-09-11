@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Gauge } from "lucide-react";
+import { CalendarClock, Gauge, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
 import { TrophyWall } from "@/components/insights/trophy-wall";
@@ -122,6 +122,21 @@ export default async function InsightsPage() {
   return (
     <div>
       <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
+
+      {/* Say where the numbers come from instead of showing empty bars and ₪0.
+          The finance half needs revenue, and revenue arrives either from an
+          invoicing connection or from logging it by hand. */}
+      {!hasFinance && (
+        <Card className="mb-5 p-4">
+          <p className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-muted">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" aria-hidden />
+            <span>
+              החלק הכספי כאן מתמלא ברגע שיש מחזור — או מחיבור לתוכנת החשבוניות,
+              או מרישום הכנסה ידני בבית. עד אז מוצגת רק ההתקדמות במשימות.
+            </span>
+          </p>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 lg:grid-cols-2">

@@ -279,6 +279,15 @@ begin
   then raise exception 'content_changelog_reads has no policy — nobody could dismiss a notice'; end if;
 end $$;
 
+-- 024: a sync error can be resolved but not rewritten. 006 granted an
+-- unrestricted owner UPDATE, so a session could edit the message describing
+-- what the integration failed to reconcile.
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'sync_errors_guard')
+  then raise exception 'the sync_errors guard is missing — the failure record is editable'; end if;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

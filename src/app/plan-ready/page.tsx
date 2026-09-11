@@ -7,9 +7,26 @@ import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { getBusiness, getBusinessTasks } from "@/lib/data";
 import { computeScore } from "@/lib/rules-engine";
 
+/**
+ * How long after onboarding this page is still the right thing to show.
+ *
+ * It is a one-time celebration — "your plan is ready" — and the guard used to
+ * be only "has onboarding finished", so it re-rendered the same congratulations
+ * on any later visit, months in, to someone who had already completed half
+ * their plan. A stale celebration is worse than no celebration: it tells the
+ * user the product has lost track of where they are.
+ */
+const CELEBRATION_WINDOW_MS = 60 * 60 * 1000;
+
 export default async function PlanReadyPage() {
   const business = await getBusiness();
   if (!business?.onboarding_completed_at) redirect("/onboarding");
+
+  // Past the window, this is just the home screen with confetti on it.
+  const completedAt = new Date(business.onboarding_completed_at).getTime();
+  if (Number.isFinite(completedAt) && Date.now() - completedAt > CELEBRATION_WINDOW_MS) {
+    redirect("/home");
+  }
 
   const tasks = await getBusinessTasks(business.id);
   const score = computeScore(tasks, TEMPLATES_BY_ID);

@@ -6,8 +6,11 @@ import { setMonthlyIncome } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
 import type { IncomeMonth } from "@/lib/finance/income";
+import { formatIlsRounded } from "@/lib/money";
 
-const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+// One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 
 export function IncomeLogger({
   months,

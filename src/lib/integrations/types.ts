@@ -51,6 +51,19 @@ export interface NormalizedBatch {
   documents: NormalizedDocument[];
   contacts: NormalizedContact[];
   orders: NormalizedOrder[];
+  /**
+   * Set when the provider had more data than we fetched.
+   *
+   * This exists because iCount was pulled with `limit: 1000` and no
+   * pagination, and the revenue it returns feeds the עוסק פטור ceiling
+   * calculation. A business past 1000 documents in a year would have had its
+   * turnover silently understated — and the ceiling warning is the one number
+   * where understating it is the dangerous direction: it tells someone they
+   * have room when they have crossed the line.
+   *
+   * A truncated batch must never be reported as a clean sync.
+   */
+  truncated?: { source: string; fetched: number } | null;
 }
 
 export const EMPTY_BATCH: NormalizedBatch = {

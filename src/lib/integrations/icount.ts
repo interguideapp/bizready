@@ -65,11 +65,6 @@ export const icountAdapter: ProviderAdapter = {
 
   async pull(creds, since, fieldMap): Promise<NormalizedBatch> {
     const fromDate = since ?? `${new Date().getFullYear()}-01-01`;
-    const data = await call("doc/list", creds, {
-      from_date: fromDate,
-      detail_level: 1,
-      limit: 1000,
-    });
 
     interface ICountDoc {
       docnum?: string | number;
@@ -81,10 +76,40 @@ export const icountAdapter: ProviderAdapter = {
       status?: string | number;
       allocation_number?: string;
     }
-    const raw = data.docs_list ?? data.results ?? [];
-    const docs: ICountDoc[] = Array.isArray(raw)
-      ? (raw as ICountDoc[])
-      : (Object.values(raw as Record<string, ICountDoc>) as ICountDoc[]);
+    // Paginated. This was a single call with limit: 1000 and no offset, so a
+    // business past a thousand documents in a year had its turnover silently
+    // understated — and that turnover drives the עוסק פטור ceiling warning,
+    // where understating is the dangerous direction: it says you have room
+    // when you have crossed the line.
+    const PAGE_SIZE = 500;
+    const MAX_PAGES = 20; // 10,000 documents, then we stop and admit it
+    const docs: ICountDoc[] = [];
+    let truncated: NormalizedBatch["truncated"] = null;
+
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const data = await call("doc/list", creds, {
+        from_date: fromDate,
+        detail_level: 1,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+      });
+
+      const raw = data.docs_list ?? data.results ?? [];
+      const pageDocs: ICountDoc[] = Array.isArray(raw)
+        ? (raw as ICountDoc[])
+        : (Object.values(raw as Record<string, ICountDoc>) as ICountDoc[]);
+
+      docs.push(...pageDocs);
+
+      // A short page is the last page. Equally, a provider that ignores our
+      // offset would return the same full page for ever — the MAX_PAGES cap
+      // below is what stops that becoming an infinite loop.
+      if (pageDocs.length < PAGE_SIZE) break;
+
+      if (page === MAX_PAGES - 1) {
+        truncated = { source: "icount", fetched: docs.length };
+      }
+    }
 
     const documents: NormalizedDocument[] = [];
     for (const doc of docs) {
@@ -106,6 +131,6 @@ export const icountAdapter: ProviderAdapter = {
       });
     }
 
-    return { ...EMPTY_BATCH, documents };
+    return { ...EMPTY_BATCH, documents, truncated };
   },
 };

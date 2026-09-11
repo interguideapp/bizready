@@ -124,7 +124,7 @@ export default async function HomePage() {
   const ranked = rankByExposure(actionable).slice(0, 4);
   const exposures = ranked.map((e) => ({
     title: e.title,
-    href: e.templateId ? `/tasks/${e.templateId}` : "/calendar",
+    href: e.templateId ? `/tasks/${e.templateId}?from=home` : "/calendar",
     dueLabel:
       e.daysUntil < 0
         ? `באיחור ${-e.daysUntil} ימים`
@@ -191,7 +191,7 @@ export default async function HomePage() {
   });
   const oneThingId = confidence.theOneThing?.templateId ?? null;
   const oneThing = confidence.theOneThing
-    ? { title: confidence.theOneThing.title, href: oneThingId && oneThingId !== "calendar" ? `/tasks/${oneThingId}` : "/calendar" }
+    ? { title: confidence.theOneThing.title, href: oneThingId && oneThingId !== "calendar" ? `/tasks/${oneThingId}?from=home` : "/calendar" }
     : null;
 
   // waiting on a third party (handed off, awaiting an authority/approval)
@@ -201,7 +201,7 @@ export default async function HomePage() {
       title: TEMPLATES_BY_ID.get(t.template_id)?.title ?? t.template_id,
       waitingFor: t.waiting_for ?? null,
       followUp: t.follow_up_date ? new Date(t.follow_up_date + "T00:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }) : null,
-      href: `/tasks/${t.template_id}`,
+      href: `/tasks/${t.template_id}?from=home`,
     }))
     .slice(0, 4);
 
@@ -254,7 +254,7 @@ export default async function HomePage() {
   ).map((b) => ({
     title: TEMPLATES_BY_ID.get(b.templateId)?.title ?? b.templateId,
     blockedByTitle: TEMPLATES_BY_ID.get(b.blockedBy)?.title ?? b.blockedBy,
-    href: `/tasks/${b.blockedBy}`,
+    href: `/tasks/${b.blockedBy}?from=home`,
   }));
 
   const data: HomeOSData = {

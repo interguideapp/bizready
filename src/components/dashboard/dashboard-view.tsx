@@ -29,6 +29,7 @@ import {
 import { Card, FadeIn } from "@/components/ui";
 import { CategoryIcon } from "@/components/category-icon";
 import { fadeUp, spring, stagger } from "@/lib/motion";
+import { formatIlsRounded } from "@/lib/money";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Footprints, Landmark, Rocket, FileCheck2, FolderCheck, BadgeCheck,
@@ -67,7 +68,9 @@ export interface DashboardData {
   badgeTotal: number;
 }
 
-const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+// One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 const AURORA = "linear-gradient(102deg,var(--aurora-from),var(--aurora-to))";
 
 function daysPhrase(d: number) {

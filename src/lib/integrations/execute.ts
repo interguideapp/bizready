@@ -233,7 +233,32 @@ export async function executeBatch(
     }
   }
 
-  // connection heartbeat
+  // A truncated pull is NOT a clean sync. The revenue it returns drives the
+  // עוסק פטור ceiling warning, and an understated turnover tells someone they
+  // have room when they may have crossed the line — so it is recorded as a
+  // compliance error the user can see rather than quietly succeeding.
+  if (batch.truncated) {
+    const code = "sync_truncated";
+    const { data: twin } = await supabase
+      .from("sync_errors")
+      .select("id")
+      .eq("business_id", businessId)
+      .eq("code", code)
+      .is("resolved_at", null)
+      .maybeSingle();
+    if (!twin) {
+      await supabase.from("sync_errors").insert({
+        connection_id: connection.id,
+        business_id: businessId,
+        code,
+        message: `נמשכו ${batch.truncated.fetched} מסמכים ויש עוד — המחזור המוצג חלקי.`,
+        hint: "המחזור שמוצג עלול להיות נמוך מהאמת, כולל מול תקרת עוסק פטור. שווה לאמת מול תוכנת החשבוניות.",
+      });
+    }
+  }
+
+  // connection heartbeat. Marked connected either way — the pull worked; it was
+  // just incomplete, and the error above is what says so.
   await supabase
     .from("integration_connections")
     .update({ status: "connected", last_sync_at: new Date().toISOString(), last_error: null })

@@ -1,3 +1,5 @@
+import { formatIlsRounded as ils } from "@/lib/money";
+
 /**
  * 12-month revenue bars. Single brand hue (magnitude, not identity), thin
  * rounded marks, selective direct labels — and semantic tokens so it reads
@@ -45,7 +47,6 @@ export interface MonthPoint {
   value: number;
 }
 
-const ils = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
 
 export function RevenueChart({ points }: { points: MonthPoint[] }) {
   const width = 640;

@@ -2,8 +2,11 @@ import { AlertTriangle, Banknote, CalendarClock, Gauge, TrendingUp } from "lucid
 import { Card } from "@/components/ui";
 import { RevenueChart, type MonthPoint } from "@/components/revenue-chart";
 import { computeSetAside } from "@/lib/finance/setaside";
+import { formatIlsRounded } from "@/lib/money";
 
-const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+// One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 
 export interface FinanceData {
   monthly: MonthPoint[];

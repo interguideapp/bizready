@@ -7,8 +7,11 @@ import { toast } from "@/components/toaster";
 import { Button, Card } from "@/components/ui";
 import { Table, type Column } from "@/components/table";
 import { CADENCE_LABEL, monthlyTotal, annualTotal, type CostRow, type Cadence } from "@/lib/costs";
+import { formatIlsRounded } from "@/lib/money";
 
-const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+// One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 
 export function CostsManager({ costs }: { costs: CostRow[] }) {
   const [name, setName] = useState("");

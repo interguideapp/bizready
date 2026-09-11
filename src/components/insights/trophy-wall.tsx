@@ -112,7 +112,7 @@ export function TrophyWall({
             {wins.slice(0, 10).map((w) => (
               <Link
                 key={w.templateId}
-                href={`/tasks/${w.templateId}`}
+                href={`/tasks/${w.templateId}?from=insights`}
                 className="inline-flex items-center gap-1 rounded-full border border-edge-soft bg-surface/40 px-2.5 py-1 text-xs text-ink-soft transition hover:border-brand-edge"
               >
                 <CheckCircle2 className="h-3 w-3 text-status-done" aria-hidden />

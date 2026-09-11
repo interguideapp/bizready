@@ -90,7 +90,7 @@ export function relevantChanges(
     .flatMap((e) => {
       const title = titleFor(e.template_id);
       if (!title) return [];
-      return [{ ...e, title, href: `/tasks/${e.template_id}` }];
+      return [{ ...e, title, href: `/tasks/${e.template_id}?from=home` }];
     })
     .sort(
       (a, b) =>

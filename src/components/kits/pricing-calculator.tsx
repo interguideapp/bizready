@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Calculator } from "lucide-react";
+import { formatIlsRounded } from "@/lib/money";
 
 /**
  * A real pricing tool: from monthly costs, the take-home you want, billable
@@ -24,7 +25,9 @@ export function PricingCalculator() {
   const grossMonthly = h > 0 ? (c + s) / (1 - tax / 100) : 0;
   const perHour = h > 0 ? Math.ceil(grossMonthly / h / 5) * 5 : 0;
 
-  const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+  // One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 
   const fields: { label: string; value: string; set: (v: string) => void; ph: string; suffix?: string }[] = [
     { label: "הוצאות עסקיות בחודש (₪)", value: costs, set: setCosts, ph: "למשל 3000" },

@@ -21,8 +21,11 @@ import { annualTotal, CADENCE_LABEL, monthlyTotal } from "@/lib/costs";
 import { getTaskEvents } from "@/lib/data";
 import { ENTITY_LABELS, type OnboardingAnswers } from "@/lib/types";
 import type { PassportData } from "@/lib/documents/passport";
+import { formatIlsRounded } from "@/lib/money";
 
-const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+// One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 const heDate = (iso: string | null) =>
   iso ? new Date(iso.slice(0, 10) + "T00:00:00").toLocaleDateString("he-IL") : "—";
 const DOC_LABEL: Record<string, string> = {

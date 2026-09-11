@@ -97,7 +97,7 @@ export default async function DocumentsPage() {
             {generators.map((g) => (
               <Link
                 key={g.id}
-                href={`/tasks/${g.templateId}`}
+                href={`/tasks/${g.templateId}?from=documents`}
                 className="rounded-2xl border border-brand-edge bg-brand-tint/40 p-4 transition hover:border-brand-300 hover:bg-brand-tint/70"
               >
                 <p className="font-semibold text-ink">{g.title}</p>

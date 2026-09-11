@@ -93,7 +93,7 @@ export default async function TrackingPage() {
                     return (
                       <Link
                         key={task.id}
-                        href={`/tasks/${task.template_id}`}
+                        href={`/tasks/${task.template_id}?from=tracking`}
                         className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface/60"
                       >
                         <div className="min-w-0 flex-1">

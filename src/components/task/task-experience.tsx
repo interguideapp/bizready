@@ -30,6 +30,7 @@ import { TaskChecklist } from "@/components/task-checklist";
 import { DocumentUpload } from "@/components/document-upload";
 import { OfferCard } from "@/components/offer-card";
 import { fadeUp, spring } from "@/lib/motion";
+import { TaskBackLink } from "@/components/task/back-link";
 import { BasisChip, ProvenanceCard } from "@/components/task/provenance";
 import type { TaskView } from "@/lib/task-view";
 import { ArchetypeAction, archetypePrimaryCta } from "@/components/task/archetype-action";
@@ -78,13 +79,7 @@ export function TaskExperience({
 
   return (
     <div>
-      <Link
-        href="/tasks"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-ink-muted transition hover:text-ink"
-      >
-        <ArrowRight className="h-4 w-4" aria-hidden />
-        כל המשימות
-      </Link>
+      <TaskBackLink />
 
       {/* ---------- hero ---------- */}
       <motion.header

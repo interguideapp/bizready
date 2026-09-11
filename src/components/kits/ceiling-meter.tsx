@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, TrendingUp } from "lucide-react";
+import { formatIls as nis } from "@/lib/money";
 
 /**
  * Live עוסק-פטור ceiling tracker. The user enters turnover so far this year and
@@ -39,7 +40,7 @@ export function CeilingMeter({ ceiling }: { ceiling: number }) {
         ? "bg-status-progress"
         : "bg-status-done";
 
-  const nis = (n: number) => "₪" + n.toLocaleString("he-IL");
+
 
   return (
     <div className="flex flex-col gap-4">

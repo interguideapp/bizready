@@ -15,6 +15,7 @@ const CODE_LABELS: Record<string, string> = {
   invalid_lead: "ליד לא תקין",
   invalid_order: "הזמנה לא תקינה",
   invalid_row: "שורה לא תקינה",
+  sync_truncated: "סנכרון חלקי — יש עוד נתונים",
 };
 
 export function ErrorsList({ errors }: { errors: SyncErrorRow[] }) {

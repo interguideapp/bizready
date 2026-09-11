@@ -19,6 +19,16 @@ import { reviewAge } from "@/lib/staleness";
  * server client and `next/headers`, neither of which exists outside a request.
  * The stubs are never called — every test here is about what renders.
  */
+// The back link reads the router and the query string, neither of which
+// exists outside a Next request. Mocked at the module boundary rather than
+// wrapped in a provider, because the component under test here is the task
+// screen, not the router.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ back: vi.fn(), push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/tasks/open-vat-file",
+}));
+
 vi.mock("@/lib/actions", () => ({
   setTaskStatus: vi.fn(),
   saveTaskNotes: vi.fn(),

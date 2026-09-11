@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { greetingFor, type QuickWin } from "@/lib/home";
 import type { ConfidenceState } from "@/lib/confidence";
+import { formatIlsRounded } from "@/lib/money";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Wallet, UserRound, FolderOpen, Store, Zap, FileCheck2, CheckCircle2, Flame,
@@ -39,7 +40,9 @@ function Ic({ name, className }: { name: string; className?: string }) {
   return <C className={className} />;
 }
 
-const nis = (n: number) => "₪" + Math.round(n).toLocaleString("he-IL");
+// One formatter for the whole app — see lib/money.ts. Rounded here because
+// these are aggregates and chart labels, where agorot are noise.
+const nis = formatIlsRounded;
 
 export interface HomeOSData {
   name: string;

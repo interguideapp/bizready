@@ -43,7 +43,9 @@ describe("only changes that affect THIS business are shown", () => {
     );
     expect(changes).toHaveLength(1);
     expect(changes[0].title).toBe('דיווחי מע"מ תקופתיים');
-    expect(changes[0].href).toBe("/tasks/vat-reporting");
+    // ?from=home so the task page's back link returns the user to the home
+    // screen they clicked from, rather than dumping them on /tasks.
+    expect(changes[0].href).toBe("/tasks/vat-reporting?from=home");
   });
 
   it("drops a change about a template we can no longer name", () => {

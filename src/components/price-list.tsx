@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { addProduct, deleteProduct } from "@/lib/actions";
 import { Table, type Column } from "@/components/table";
+import { formatIls } from "@/lib/money";
 import type { ProductRow } from "@/lib/data";
 
 const UNIT_LABELS: Record<string, string> = {
@@ -125,7 +126,7 @@ const PRICE_COLUMNS: Column<ProductRow>[] = [
     sortValue: (p) => (p.price == null ? Number.MAX_SAFE_INTEGER : Number(p.price)),
     cell: (p) => (
       <>
-        {p.price != null ? `₪${Number(p.price).toLocaleString("he-IL")}` : "—"}
+        {formatIls(p.price == null ? null : Number(p.price))}
         <span className="ms-1 text-xs text-ink-muted">{UNIT_LABELS[p.unit] ?? ""}</span>
       </>
     ),

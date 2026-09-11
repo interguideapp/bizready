@@ -1,5 +1,6 @@
 import type { TaskTemplate, TaskStatus } from "@/lib/types";
 import { PRIORITY_WEIGHT } from "@/lib/types";
+import { STATUTORY_FILINGS } from "@/lib/compliance";
 
 /**
  * Mature, dignified gamification — a "readiness" progression, not a game.
@@ -142,7 +143,12 @@ export interface BadgeContext {
   streak: number;
 }
 
-const STATUTORY = new Set(["vat-reporting", "income-tax-advances", "annual-tax-report"]);
+// Was a second, hand-written copy of the three ids compliance.ts also declared.
+// Two lists that must agree, maintained separately, is a correctness risk rather
+// than mere duplication — and this copy had already fallen behind, so the
+// "filed on time" badge could never be earned by the employer or
+// national-insurance filings. One list now, derived from the date rules.
+const STATUTORY = STATUTORY_FILINGS;
 
 export function computeBadges(ctx: BadgeContext): Badge[] {
   const { tasks, templates, stageOf, profilePercent, documentsCount, streak } = ctx;

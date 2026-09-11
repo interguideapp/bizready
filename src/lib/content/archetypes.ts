@@ -88,6 +88,11 @@ export const ARCHETYPE_BY_ID: Record<string, TaskArchetype> = {
   // 9 · incorporated entities (חברה בע"מ / שותפות). These were missing, so all
   // eight fell through to "routine" — rendering a company's audited annual
   // return and its registrar fee as "set up an ongoing habit".
+  // the three filings added in the 2026-09 research pass
+  "employer-monthly-102": "filing",
+  "employer-annual-126": "filing",
+  "bituach-leumi-advances": "filing",
+
   "register-company": "registration",
   "company-tax-files": "registration",
   "company-bank-account": "provider",

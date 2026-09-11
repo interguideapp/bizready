@@ -108,7 +108,9 @@ export function computeReminders(
         // not-yet-passed deadline, so "the period I filed for is no longer the
         // current one" is exactly the condition to reopen on.
         const periodDue = nextStatutoryDueDate(task.template_id, today, profile);
-        if (task.due_date !== periodDue) {
+        // null means the obligation is demand-triggered (הצהרת הון): there is no
+        // period to roll over to, so there is nothing to reopen.
+        if (periodDue !== null && task.due_date !== periodDue) {
           recurringResets.push({
             taskId: task.id,
             templateId: task.template_id,

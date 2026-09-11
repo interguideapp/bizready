@@ -1,5 +1,10 @@
 import { todayInIsrael, israelParts } from "@/lib/dates";
 import { dismissalOf, satisfiesDependency, type Dismissal } from "@/lib/task-status";
+import {
+  DATED_FILING_IDS,
+  filingRuleFor,
+  type FilingRule,
+} from "@/lib/content/filing-rules";
 import type { TaskStatus, TaskTemplate } from "@/lib/types";
 
 /**
@@ -17,8 +22,10 @@ import type { TaskStatus, TaskTemplate } from "@/lib/types";
 
 export type ObligationKind =
   | "vat" // דיווח מע"מ
-  | "advances" // מקדמות מס
+  | "advances" // מקדמות מס (מס הכנסה או ביטוח לאומי)
   | "annual_report" // דוח שנתי
+  | "employer_deductions" // דיווח ניכויים חודשי (טופס 102)
+  | "registrar_fee" // אגרה שנתית לרשם
   | "renewal" // חידוש ביטוח/רישיון
   | "document_expiry"; // תפוגת מסמך
 
@@ -120,11 +127,16 @@ function periodLabelFor(startAbs: number, endAbs: number): string {
  * The three filings that carry a real, dated legal deadline with penalties.
  * These are the only obligations that may ever show as "overdue".
  */
-export const STATUTORY_FILINGS = new Set([
-  "vat-reporting",
-  "income-tax-advances",
-  "annual-tax-report",
-]);
+/**
+ * Derived from the date-rule registry rather than hand-written, so the set of
+ * things that may show as "overdue" can never drift from the set of things we
+ * can actually date. It used to be typed out twice — here and in
+ * gamification.ts — which was a correctness risk, not just duplication.
+ *
+ * on_demand rules are excluded on purpose: we cannot see the demand, so calling
+ * one late would be a fabricated deadline.
+ */
+export const STATUTORY_FILINGS = new Set(DATED_FILING_IDS);
 
 export function isStatutoryFiling(templateId: string): boolean {
   return STATUTORY_FILINGS.has(templateId);
@@ -180,14 +192,58 @@ export function nextAnnualReport(today: Date): string {
 
 const ITA_SOURCE = "https://www.gov.il/he/departments/israel_tax_authority";
 
-/** The next due date for a statutory filing template — anchored, frequency-aware. */
+/** Next occurrence of a fixed calendar date (month is 1-12). */
+export function nextAnnualDate(today: Date, month: number, day: number): string {
+  const y = israelParts(today).year;
+  let due = new Date(Date.UTC(y, month - 1, day));
+  if (daysBetween(iso(due), today) < 0) due = new Date(Date.UTC(y + 1, month - 1, day));
+  return iso(due);
+}
+
+/**
+ * Next occurrence of "day N of every month, covering the previous month".
+ * Returns the period too, because the answer to "which month is this for?" is
+ * part of the date being trustworthy.
+ */
+export function nextMonthlyDue(
+  today: Date,
+  day: number
+): { dueIso: string; periodAbs: number } {
+  const { year, month } = israelParts(today);
+  const tAbs = year * 12 + month;
+  // start a month back so a period whose deadline has not yet passed is caught
+  for (let dueAbs = tAbs - 1; dueAbs <= tAbs + 13; dueAbs++) {
+    const dueIso = iso(new Date(Date.UTC(Math.floor(dueAbs / 12), dueAbs % 12, day)));
+    if (daysBetween(dueIso, today) >= 0) return { dueIso, periodAbs: dueAbs - 1 };
+  }
+  const dueIso = iso(new Date(Date.UTC(year, month, day)));
+  return { dueIso, periodAbs: tAbs - 1 };
+}
+
+/**
+ * The next due date for a dated statutory filing, from its declared rule.
+ *
+ * Returns null for an on_demand obligation: there is genuinely no date until
+ * the user tells us when the demand arrived, and returning a guess would be the
+ * fabricated-deadline bug in a new costume.
+ */
 export function nextStatutoryDueDate(
   templateId: string,
   today: Date,
   profile: ComplianceProfile
-): string {
-  if (templateId === "annual-tax-report") return nextAnnualReport(today);
-  return nextFilingPeriod(today, reportingFrequency(profile)).dueIso;
+): string | null {
+  const entry = filingRuleFor(templateId);
+  if (!entry) return null;
+  switch (entry.rule.anchor) {
+    case "period_plus":
+      return nextFilingPeriod(today, reportingFrequency(profile)).dueIso;
+    case "monthly":
+      return nextMonthlyDue(today, entry.rule.day).dueIso;
+    case "annual":
+      return nextAnnualDate(today, entry.rule.month, entry.rule.day);
+    case "on_demand":
+      return null;
+  }
 }
 
 // ---------- recommended (non-statutory) deadlines ----------
@@ -208,6 +264,76 @@ export function recommendedDeadline(
     : new Date();
   base.setUTCDate(base.getUTCDate() + template.deadline_days);
   return iso(base);
+}
+
+/**
+ * One occurrence of a declared filing rule: the date, the period it covers, and
+ * the sentence explaining it.
+ *
+ * The explanation is generated FROM the rule rather than written beside it. That
+ * is deliberate: the old hand-written strings had drifted from their own dates —
+ * the VAT text promised "מקוון — עד ה-19" next to a date computed for the 15th,
+ * and the annual-report text said "עד סוף מאי" next to 30 April. An explanation
+ * that contradicts its date is worse than none, because the product's entire
+ * claim is that you can see the reasoning behind the date.
+ */
+function occurrenceFor(
+  entry: FilingRule,
+  today: Date,
+  freq: VatFrequency,
+  profile: ComplianceProfile
+): { dueIso: string; periodLabel: string | null; ruleText: string } | null {
+  const freqWord = freq === "monthly" ? "כל חודש" : "אחת לחודשיים";
+  const note = entry.note ? ` ${entry.note}` : "";
+
+  switch (entry.rule.anchor) {
+    case "period_plus": {
+      const period = nextFilingPeriod(today, freq);
+      const label = periodLabelFor(period.startAbs, period.endAbs);
+      return {
+        dueIso: period.dueIso,
+        periodLabel: label,
+        ruleText:
+          `הדיווח מוגש ${freqWord}, עד ה-${entry.rule.day} בחודש שאחרי סוף התקופה. ` +
+          `${entry.periodNoun} ${label} מוגשת עד ${heDate(period.dueIso)}.${note}`,
+      };
+    }
+    case "monthly": {
+      const { dueIso, periodAbs } = nextMonthlyDue(today, entry.rule.day);
+      const label = periodLabelFor(periodAbs, periodAbs);
+      return {
+        dueIso,
+        periodLabel: label,
+        ruleText:
+          `מדי חודש, עד ה-${entry.rule.day} בחודש, עבור החודש שקדם לו. ` +
+          `${entry.periodNoun} ${label} — עד ${heDate(dueIso)}.${note}`,
+      };
+    }
+    case "annual": {
+      const dueIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
+      const forYear = entry.kind === "registrar_fee"
+        ? Number(dueIso.slice(0, 4))
+        : Number(dueIso.slice(0, 4)) - 1;
+      // The annual tax return is the one place a real, widely-used extension
+      // exists, and it depends on being represented. Say that instead of
+      // asserting a single date for everyone.
+      const representedNote =
+        entry.kind === "annual_report" && profile.hasAccountant
+          ? ' בייצוג של רו"ח או יועץ מס מקבלים בדרך כלל ארכה לפי מועדי ה"הסדר" של רשות המסים — ודאו את התאריך המדויק מול המייצג.'
+          : "";
+      return {
+        dueIso,
+        periodLabel: `${entry.periodNoun} ${forYear}`,
+        ruleText:
+          `מועד קבוע בלוח השנה: ${heDate(dueIso)} (${entry.rule.day} ב${HE_MONTHS[entry.rule.month - 1]}).` +
+          `${note}${representedNote}`,
+      };
+    }
+    case "on_demand":
+      // No demand date, no deadline. The rule is explained on the task itself;
+      // inventing a date here is precisely the bug this pass removed.
+      return null;
+  }
 }
 
 // ---------- main engine ----------
@@ -262,62 +388,25 @@ export function computeUpcomingObligations(
     if (isStatutoryFiling(task.template_id) && !prereqsMet(template)) continue;
 
     // --- statutory filings: real, period-accurate, sourced dates ---
-    if (task.template_id === "vat-reporting") {
-      const p = nextFilingPeriod(today, freq);
-      if (withinHorizon(p.dueIso)) {
-        const label = periodLabelFor(p.startAbs, p.endAbs);
+    // Driven entirely by the declared rule. This used to be three hardcoded
+    // `if (task.template_id === ...)` branches, which is why only three
+    // obligations had dates while the registrar fees, every employer filing and
+    // the self-employed national-insurance advance had none.
+    const entry = filingRuleFor(task.template_id);
+    if (entry) {
+      const occurrence = occurrenceFor(entry, today, freq, profile);
+      if (occurrence && withinHorizon(occurrence.dueIso)) {
         out.push({
-          id: `vat:${p.dueIso}`,
-          kind: "vat",
+          id: `${entry.kind}:${task.template_id}:${occurrence.dueIso}`,
+          kind: entry.kind,
           basis: "statutory",
           title: template.title,
-          dueDate: p.dueIso,
+          dueDate: occurrence.dueIso,
           templateId: template.id,
-          daysUntil: daysBetween(p.dueIso, today),
-          periodLabel: label,
-          ruleText: `דיווח מע"מ מוגש ${freqWord}, עד ה-15 בחודש שאחרי סוף התקופה (בדיווח ותשלום מקוונים — עד ה-19). התקופה ${label} מוגשת עד ${heDate(p.dueIso)}.`,
-          sourceUrl: ITA_SOURCE,
-        });
-      }
-      continue;
-    }
-
-    if (task.template_id === "income-tax-advances") {
-      const p = nextFilingPeriod(today, freq);
-      if (withinHorizon(p.dueIso)) {
-        const label = periodLabelFor(p.startAbs, p.endAbs);
-        out.push({
-          id: `advances:${p.dueIso}`,
-          kind: "advances",
-          basis: "statutory",
-          title: template.title,
-          dueDate: p.dueIso,
-          templateId: template.id,
-          daysUntil: daysBetween(p.dueIso, today),
-          periodLabel: label,
-          ruleText: `מקדמות מס הכנסה משולמות באותה תדירות כמו המע"מ (${freqWord}), עד ה-15 בחודש העוקב. עבור ${label} — עד ${heDate(p.dueIso)}.`,
-          sourceUrl: ITA_SOURCE,
-        });
-      }
-      continue;
-    }
-
-    if (task.template_id === "annual-tax-report") {
-      const dueIso = nextAnnualReport(today);
-      if (withinHorizon(dueIso)) {
-        out.push({
-          id: `annual:${dueIso}`,
-          kind: "annual_report",
-          basis: "statutory",
-          title: template.title,
-          dueDate: dueIso,
-          templateId: template.id,
-          daysUntil: daysBetween(dueIso, today),
-          periodLabel: `שנת ${Number(dueIso.slice(0, 4)) - 1}`,
-          ruleText: profile.hasAccountant
-            ? `הדוח השנתי מוגש עד 30 באפריל. עם ייצוג של רו"ח מקבלים בדרך כלל ארכה (מועדי ה"הסדר" של רשות המסים) — ודאו את התאריך המדויק מול הרו"ח.`
-            : `הדוח השנתי לעצמאי מוגש עד 30 באפריל בשנה העוקבת (בהגשה מקוונת — לרוב עד סוף מאי).`,
-          sourceUrl: ITA_SOURCE,
+          daysUntil: daysBetween(occurrence.dueIso, today),
+          periodLabel: occurrence.periodLabel,
+          ruleText: occurrence.ruleText,
+          sourceUrl: entry.source,
         });
       }
       continue;

@@ -69,11 +69,18 @@ export const LEGAL_BASIS: Record<string, LegalBasis> = {
 
   // Pension for the self-employed — חוק פנסיה חובה לעצמאים, 2017.
   "mandatory-pension": "statute",
+  // Monthly national-insurance advances for the self-employed, collected on the
+  // 22nd. Verified against btl.gov.il in the 2026-09 research pass.
+  "bituach-leumi-advances": "statute",
 
   // Employment. Each of these has a named source: חוק הודעה לעובד,
   // חוק שעות עבודה ומנוחה, חוק הגנת השכר, צו הרחבה לפנסיה חובה,
   // חוק חופשה שנתית / דמי מחלה / צו הרחבה להבראה, צו הרחבה לנסיעות.
   "employer-deductions-file": "statute",
+  // Verified against btl.gov.il and gov.il in the 2026-09 research pass:
+  // 102 monthly by the 15th, 126/856 annually by 30 April.
+  "employer-monthly-102": "statute",
+  "employer-annual-126": "statute",
   "employment-terms-notice": "statute",
   "attendance-tracking": "statute",
   "payroll-solution": "statute",

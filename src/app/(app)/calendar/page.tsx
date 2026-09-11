@@ -8,6 +8,7 @@ import {
   Receipt,
   RefreshCw,
   ShieldCheck,
+  Users,
 } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { Card, EmptyState, FadeIn, InfoPopover, PageTitle } from "@/components/ui";
@@ -29,6 +30,14 @@ const KIND_META: Record<
   advances: { label: "מקדמות מס", icon: <Landmark className="h-4 w-4" aria-hidden /> },
   annual_report: {
     label: "דוח שנתי",
+    icon: <Landmark className="h-4 w-4" aria-hidden />,
+  },
+  employer_deductions: {
+    label: "ניכויים (102)",
+    icon: <Users className="h-4 w-4" aria-hidden />,
+  },
+  registrar_fee: {
+    label: "אגרה שנתית",
     icon: <Landmark className="h-4 w-4" aria-hidden />,
   },
   renewal: { label: "חידוש", icon: <RefreshCw className="h-4 w-4" aria-hidden /> },

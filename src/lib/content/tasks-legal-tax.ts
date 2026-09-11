@@ -519,4 +519,43 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     last_reviewed: REVIEWED,
     sort_order: 9,
   },
+  {
+    id: "bituach-leumi-advances",
+    category_id: "tax",
+    title: "מקדמות ביטוח לאומי לעצמאי",
+    why: "כעצמאי אתם משלמים דמי ביטוח לאומי בעצמכם, מדי חודש, לפי מקדמות שנקבעו לכם. זה לא אותו תשלום כמו מקדמות מס הכנסה ולא אותו מועד. אי-תשלום פוגע בזכויות (דמי לידה, פגיעה בעבודה) וצובר חוב בריבית והצמדה.",
+    steps: `1. בדקו באזור האישי בביטוח לאומי מה גובה המקדמה החודשית שנקבעה לכם
+2. הסדירו הוראת קבע — זו הדרך היחידה לא לשכוח תשלום חודשי
+3. שימו לב למועד: ביטוח לאומי גובה ב-22 לחודש עבור החודש שקדם לו — שבוע אחרי מועד המע"מ ומקדמות מס הכנסה
+4. אם ההכנסה בפועל שונה מהצפי — עדכנו את ההצהרה (אפשר פעם בשלושה חודשים) כדי לא לשלם יותר מדי ולא לצבור חוב
+5. בסוף השנה נעשה חשבון מול ההכנסה האמיתית מהדוח השנתי — ומקבלים החזר או השלמה`,
+    after_submit:
+      "המקדמות הן תשלום על חשבון. אחרי הדוח השנתי ביטוח לאומי עושה חשבון מול ההכנסה בפועל: אם שילמתם יותר — מקבלים החזר; אם פחות — יש השלמה. לכן עדכון המקדמה בזמן שווה כסף לשני הכיוונים.",
+    pitfalls: [
+      "להתבלבל בין המועדים: מע\"מ ומקדמות מס הכנסה ב-15 לחודש, ביטוח לאומי ב-22. שני תאריכים, שתי רשויות.",
+      "להשאיר מקדמה נמוכה מההכנסה האמיתית — נוח בשוטף, אבל יוצר חוב מצטבר שמתגלה בסוף השנה.",
+      "לא לשלם בתקופה של הכנסה נמוכה — זה פוגע ישירות בזכויות ולא רק יוצר חוב.",
+    ],
+    official_links: [
+      { label: "איך משלמים דמי ביטוח — עצמאי | ביטוח לאומי", url: "https://www.btl.gov.il/Insurance/National%20Insurance/type_list/Self_Employed/Pages/howtopay.aspx" },
+      { label: "שיעורי דמי הביטוח לעצמאי | ביטוח לאומי", url: "https://www.btl.gov.il/Insurance/National%20Insurance/type_list/Self_Employed/Pages/rates.aspx" },
+    ],
+    docs_needed: ["מספר תיק בביטוח לאומי", "אומדן הכנסה שנתית"],
+    est_cost: "לפי ההכנסה — נקבע כמקדמה חודשית",
+    est_time: "הסדרה חד-פעמית של הוראת קבע",
+    completion: {
+      confirm: "הסדרתי את תשלום המקדמות לביטוח לאומי",
+      fields: [{ key: "advance", label: "גובה המקדמה החודשית (₪)" }],
+    },
+    // The 2017 self-employed regime: osek + individual partners. A company owner
+    // draws a salary and is reported through טופס 102 instead.
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
+    depends_on: ["open-bituach-leumi-file"],
+    deadline_days: 30,
+    recurrence: "monthly",
+    priority: "critical",
+    source_url: "https://www.btl.gov.il/Insurance/National%20Insurance/type_list/Self_Employed/Pages/howtopay.aspx",
+    last_reviewed: REVIEWED,
+    sort_order: 10,
+  },
 ];

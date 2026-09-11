@@ -54,6 +54,20 @@ function addRecurrence(fromIso: string, recurrence: Recurrence): string {
 }
 
 /**
+ * Advance a stale date by whole cycles until it is no longer in the past.
+ * Used to keep a recurring habit nudging: a monthly task that was never
+ * completed used to keep its original due_date forever.
+ */
+function rollForward(fromIso: string, recurrence: Recurrence, today: Date): string {
+  let next = fromIso.slice(0, 10);
+  // guard against a pathological loop on bad data (20 years of monthly cycles)
+  for (let i = 0; i < 240 && daysBetween(next, today) < 0; i++) {
+    next = addRecurrence(next, recurrence);
+  }
+  return next;
+}
+
+/**
  * Pure reminder engine. Given a business's tasks, decides:
  *  - which deadline / overdue notifications to raise (deduped so they aren't repeated)
  *  - which recurring tasks have come due again and should reset to "todo"
@@ -75,30 +89,57 @@ export function computeReminders(
     const template = templates.get(task.template_id);
     if (!template) continue;
 
-    // recurring task that was completed and whose next cycle has arrived
-    if (
-      template.recurrence &&
-      task.status === "done" &&
-      task.completed_at
-    ) {
-      // completion + one cycle decides WHEN to reopen; but a statutory filing's
-      // next date is the real anchored deadline, not "two months from filing".
+    const statutory = isStatutoryFiling(task.template_id);
+
+    // ---------- a completed recurring task: has the next cycle arrived? ----------
+    if (template.recurrence && task.status === "done" && task.completed_at) {
+      if (statutory) {
+        // The FILING CALENDAR decides, not "one cycle after you filed".
+        //
+        // Two defects lived here. (1) `template.recurrence` is a static string
+        // ("bimonthly" on vat-reporting and income-tax-advances) that ignores the
+        // business's actual vat_frequency — so a MONTHLY filer reopened every two
+        // months and silently skipped every other statutory deadline. (2) The
+        // trigger was completed_at + one cycle, which is structurally late for
+        // anyone who files early: filing on 20 Jan reopened on 20 Mar, five days
+        // AFTER the 15 Mar deadline.
+        //
+        // nextStatutoryDueDate is frequency-aware and always returns the next
+        // not-yet-passed deadline, so "the period I filed for is no longer the
+        // current one" is exactly the condition to reopen on.
+        const periodDue = nextStatutoryDueDate(task.template_id, today, profile);
+        if (task.due_date !== periodDue) {
+          recurringResets.push({
+            taskId: task.id,
+            templateId: task.template_id,
+            newDueDate: periodDue,
+          });
+          notifications.push({
+            type: "recurring",
+            title: `תקופת דיווח חדשה: ${template.title}`,
+            body: "נפתחה תקופת דיווח חדשה. הדיווח הקודם נשמר בהיסטוריה.",
+            template_id: task.template_id,
+            dedupe_key: `recurring:${task.template_id}:${periodDue}`,
+          });
+        }
+        continue;
+      }
+
+      // A habit (bookkeeping, a yearly renewal): one cycle after it was last
+      // done is the right semantics here.
       const trigger = addRecurrence(task.completed_at, template.recurrence);
       if (daysBetween(trigger, today) <= 0) {
-        const nextDue = isStatutoryFiling(task.template_id)
-          ? nextStatutoryDueDate(task.template_id, today, profile)
-          : trigger;
         recurringResets.push({
           taskId: task.id,
           templateId: task.template_id,
-          newDueDate: nextDue,
+          newDueDate: trigger,
         });
         notifications.push({
           type: "recurring",
           title: `הגיע הזמן שוב: ${template.title}`,
-          body: "משימה מחזורית חזרה — כדאי לטפל בה כדי לשמור על הציון.",
+          body: "משימה מחזורית חזרה — כדאי לטפל בה.",
           template_id: task.template_id,
-          dedupe_key: `recurring:${task.template_id}:${nextDue}`,
+          dedupe_key: `recurring:${task.template_id}:${trigger}`,
         });
       }
       continue;
@@ -125,18 +166,38 @@ export function computeReminders(
       (task.status === "todo" || task.status === "in_progress") &&
       task.due_date
     ) {
-      const daysLeft = daysBetween(task.due_date, today);
+      // An open recurring HABIT whose date has gone stale gets rolled forward.
+      // Without this it kept its original due_date forever, and because the
+      // dedupe key embeds that date it was byte-identical every single day — so
+      // the task produced exactly ONE notification in the account's lifetime.
+      //
+      // Statutory filings are deliberately excluded: their date must be allowed
+      // to fall into the past so a genuinely late filing still reports overdue.
+      let effectiveDue = task.due_date;
+      if (template.recurrence && !statutory && daysBetween(task.due_date, today) < 0) {
+        const rolled = rollForward(task.due_date, template.recurrence, today);
+        if (rolled !== task.due_date) {
+          effectiveDue = rolled;
+          recurringResets.push({
+            taskId: task.id,
+            templateId: task.template_id,
+            newDueDate: rolled,
+          });
+        }
+      }
+
+      const daysLeft = daysBetween(effectiveDue, today);
       if (daysLeft < 0) {
         // A red "overdue" is only honest for a real statutory deadline. A
         // recommended one-off (open your files, get insurance…) that slipped
         // past its suggested date is never an "איחור" — we stay quiet.
-        if (isStatutoryFiling(task.template_id)) {
+        if (statutory) {
           notifications.push({
             type: "overdue",
             title: `באיחור: ${template.title}`,
             body: "חרגתם מהמועד החוקי — כדאי לטפל בהקדם כדי לא לצבור קנסות.",
             template_id: task.template_id,
-            dedupe_key: `overdue:${task.template_id}:${task.due_date}`,
+            dedupe_key: `overdue:${task.template_id}:${effectiveDue}`,
           });
         }
       } else {
@@ -155,7 +216,7 @@ export function computeReminders(
                 ? "דדליין מתקרב — יש עוד זמן להתארגן."
                 : "דדליין מתקרב.",
             template_id: task.template_id,
-            dedupe_key: `deadline:${task.template_id}:${task.due_date}:${window}`,
+            dedupe_key: `deadline:${task.template_id}:${effectiveDue}:${window}`,
           });
         }
       }

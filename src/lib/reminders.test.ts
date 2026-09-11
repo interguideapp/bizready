@@ -153,3 +153,116 @@ describe("computeReminders", () => {
     expect(recurringResets).toHaveLength(0);
   });
 });
+
+describe("statutory recurrence is calendar-driven, not completion-driven", () => {
+  // vat-reporting carries a static recurrence: "bimonthly". The reset used to be
+  // addRecurrence(completed_at, that string), so a MONTHLY filer reopened every
+  // two months and silently skipped every other statutory deadline.
+  const mar20 = new Date("2026-03-20T09:00:00Z");
+
+  it("reopens a MONTHLY filer on the monthly calendar", () => {
+    const { recurringResets } = computeReminders(
+      [task({ template_id: "vat-reporting", status: "done", completed_at: "2026-03-10", due_date: "2026-03-15" })],
+      TEMPLATES_BY_ID,
+      mar20,
+      false,
+      { vatFrequency: "monthly" }
+    );
+    expect(recurringResets).toHaveLength(1);
+    expect(recurringResets[0].newDueDate).toBe("2026-04-15");
+  });
+
+  it("reopens a BIMONTHLY filer on the bimonthly calendar", () => {
+    const { recurringResets } = computeReminders(
+      [task({ template_id: "vat-reporting", status: "done", completed_at: "2026-03-10", due_date: "2026-03-15" })],
+      TEMPLATES_BY_ID,
+      mar20,
+      false,
+      { vatFrequency: "bimonthly" }
+    );
+    expect(recurringResets).toHaveLength(1);
+    expect(recurringResets[0].newDueDate).toBe("2026-05-15");
+  });
+
+  it("anchors the reopen to the calendar, not to when you happened to file", () => {
+    const run = (completedAt: string) =>
+      computeReminders(
+        [task({ template_id: "vat-reporting", status: "done", completed_at: completedAt, due_date: "2026-03-15" })],
+        TEMPLATES_BY_ID,
+        mar20,
+        false,
+        { vatFrequency: "monthly" }
+      ).recurringResets[0].newDueDate;
+    // filing three days after the period opened vs. on the deadline itself
+    expect(run("2026-03-01")).toBe(run("2026-03-15"));
+  });
+
+  it("does not reopen while the filed period is still the current one", () => {
+    const { recurringResets } = computeReminders(
+      [task({ template_id: "vat-reporting", status: "done", completed_at: "2026-03-18", due_date: "2026-04-15" })],
+      TEMPLATES_BY_ID,
+      mar20,
+      false,
+      { vatFrequency: "monthly" }
+    );
+    expect(recurringResets).toHaveLength(0);
+  });
+
+  it("a monthly filer is offered all twelve periods across a year — none skipped", () => {
+    const seen = new Set<string>();
+    let due = "2026-01-15";
+    for (let month = 0; month < 12; month++) {
+      const onThe20th = new Date(Date.UTC(2026, month, 20, 9, 0, 0));
+      const { recurringResets } = computeReminders(
+        [task({ template_id: "vat-reporting", status: "done", completed_at: due, due_date: due })],
+        TEMPLATES_BY_ID,
+        onThe20th,
+        false,
+        { vatFrequency: "monthly" }
+      );
+      if (recurringResets.length > 0) {
+        due = recurringResets[0].newDueDate;
+        seen.add(due);
+      }
+    }
+    expect(seen.size).toBe(12);
+  });
+
+  it("never rolls a statutory filing forward — a late filing must stay overdue", () => {
+    const { notifications, recurringResets } = computeReminders(
+      [task({ template_id: "vat-reporting", due_date: "2026-07-10" })],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(recurringResets).toHaveLength(0);
+    expect(notifications[0].type).toBe("overdue");
+  });
+});
+
+describe("an open recurring habit keeps nudging", () => {
+  it("rolls a stale date forward instead of dying after one notification", () => {
+    // bookkeeping is monthly. A never-completed task kept its original due_date
+    // forever, and the dedupe key embeds that date — so it was byte-identical
+    // every day and produced exactly ONE notification, ever.
+    const { recurringResets } = computeReminders(
+      [task({ template_id: "bookkeeping", due_date: "2026-04-10" })],
+      TEMPLATES_BY_ID,
+      today
+    );
+    expect(recurringResets).toHaveLength(1);
+    expect(recurringResets[0].newDueDate).toBe("2026-08-10");
+  });
+
+  it("gives each cycle a distinct dedupe key so reminders are not collapsed", () => {
+    const keyFor = (dueDate: string) =>
+      computeReminders(
+        [task({ template_id: "bookkeeping", due_date: dueDate })],
+        TEMPLATES_BY_ID,
+        new Date("2026-07-12T09:00:00Z")
+      ).notifications.map((x) => x.dedupe_key);
+    // due in 3 days -> a real 7-day-window reminder, keyed to that date
+    expect(keyFor("2026-07-15")).toEqual(["deadline:bookkeeping:2026-07-15:7"]);
+    // a different cycle produces a different key
+    expect(keyFor("2026-07-14")).toEqual(["deadline:bookkeeping:2026-07-14:7"]);
+  });
+});

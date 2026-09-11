@@ -130,7 +130,7 @@ export async function GET(request: Request) {
             .slice(0, 3)
             .map((n) => n.title)
             .join(" · "),
-          url: "/dashboard",
+          url: "/home",
           tag: digestKey,
         });
         if (result.ok) anyDelivered = true;

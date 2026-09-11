@@ -5,9 +5,12 @@ import { CATEGORIES, TASK_TEMPLATES } from "@/lib/content";
 import { getAllOffers, getPartnerApplications, getPartnerLeads, isAdmin } from "@/lib/data";
 import { ApplicationRow } from "@/components/admin/application-row";
 import { OfferManager } from "@/components/admin/offer-manager";
+import { ReviewQueuePanel } from "@/components/admin/review-queue-panel";
+import { buildReviewQueue, januaryFiguresDue } from "@/lib/content/review-queue";
+import { todayInIsrael } from "@/lib/dates";
 
 export default async function AdminPage() {
-  if (!(await isAdmin())) redirect("/dashboard");
+  if (!(await isAdmin())) redirect("/home");
 
   const [applications, offers, leads] = await Promise.all([
     getPartnerApplications(),
@@ -15,6 +18,8 @@ export default async function AdminPage() {
     getPartnerLeads(),
   ]);
   const pending = applications.filter((a) => a.status === "new").length;
+  const today = todayInIsrael();
+  const reviewItems = buildReviewQueue(today);
   const templateIds = TASK_TEMPLATES.map((t) => t.id);
   const categoryIds = CATEGORIES.map((c) => c.id);
 
@@ -30,8 +35,12 @@ export default async function AdminPage() {
             <h1 className="text-title text-ink">אדמין</h1>
           </div>
         </div>
-        <Link href="/dashboard" className="text-sm font-medium text-brand-strong hover:opacity-80">לאפליקציה ←</Link>
+        <Link href="/home" className="text-sm font-medium text-brand-strong hover:opacity-80">לאפליקציה ←</Link>
       </header>
+
+      {/* First on the page on purpose: everything below affects revenue, this
+          affects whether what we tell users is true. */}
+      <ReviewQueuePanel items={reviewItems} januaryDue={januaryFiguresDue(today)} />
 
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-2 text-section text-ink">

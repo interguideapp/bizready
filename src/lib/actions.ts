@@ -878,7 +878,7 @@ async function requireAdmin() {
     .select("user_id")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (!data) redirect("/dashboard");
+  if (!data) redirect("/home");
   return { supabase, user };
 }
 

@@ -1,6 +1,8 @@
+import Link from "next/link";
+import { Command } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { PageTitle } from "@/components/ui";
-import { requireBusiness } from "@/lib/data";
+import { isAdmin, requireBusiness } from "@/lib/data";
 import { isPro } from "@/lib/subscription";
 import type { OnboardingAnswers } from "@/lib/types";
 import { NotificationPrefs } from "./notification-prefs";
@@ -9,6 +11,10 @@ import { SubscriptionBlock } from "./subscription-block";
 
 export default async function SettingsPage() {
   const business = await requireBusiness();
+  // /admin had zero inbound links anywhere — a full marketplace and
+  // content-review console reachable only by typing the URL. This is its
+  // entry point, and it renders for nobody else.
+  const admin = await isAdmin();
   return (
     <div>
       <PageTitle
@@ -31,6 +37,16 @@ export default async function SettingsPage() {
         />
       </div>
       <SettingsForm answers={business.onboarding_answers as OnboardingAnswers} />
+
+      {admin && (
+        <Link
+          href="/admin"
+          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-edge bg-card px-4 py-2.5 text-sm font-semibold text-ink-soft transition hover:border-edge-strong hover:text-ink"
+        >
+          <Command className="h-4 w-4" aria-hidden />
+          קונסולת אדמין
+        </Link>
+      )}
     </div>
   );
 }

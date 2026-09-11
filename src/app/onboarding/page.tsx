@@ -4,6 +4,6 @@ import { OnboardingWizard } from "./wizard";
 
 export default async function OnboardingPage() {
   const business = await getBusiness();
-  if (business?.onboarding_completed_at) redirect("/dashboard");
+  if (business?.onboarding_completed_at) redirect("/home");
   return <OnboardingWizard />;
 }

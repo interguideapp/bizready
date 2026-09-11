@@ -58,7 +58,7 @@ export default async function PlanReadyPage() {
         </div>
 
         <Link
-          href="/dashboard"
+          href="/home"
           className="mt-10 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-l from-brand-600 to-brand-500 px-8 py-4 text-lg font-semibold text-white shadow-e-brand transition hover:opacity-95"
         >
           קדימה לעבודה

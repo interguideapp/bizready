@@ -428,7 +428,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
             </div>
             {data.waiting.length === 0 ? (
               <p className="text-sm text-ink-muted">
-                אין כרגע משימות שממתינות לגורם חיצוני — הכדור אצלכם.
+                אין כרגע משימות שממתינות לגורם חיצוני. כל מה שפתוח תלוי בכם.
               </p>
             ) : (
               <div className="flex flex-col gap-2">
@@ -502,7 +502,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
             <OSTile
               href="/insights"
               icon={<Gauge className="h-4.5 w-4.5 text-brand-400" />}
-              label="מוכנות"
+              label="היערכות"
               value={`${data.tiles.readiness}`}
               suffix="/100"
               detail={<>הציון הכולל שלכם. מבוסס על המשימות שסימנתם כהושלמו — כל משימה שתסגרו מעלה אותו.</>}
@@ -516,7 +516,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                   ? data.tiles.money.showSetAside
                     ? nis(data.tiles.money.setAsideLow)
                     : "—"
-                  : "רשמו"
+                  : "עדכנו"
               }
               detail={
                 data.tiles.money.hasIncome ? (
@@ -526,7 +526,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                     <>מס חברות מחושב על הרווח — הפרשה מדויקת מול הרו״ח.</>
                   )
                 ) : (
-                  <>רשמו כמה הכנסתם ותקבלו מיד תחזית הפרשה למיסים ומעקב תקרה.</>
+                  <>עדכנו כמה הכנסתם ותקבלו מיד תחזית הפרשה למיסים ומעקב תקרה.</>
                 )
               }
             />

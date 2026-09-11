@@ -81,6 +81,65 @@ describe("Hebrew copy stays in one register", () => {
   });
 });
 
+/**
+ * Calques — English idiom translated word for word.
+ *
+ * These are not grammar mistakes. Each one is well-formed Hebrew that a Hebrew
+ * speaker would not say, which is worse: it reads as machine translation, in a
+ * product a business owner is trusting with their tax files. The user found
+ * four of these and said there were many more. There were.
+ *
+ * Narrow on purpose, for the same reason the register check above is: a test
+ * that fires on defensible Hebrew gets disabled rather than obeyed. So this
+ * bans only phrases with no innocent reading, and leaves out the judgement
+ * calls — "בואו נ..." is grammatical and occasionally right, so it is absent
+ * even though it was wrong in all five button labels where it appeared.
+ */
+const CALQUES: { form: string; english: string; instead: string }[] = [
+  {
+    form: "הכדור אצל",
+    english: "the ball is in your court",
+    instead: 'name what is actually with them — "הבקשה נמצאת אצל הרשות"',
+  },
+  {
+    form: "משהו השתבש",
+    english: "something went wrong",
+    instead: 'say what failed — "לא הצלחנו לטעון את הדף"',
+  },
+  {
+    form: "קפצו דרך",
+    english: "jump through",
+    instead: "drop the verb; a link does not need one",
+  },
+  {
+    // The metric is "ציון היערכות" now. "מוכנות" reads as emergency-
+    // preparedness jargon, and "ציון מוכנות חי" had translated the English
+    // adjective "live" as "חי", which describes living things in Hebrew.
+    form: "מוכנות",
+    english: "readiness, as the name of the score",
+    instead: "היערכות",
+  },
+];
+
+describe("no English idiom translated word for word", () => {
+  it("keeps calques out of shipped copy", () => {
+    const offenders: string[] = [];
+    for (const file of walk(SRC)) {
+      const lines = fs.readFileSync(file, "utf8").split("\n");
+      lines.forEach((line, i) => {
+        // This file's own prose has to name the banned forms.
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+        for (const { form, english, instead } of CALQUES) {
+          if (!line.includes(form)) continue;
+          const where = `${path.relative(process.cwd(), file)}:${i + 1}`;
+          offenders.push(`${where} "${form}" (${english}) — use ${instead}`);
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("no emoji or text glyphs standing in for icons", () => {
   /**
    * Pictographic emoji only. Not a blanket non-ASCII ban — the entire product

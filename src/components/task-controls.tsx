@@ -88,7 +88,7 @@ export function StatusPicker({
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-status-done px-6 py-3 font-semibold text-white transition hover:opacity-90"
       >
         <Check className="h-4 w-4" aria-hidden />
-        סיימתי — בואו נסגור את זה
+        סיימתי — לסגירת המשימה
       </button>
 
       {/* Removing a task needs a REASON, because the two reasons have opposite

@@ -32,9 +32,9 @@ export function archetypePrimaryCta(view: TaskView): {
   const link = view.primaryLink?.url;
   switch (view.archetype) {
     case "registration":
-      return link ? { label: "פתיחת התיק באתר הרשמי", href: link } : { label: "בואו נפתח את התיק", goTo: "act" };
+      return link ? { label: "פתיחת התיק באתר הרשמי", href: link } : { label: "לפתיחת התיק", goTo: "act" };
     case "filing":
-      return link ? { label: "לדיווח ולתשלום", href: link } : { label: "בואו נדווח", goTo: "act" };
+      return link ? { label: "לדיווח ולתשלום", href: link } : { label: "לצעדי הדיווח", goTo: "act" };
     case "decision":
       return { label: "בדקו אם זה חל עליכם", goTo: "act" };
     case "provider":
@@ -42,11 +42,11 @@ export function archetypePrimaryCta(view: TaskView): {
     case "document":
       return { label: "יצירת המסמך", goTo: "act" };
     case "presence":
-      return link ? { label: "בואו נקים את זה", href: link } : { label: "בואו נקים את זה", goTo: "act" };
+      return link ? { label: "להקמה", href: link } : { label: "להקמה", goTo: "act" };
     case "calculator":
       return { label: "פתחו את הכלי", goTo: "act" };
     default:
-      return { label: "בואו נסדיר את זה", goTo: "act" };
+      return { label: "לצעדי הביצוע", goTo: "act" };
   }
 }
 
@@ -281,7 +281,7 @@ function ProviderHero({ view }: { view: TaskView }) {
       </h3>
       <p className="text-sm text-ink-muted">
         השוו לפחות 2–3 אפשרויות לפי הקריטריונים למטה, החליטו, ותעדו את הספק ב״לסגור״
-        {view.offers.length > 0 && " — או קפצו דרך אחת מהצעות השותפים בצד"}.
+        {view.offers.length > 0 && " — או דרך אחת מהצעות השותפים בצד"}.
       </p>
     </Card>
   );

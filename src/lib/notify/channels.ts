@@ -43,7 +43,7 @@ export async function sendEmailDigest(
       <h1 style="color:#4338ca;font-size:20px">BizReady — מה דורש תשומת לב</h1>
       <p style="color:#334155">שלום, לגבי <strong>${escapeHtml(digest.businessName)}</strong> — יש כמה דברים שכדאי לטפל בהם:</p>
       <ul style="padding-inline-start:18px;color:#0f172a">${list}</ul>
-      <a href="${digest.appUrl}/dashboard" style="display:inline-block;margin-top:12px;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 22px;border-radius:12px;font-weight:bold">פתיחת BizReady</a>
+      <a href="${digest.appUrl}/home" style="display:inline-block;margin-top:12px;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 22px;border-radius:12px;font-weight:bold">פתיחת BizReady</a>
       <p style="color:#94a3b8;font-size:12px;margin-top:24px">מייל תפעולי מ-BizReady. לניהול התראות — היכנסו להגדרות באפליקציה.</p>
     </div>`;
 

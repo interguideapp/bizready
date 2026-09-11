@@ -96,7 +96,7 @@ export default function LoginPage() {
       // returning users continue to their home screen.
       location.assign("/home");
     } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : "משהו השתבש. נסו שוב.");
+      setErrorMsg(error instanceof Error ? error.message : "לא הצלחנו להשלים את הכניסה. נסו שוב.");
       setState("error");
     } finally {
       setPasswordState("idle");
@@ -164,7 +164,7 @@ export default function LoginPage() {
               </button>
               {state === "error" && (
                 <p className="text-center text-sm text-status-overdue">
-                  משהו השתבש: {errorMsg}
+                  לא הצלחנו להשלים את הכניסה: {errorMsg}
                 </p>
               )}
             </form>

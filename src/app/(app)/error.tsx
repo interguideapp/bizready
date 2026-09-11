@@ -33,7 +33,7 @@ export default function AppError({
         </span>
 
         <h1 className="text-title text-ink">
-          {isDataUnavailable ? "לא הצלחנו לאמת את המצב שלכם" : "משהו השתבש"}
+          {isDataUnavailable ? "לא הצלחנו לאמת את המצב שלכם" : "לא הצלחנו לטעון את הדף"}
         </h1>
 
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">

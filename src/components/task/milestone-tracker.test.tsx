@@ -213,11 +213,11 @@ describe("a viewer and a legacy row", () => {
     // Every task that existed before this feature has no stage. Saying so is
     // better than presenting a guess as a measurement.
     await renderTracker(view("open-vat-file", null, { status: "waiting" }));
-    expect(screen.getByText(/משוחזר מהסטטוס הקודם/)).toBeDefined();
+    expect(screen.getByText(/מבוסס על הסטטוס הקודם/)).toBeDefined();
   });
 
   it("says nothing of the sort once a real stage is stored", async () => {
     await renderTracker(view("open-vat-file", "submit"));
-    expect(screen.queryByText(/משוחזר מהסטטוס הקודם/)).toBeNull();
+    expect(screen.queryByText(/מבוסס על הסטטוס הקודם/)).toBeNull();
   });
 });

@@ -144,7 +144,7 @@ export default async function InsightsPage() {
         <FadeIn>
           <Card className="h-full p-5">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-section text-ink"><Gauge className="h-4.5 w-4.5 text-brand-400" aria-hidden />מוכנות לפי תחום</h2>
+              <h2 className="flex items-center gap-2 text-section text-ink"><Gauge className="h-4.5 w-4.5 text-brand-400" aria-hidden />היערכות לפי תחום</h2>
               <span className="tnum text-sm text-ink-muted">ציון כולל <b className="text-ink">{score.overall}</b></span>
             </div>
             <div className="flex flex-col gap-2.5">

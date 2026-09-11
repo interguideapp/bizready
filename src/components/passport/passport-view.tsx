@@ -62,7 +62,7 @@ export function PassportView({ d }: { d: PassportData }) {
                 {d.score}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="eyebrow">מצב מוכנות · רמה {d.levelNumber}</p>
+                <p className="eyebrow">מצב היערכות · רמה {d.levelNumber}</p>
                 <p className="text-gradient text-xl font-extrabold">{d.levelTitle}</p>
                 <p className="tnum mt-0.5 text-sm text-ink-muted">{d.completedCount}/{d.totalCount} משימות הושלמו</p>
               </div>

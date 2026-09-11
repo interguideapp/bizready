@@ -7,7 +7,7 @@ export function ScoreRing({
   score,
   size = 160,
   strokeWidth = 12,
-  label = "ציון מוכנות",
+  label = "ציון היערכות",
 }: {
   score: number;
   size?: number;

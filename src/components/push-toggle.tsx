@@ -45,7 +45,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
       if (!res.ok) throw new Error("ההרשמה נכשלה");
       setEnabled(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "משהו השתבש");
+      setError(e instanceof Error ? e.message : "לא הצלחנו לעדכן את ההתראות");
     } finally {
       setBusy(false);
     }

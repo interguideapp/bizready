@@ -111,7 +111,7 @@ export function MilestoneTracker({
               rather than claiming a precision we do not have. */}
           {!resolvedFromStage && !finished && (
             <p className="mt-1.5 text-xs text-ink-muted">
-              המצב הזה משוחזר מהסטטוס הקודם של המשימה. אם הוא לא מדויק — קדמו או
+              המצב הזה מבוסס על הסטטוס הקודם של המשימה. אם הוא לא מדויק — קדמו או
               חזרו שלב, ומכאן נעקוב בדיוק.
             </p>
           )}

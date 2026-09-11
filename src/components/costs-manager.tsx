@@ -146,7 +146,7 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
 
       {costs.length === 0 && (
         <p className="mt-2 text-xs text-ink-faint">
-          רשמו כל כלי/שירות שאתם משלמים עליו — הכל יסתכם כאן ובתיק העסק.
+          הוסיפו כל כלי או שירות שאתם משלמים עליו — הכל יסתכם כאן ובתיק העסק.
         </p>
       )}
     </Card>

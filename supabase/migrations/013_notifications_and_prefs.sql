@@ -18,6 +18,15 @@
 -- exists), safe on a clean database, and safe to re-run.
 -- ============================================================================
 
+-- All-or-nothing. The nine "drop policy ... / create policy ..." pairs below
+-- re-assert policy definitions so the repo matches the database. Wrapped in a
+-- transaction so a mid-script failure can never leave a policy dropped: on
+-- abort, every policy is restored exactly as it was.
+--
+-- Nothing here destroys data: no drop table, no drop column, no delete, no
+-- truncate. Table and column creation is all "if not exists".
+begin;
+
 -- ---------- notification prefs on the business ----------
 alter table public.businesses add column if not exists notify_email boolean not null default true;
 alter table public.businesses add column if not exists notify_whatsapp boolean not null default false;
@@ -121,3 +130,5 @@ create policy "sync_metrics: owner update" on public.sync_metrics
   for update using (
     exists (select 1 from public.businesses b where b.id = business_id and b.owner_id = auth.uid ())
   );
+
+commit;

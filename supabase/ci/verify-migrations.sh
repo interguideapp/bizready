@@ -379,6 +379,75 @@ begin
   end if;
 end $$;
 
+-- 029: the heartbeat. A session-writable heartbeat can be faked, which reads
+-- as healthy and is worse than having none at all.
+do $$
+begin
+  if not exists (select 1 from information_schema.tables
+                 where table_schema='public' and table_name='cron_runs')
+  then raise exception 'cron_runs is missing — a stopped sweep would be invisible again'; end if;
+  if exists (select 1 from pg_policies
+             where tablename = 'cron_runs' and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+  then raise exception 'cron_runs is session-writable — a client could fake a heartbeat'; end if;
+  if not exists (select 1 from pg_policies
+                 where tablename = 'cron_runs' and cmd = 'SELECT')
+  then raise exception 'cron_runs has no read policy — the admin panel would show nothing'; end if;
+  if not exists (select 1 from pg_proc where proname = 'sweep_health')
+  then raise exception 'sweep_health() is missing'; end if;
+end $$;
+
+-- sweep_health() must work on an empty table. That is the state every fresh
+-- environment is in, and an error there would break the admin page exactly
+-- when it is most needed.
+do $$
+declare n int;
+begin
+  select count(*) into n from public.sweep_health();
+  if n <> 0 then raise exception 'sweep_health() returned rows for an empty table'; end if;
+end $$;
+
+-- 030: the filing ledger. A claim about having met a statutory duty must not be
+-- quietly removable, and the unique key is what makes a second submission for
+-- the same period a correction rather than a duplicate.
+do $$
+declare u uuid; b uuid;
+begin
+  if not exists (select 1 from information_schema.tables
+                 where table_schema='public' and table_name='task_filings')
+  then raise exception 'task_filings is missing — only ONE missed period could ever be reported'; end if;
+
+  if exists (select 1 from pg_policies
+             where tablename = 'task_filings' and cmd in ('DELETE','ALL'))
+  then raise exception 'task_filings is deletable — a filing claim could be erased'; end if;
+
+  -- The unique key, proved rather than assumed.
+  insert into auth.users default values returning id into u;
+  insert into public.businesses (owner_id, name) values (u, 'ci-filings') returning id into b;
+
+  insert into public.task_filings (business_id, template_id, period_key)
+  values (b, 'vat-reporting', '2026-07..2026-08');
+
+  begin
+    insert into public.task_filings (business_id, template_id, period_key)
+    values (b, 'vat-reporting', '2026-07..2026-08');
+    raise exception 'a duplicate filing for the same period was accepted';
+  exception
+    when unique_violation then null;
+  end;
+
+  -- An upsert on that key is the correction path the product relies on.
+  insert into public.task_filings (business_id, template_id, period_key, evidence)
+  values (b, 'vat-reporting', '2026-07..2026-08', '{"corrected": true}'::jsonb)
+  on conflict (business_id, template_id, period_key)
+  do update set evidence = excluded.evidence;
+
+  if (select count(*) from public.task_filings where business_id = b) <> 1 then
+    raise exception 'the correction path created a second row instead of updating';
+  end if;
+
+  delete from auth.users where id = u;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

@@ -196,3 +196,96 @@ describe("only things that can be late are ever called late", () => {
 function task(template_id: string, status: string) {
   return { template_id, status, is_relevant: true };
 }
+
+describe("the filing ledger does not break the agreement", () => {
+  /**
+   * The ledger (030) lets the board name EVERY missed period, while the
+   * reminder sweep still works from the single stored deadline. That asymmetry
+   * is fine — more detail on screen than in an email — but it must never become
+   * a contradiction: the board must not go quiet while the sweep shouts, and it
+   * must not shout about a period the user has filed.
+   */
+  const profile = { entityType: "osek_murshe" as const, vatFrequency: "bimonthly" as const };
+  const jan2027 = new Date("2027-01-20T09:00:00Z");
+
+  const tasks = (): ReminderTask[] => [
+    {
+      id: "a",
+      template_id: "open-vat-file",
+      status: "done",
+      is_relevant: true,
+      due_date: null,
+      completed_at: "2026-01-01T00:00:00Z",
+    },
+    {
+      id: "b",
+      template_id: "vat-reporting",
+      status: "todo",
+      is_relevant: true,
+      due_date: "2026-09-15",
+      completed_at: null,
+    },
+  ];
+
+  function boardLate(filed: string[]): number {
+    return computeUpcomingObligations(
+      [
+        { template_id: "open-vat-file", status: "done", is_relevant: true },
+        {
+          template_id: "vat-reporting",
+          status: "todo",
+          is_relevant: true,
+          due_date: "2026-09-15",
+          filed_periods: filed,
+        },
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    ).filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0).length;
+  }
+
+  it("both still report late when nothing is filed", () => {
+    expect(remindersSayLate(tasks(), jan2027, profile)).toBe(true);
+    expect(boardLate([])).toBeGreaterThan(0);
+  });
+
+  it("the board reports MORE detail, never less", () => {
+    // One stored deadline versus three unfiled periods: the sweep raises one
+    // alarm, the board names all three. More is allowed; fewer is not.
+    expect(boardLate([])).toBeGreaterThanOrEqual(1);
+  });
+
+  it("the board goes quiet exactly when everything is filed", () => {
+    expect(
+      boardLate(["2026-07..2026-08", "2026-09..2026-10", "2026-11..2026-12"])
+    ).toBe(0);
+  });
+
+  it("never reports a period the user has filed", () => {
+    // The bug my own first version had: the fallback re-added a period the
+    // ledger recorded as filed, telling someone they were late for work they
+    // had done.
+    const obs = computeUpcomingObligations(
+      [
+        { template_id: "open-vat-file", status: "done", is_relevant: true },
+        {
+          template_id: "vat-reporting",
+          status: "todo",
+          is_relevant: true,
+          due_date: "2026-09-15",
+          filed_periods: ["2026-07..2026-08"],
+        },
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    );
+    const labels = obs
+      .filter((o) => o.daysUntil < 0)
+      .map((o) => o.periodLabel);
+    expect(labels).not.toContain("יולי–אוגוסט 2026");
+  });
+});

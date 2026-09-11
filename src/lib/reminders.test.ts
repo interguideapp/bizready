@@ -377,3 +377,67 @@ describe("an open recurring habit keeps nudging", () => {
     expect(keyFor("2026-07-14")).toEqual(["deadline:bookkeeping:2026-07-14:7"]);
   });
 });
+
+describe("an overdue notification says which period", () => {
+  it("names the period for a VAT filing", () => {
+    // "באיחור: דיווח מע\"מ" does not say late for WHAT. An email is often all
+    // someone sees for days, and with two periods outstanding they need to know
+    // which one this is about.
+    const { notifications } = computeReminders(
+      [
+        task({ template_id: "open-vat-file", status: "done", completed_at: "2026-01-01T00:00:00Z" }),
+        task({ template_id: "vat-reporting", due_date: "2026-07-15" }),
+      ],
+      TEMPLATES_BY_ID,
+      new Date("2026-07-25T09:00:00Z"),
+      true,
+      { entityType: "osek_murshe", vatFrequency: "bimonthly" }
+    );
+    const overdue = notifications.find((n) => n.type === "overdue")!;
+    expect(overdue.title).toContain("מאי–יוני 2026");
+  });
+
+  it("labels a monthly filer's period as one month", () => {
+    const { notifications } = computeReminders(
+      [
+        task({ template_id: "open-vat-file", status: "done", completed_at: "2026-01-01T00:00:00Z" }),
+        task({ template_id: "vat-reporting", due_date: "2026-07-15" }),
+      ],
+      TEMPLATES_BY_ID,
+      new Date("2026-07-25T09:00:00Z"),
+      true,
+      { entityType: "osek_murshe", vatFrequency: "monthly" }
+    );
+    expect(notifications.find((n) => n.type === "overdue")!.title).toContain("יוני 2026");
+  });
+
+  it("does not invent a period for a filing that has none", () => {
+    // The annual return is not a bimonthly period, and labelling one would be
+    // inventing a fact about the filing.
+    const { notifications } = computeReminders(
+      [task({ template_id: "annual-tax-report", due_date: "2026-07-15" })],
+      TEMPLATES_BY_ID,
+      new Date("2026-07-25T09:00:00Z"),
+      true,
+      { entityType: "osek_murshe" }
+    );
+    const overdue = notifications.find((n) => n.type === "overdue");
+    if (overdue) expect(overdue.title).not.toMatch(/–/);
+  });
+
+  it("keeps the dedupe key unchanged, so nobody is re-notified", () => {
+    const { notifications } = computeReminders(
+      [
+        task({ template_id: "open-vat-file", status: "done", completed_at: "2026-01-01T00:00:00Z" }),
+        task({ template_id: "vat-reporting", due_date: "2026-07-15" }),
+      ],
+      TEMPLATES_BY_ID,
+      new Date("2026-07-25T09:00:00Z"),
+      true,
+      { entityType: "osek_murshe", vatFrequency: "bimonthly" }
+    );
+    expect(notifications.find((n) => n.type === "overdue")!.dedupe_key).toBe(
+      "overdue:vat-reporting:2026-07-15"
+    );
+  });
+});

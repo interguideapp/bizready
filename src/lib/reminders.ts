@@ -6,6 +6,8 @@ import {
   REMINDER_WINDOWS_PRO,
   type ComplianceProfile,
 } from "@/lib/compliance";
+import { filingRuleFor } from "@/lib/content/filing-rules";
+import { periodForDue } from "@/lib/filings";
 import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
@@ -252,12 +254,31 @@ export function computeReminders(
         // recommended one-off (open your files, get insurance…) that slipped
         // past its suggested date is never an "איחור" — we stay quiet.
         if (statutory) {
+          // NAME THE PERIOD.
+          //
+          // "באיחור: דיווח מע\"מ" does not say late for WHAT, and now that a
+          // period is a first-class thing the product tracks it can. This
+          // matters most here rather than on screen: an email or a WhatsApp
+          // is often all someone sees for days, and if two periods are
+          // outstanding they need to know which one this is about.
+          //
+          // Only for period_plus rules. A monthly 102 or an annual return has
+          // no bimonthly period, and labelling one would be inventing a fact.
+          const rule = filingRuleFor(task.template_id);
+          const period =
+            rule?.rule.anchor === "period_plus" && lateDue
+              ? periodForDue(lateDue, profile.vatFrequency ?? "bimonthly")
+              : null;
           notifications.push({
             type: "overdue",
-            title: `באיחור: ${template.title}`,
+            title: period
+              ? "באיחור: " + template.title + " (" + period.label + ")"
+              : "באיחור: " + template.title,
             body: "חרגתם מהמועד החוקי — כדאי לטפל בהקדם כדי לא לצבור קנסות.",
             template_id: task.template_id,
-            dedupe_key: `overdue:${task.template_id}:${lateDue}`,
+            // Unchanged: keyed on the date, so naming the period does not
+            // re-notify anyone who was already told.
+            dedupe_key: "overdue:" + task.template_id + ":" + lateDue,
           });
         }
       } else {

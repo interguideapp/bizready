@@ -163,7 +163,10 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
         { key: "renewal", label: "תאריך חידוש", type: "date" },
       ],
     },
-    applies_when: {},
+    // The five marketing templates were already gated on wants_marketing; these
+    // six were not, so a user who asked for compliance help only still received
+    // "buy a domain" and "build a website". Same intent, same gate.
+    applies_when: { wants_marketing: true },
     depends_on: ["business-name-check"],
     recurrence: "yearly",
     priority: "important",
@@ -196,7 +199,7 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
         { key: "url", label: "כתובת האתר", type: "url", placeholder: "https://", required: true },
       ],
     },
-    applies_when: {},
+    applies_when: { wants_marketing: true },
     depends_on: ["buy-domain"],
     priority: "important",
     last_reviewed: REVIEWED,
@@ -217,7 +220,7 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     docs_needed: [],
     est_cost: "מחינם עד כ-₪25/חודש",
     est_time: "שעה",
-    applies_when: {},
+    applies_when: { wants_marketing: true },
     depends_on: ["buy-domain"],
     priority: "recommended",
     last_reviewed: REVIEWED,
@@ -248,9 +251,11 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
         { key: "verified", label: "אומת?", placeholder: "כן / בהמתנה לקוד" },
       ],
     },
-    applies_when: { work_location: ["home", "premises", "mobile"] },
+    applies_when: { work_location: ["home", "premises", "mobile"], wants_marketing: true },
     depends_on: [],
-    priority: "critical",
+    // re-tiered from "critical": a marketing profile — no law requires it, so it cannot outrank opening a tax file.
+    // See legal-basis.ts — "critical" is now reserved for statute-backed duties.
+    priority: "recommended",
     source_url: "https://www.google.com/business/",
     last_reviewed: REVIEWED,
     sort_order: 4,
@@ -268,7 +273,7 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     docs_needed: ["לוגו", "תמונות עבודה"],
     est_cost: "חינם",
     est_time: "שעתיים להקמה",
-    applies_when: {},
+    applies_when: { wants_marketing: true },
     depends_on: [],
     priority: "important",
     last_reviewed: REVIEWED,
@@ -296,7 +301,7 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
         { key: "phone", label: "המספר העסקי", placeholder: "05X-XXXXXXX", required: true },
       ],
     },
-    applies_when: {},
+    applies_when: { wants_marketing: true },
     depends_on: [],
     priority: "important",
     source_url: "https://business.whatsapp.com/",
@@ -428,7 +433,9 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     est_time: "שעתיים-שלוש",
     applies_when: {},
     depends_on: [],
-    priority: "critical",
+    // re-tiered from "critical": pricing well matters enormously and is required by nobody.
+    // See legal-basis.ts — "critical" is now reserved for statute-backed duties.
+    priority: "important",
     last_reviewed: REVIEWED,
     sort_order: 1,
   },

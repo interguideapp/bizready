@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
-import type { OnboardingAnswers } from "@/lib/types";
+import type { AppliesWhen, OnboardingAnswers } from "@/lib/types";
 import {
   buildPlan,
+  templateApplies,
   computeScore,
   nextSteps,
   reconcilePlan,
@@ -113,6 +114,75 @@ describe("business-type specificity", () => {
   it("resolveTemplate returns default steps when no variant matches", () => {
     const pricing = TEMPLATES_BY_ID.get("pricing")!;
     expect(resolveTemplate(pricing, cosmetician).steps).toBe(pricing.steps);
+  });
+});
+
+describe("applicability predicates", () => {
+  // The flat form: AND across keys, OR within a key.
+  it("ANDs across keys and ORs within a key", () => {
+    expect(templateApplies({ entity_type: ["osek_patur", "company"] }, cosmetician)).toBe(true);
+    expect(templateApplies({ entity_type: ["company"] }, cosmetician)).toBe(false);
+    // both keys must hold
+    expect(templateApplies({ entity_type: ["osek_patur"], has_website: true }, cosmetician)).toBe(false);
+    expect(templateApplies({ entity_type: ["osek_patur"], has_website: false }, cosmetician)).toBe(true);
+  });
+
+  it("an empty predicate applies to everyone", () => {
+    expect(templateApplies({}, cosmetician)).toBe(true);
+    expect(templateApplies({}, onlineShop)).toBe(true);
+  });
+
+  it("not() inverts — the rule 'everyone except a company'", () => {
+    // Why this matters: enumerating the other structures looks equivalent, but
+    // when a fifth structure is added the enumeration silently drops it from
+    // every duty, with nothing failing. not() keeps meaning what it says.
+    const exceptCompany: AppliesWhen = { not: { entity_type: ["company"] } };
+    expect(templateApplies(exceptCompany, cosmetician)).toBe(true);
+    expect(templateApplies(exceptCompany, onlineShop)).toBe(true);
+    expect(templateApplies(exceptCompany, { ...cosmetician, entity_type: "company" })).toBe(false);
+  });
+
+  it("any() ORs across keys, which the flat form cannot express", () => {
+    const p: AppliesWhen = { any: [{ has_website: true }, { hosts_clients: true }] };
+    expect(templateApplies(p, cosmetician)).toBe(true); // hosts clients, no website
+    expect(templateApplies(p, onlineShop)).toBe(true); // website, no clients hosted
+    expect(
+      templateApplies(p, { ...cosmetician, hosts_clients: false })
+    ).toBe(false); // neither
+  });
+
+  it("all() composes, so predicates can nest", () => {
+    const p: AppliesWhen = {
+      all: [
+        { not: { entity_type: ["company"] } },
+        { any: [{ has_website: true }, { uses_vehicle: true }] },
+      ],
+    };
+    expect(templateApplies(p, onlineShop)).toBe(true);
+    expect(templateApplies(p, cosmetician)).toBe(false); // no website, no vehicle
+    expect(templateApplies(p, { ...onlineShop, entity_type: "company" })).toBe(false);
+  });
+
+  it("atLeast/atMost compare on the declared order, not alphabetically", () => {
+    // under_60k < 60k_to_ceiling < over_ceiling
+    expect(templateApplies({ atLeast: { expected_revenue: "60k_to_ceiling" } }, cosmetician)).toBe(true);
+    expect(templateApplies({ atLeast: { expected_revenue: "over_ceiling" } }, cosmetician)).toBe(false);
+    expect(templateApplies({ atLeast: { expected_revenue: "over_ceiling" } }, onlineShop)).toBe(true);
+    expect(templateApplies({ atMost: { expected_revenue: "60k_to_ceiling" } }, cosmetician)).toBe(true);
+    expect(templateApplies({ atMost: { expected_revenue: "60k_to_ceiling" } }, onlineShop)).toBe(false);
+  });
+
+  it("a threshold on a missing answer does NOT match", () => {
+    // An unanswered turnover question must never be read as "over the ceiling":
+    // that would hand the user duties that may not apply to them at all.
+    const noRevenue = { ...cosmetician, expected_revenue: undefined } as unknown as OnboardingAnswers;
+    expect(templateApplies({ atLeast: { expected_revenue: "under_60k" } }, noRevenue)).toBe(false);
+    expect(templateApplies({ atMost: { expected_revenue: "over_ceiling" } }, noRevenue)).toBe(false);
+  });
+
+  it("not() over a missing answer still resolves, rather than throwing", () => {
+    const noRevenue = { ...cosmetician, expected_revenue: undefined } as unknown as OnboardingAnswers;
+    expect(templateApplies({ not: { atLeast: { expected_revenue: "under_60k" } } }, noRevenue)).toBe(true);
   });
 });
 

@@ -32,7 +32,12 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
         { key: "bank_account", label: "מספר חשבון", writesTo: "bank_account" },
       ],
     },
-    applies_when: {},
+    // A company has company-bank-account instead, and needs an account in its
+    // own name as a separate legal person — while this task's steps say, in so
+    // many words, "עוסק פטור/מורשה does not need an expensive business account".
+    // Showing it to a חברה בע"מ was giving a company advice written for a sole
+    // trader, next to the correct task.
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: [],
     deadline_days: 21,
     priority: "important",
@@ -56,7 +61,9 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     est_cost: "עמלה של כ-1%–3% לעסקה",
     est_time: "כמה ימים לאישור",
     applies_when: {},
-    depends_on: ["business-bank-account"],
+    // alternative prerequisites: an עוסק needs business-bank-account, a company
+    // needs company-bank-account. Only the one present in the plan gates this.
+    depends_on: ["business-bank-account", "company-bank-account"],
     deadline_days: 30,
     priority: "important",
     last_reviewed: REVIEWED,
@@ -112,7 +119,11 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
         { key: "monthly", label: "סכום ההפקדה החודשי (₪)" },
       ],
     },
-    applies_when: {},
+    // The 2017 obligation applies to a self-employed person, not to a company's
+    // salaried owner. ALREADY_DONE_OPTIONS already gated this id to the three
+    // individual structures — the gate was simply never added here, so a חברה
+    // בע"מ was told a self-employed pension duty was "critical" and legal.
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["open-bituach-leumi-file"],
     deadline_days: 180,
     priority: "critical",
@@ -198,7 +209,9 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     depends_on: [],
     deadline_days: 30,
     recurrence: "yearly",
-    priority: "critical",
+    // re-tiered from "critical": compulsory only in a few regulated professions; calling it critical asserted a duty that does not exist for most users.
+    // See legal-basis.ts — "critical" is now reserved for statute-backed duties.
+    priority: "important",
     last_reviewed: REVIEWED,
     sort_order: 1,
   },
@@ -223,7 +236,9 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     depends_on: [],
     deadline_days: 30,
     recurrence: "yearly",
-    priority: "critical",
+    // re-tiered from "critical": protects the business; no authority requires it.
+    // See legal-basis.ts — "critical" is now reserved for statute-backed duties.
+    priority: "important",
     last_reviewed: REVIEWED,
     sort_order: 2,
   },
@@ -242,7 +257,8 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     docs_needed: ["פירוט הכנסות"],
     est_cost: "לפי גיל, מקצוע והכנסה",
     est_time: "שבוע",
-    applies_when: {},
+    // shares mandatory-pension's scope: it is the self-employed safety net
+    applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["mandatory-pension"],
     priority: "important",
     source_url: "https://www.kolzchut.org.il/he/ביטוח_אובדן_כושר_עבודה",

@@ -1,11 +1,12 @@
 import type {
   AppliesWhen,
   OnboardingAnswers,
+  OrderedCondition,
   TaskPriority,
   TaskStatus,
   TaskTemplate,
 } from "@/lib/types";
-import { PRIORITY_WEIGHT } from "@/lib/types";
+import { ANSWER_ORDER, PRIORITY_WEIGHT } from "@/lib/types";
 import {
   isStatutoryFiling,
   nextStatutoryDueDate,
@@ -20,11 +21,28 @@ export function profileFromAnswers(answers: OnboardingAnswers): ComplianceProfil
   };
 }
 
-/** True when a template's applies_when conditions match the given answers. */
+/**
+ * True when a template's applies_when predicate matches the given answers.
+ *
+ * The flat object form ANDs across keys and ORs within a key. `not`/`any`/`all`
+ * compose, and `atLeast`/`atMost` compare against ANSWER_ORDER.
+ *
+ * An unknown key is a bug, not a rule: it used to read `undefined`, fail every
+ * comparison, and silently delete the template from every plan. Unknown keys are
+ * now rejected at build time by invariants.test.ts; at runtime we treat a key the
+ * answers do not carry as "not matched" so behaviour stays conservative rather
+ * than accidentally including a task.
+ */
 export function templateApplies(
   appliesWhen: AppliesWhen,
   answers: OnboardingAnswers
 ): boolean {
+  if ("not" in appliesWhen) return !templateApplies(appliesWhen.not, answers);
+  if ("any" in appliesWhen) return appliesWhen.any.some((p) => templateApplies(p, answers));
+  if ("all" in appliesWhen) return appliesWhen.all.every((p) => templateApplies(p, answers));
+  if ("atLeast" in appliesWhen) return compareOrdered(appliesWhen.atLeast, answers, "atLeast");
+  if ("atMost" in appliesWhen) return compareOrdered(appliesWhen.atMost, answers, "atMost");
+
   for (const [key, condition] of Object.entries(appliesWhen)) {
     const answer = answers[key as keyof OnboardingAnswers];
     if (Array.isArray(condition)) {
@@ -32,6 +50,27 @@ export function templateApplies(
     } else if (answer !== condition) {
       return false;
     }
+  }
+  return true;
+}
+
+/**
+ * Compares an ordered answer against a threshold. An answer that is missing, or
+ * not on the declared scale, does not satisfy the threshold — an unanswered
+ * turnover question must never be read as "over the ceiling".
+ */
+function compareOrdered(
+  condition: OrderedCondition,
+  answers: OnboardingAnswers,
+  mode: "atLeast" | "atMost"
+): boolean {
+  for (const [key, bound] of Object.entries(condition)) {
+    const scale = ANSWER_ORDER[key as keyof typeof ANSWER_ORDER] as readonly string[] | undefined;
+    if (!scale) return false;
+    const answerRank = scale.indexOf(answers[key as keyof OnboardingAnswers] as string);
+    const boundRank = scale.indexOf(bound as string);
+    if (answerRank < 0 || boundRank < 0) return false;
+    if (mode === "atLeast" ? answerRank < boundRank : answerRank > boundRank) return false;
   }
   return true;
 }

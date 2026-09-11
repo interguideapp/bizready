@@ -6,7 +6,7 @@ import type { TaskArchetype } from "@/lib/types";
  * the assignment is deliberate and auditable; anything unlisted falls back to
  * "routine" (set up an ongoing habit).
  */
-const ARCHETYPE_BY_ID: Record<string, TaskArchetype> = {
+export const ARCHETYPE_BY_ID: Record<string, TaskArchetype> = {
   // 1 · registration — open a file / obtain an official record
   "open-vat-file": "registration",
   "open-income-tax-file": "registration",
@@ -84,6 +84,18 @@ const ARCHETYPE_BY_ID: Record<string, TaskArchetype> = {
   "travel-reimbursement": "routine",
   "reviews-mechanism": "routine",
   "capital-statement-prep": "routine",
+
+  // 9 · incorporated entities (חברה בע"מ / שותפות). These were missing, so all
+  // eight fell through to "routine" — rendering a company's audited annual
+  // return and its registrar fee as "set up an ongoing habit".
+  "register-company": "registration",
+  "company-tax-files": "registration",
+  "company-bank-account": "provider",
+  "company-annual-fee": "filing",
+  "company-annual-report-financials": "filing",
+  "register-partnership": "registration",
+  "partnership-agreement": "document",
+  "partnership-annual-fee": "filing",
 };
 
 export function resolveArchetype(templateId: string): TaskArchetype {

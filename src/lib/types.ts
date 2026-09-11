@@ -130,11 +130,12 @@ export interface OfficialLink {
 }
 
 /**
- * A condition evaluated against OnboardingAnswers.
- * Each key must match; array value = "answer is one of",
- * boolean value = exact match. Empty object = applies to everyone.
+ * The set of answers a predicate may test. Every key here must exist on
+ * OnboardingAnswers — `invariants.test.ts` fails the build otherwise, because a
+ * typo'd key used to read `undefined`, fail every test, and make the template
+ * vanish from every plan with no error.
  */
-export type AppliesWhen = Partial<{
+export type AnswerConditions = Partial<{
   entity_type: EntityType[];
   field: ActivityField[];
   work_location: WorkLocation[];
@@ -150,6 +151,46 @@ export type AppliesWhen = Partial<{
   plans_employees: boolean;
   wants_marketing: boolean;
 }>;
+
+/**
+ * A rule about who a task applies to.
+ *
+ * The plain object form is the common case: every key must match, and an array
+ * value means "the answer is one of these" (AND across keys, OR within a key).
+ *
+ * The three wrappers exist because enumeration cannot express some real rules
+ * honestly:
+ *
+ * - `not` — "everyone except a company". Enumerating the other three entity
+ *   types looks equivalent today, but the moment a fifth structure is added
+ *   (עמותה, say) the enumeration silently drops it from every duty it should
+ *   have, with no test failing. `not` keeps meaning what it says.
+ * - `any` — OR *across* keys, which the flat form cannot express (it ANDs).
+ * - `atLeast` / `atMost` — a threshold on an ordered answer (turnover bands).
+ *   Israeli law is full of these; equality tests cannot express them.
+ *
+ * Nesting is allowed: `{ all: [{ not: {...} }, { any: [...] }] }`.
+ */
+export type AppliesWhen =
+  | AnswerConditions
+  | { not: AppliesWhen }
+  | { any: AppliesWhen[] }
+  | { all: AppliesWhen[] }
+  | { atLeast: OrderedCondition }
+  | { atMost: OrderedCondition };
+
+/** A threshold on an answer whose values have a defined order. */
+export type OrderedCondition = Partial<{
+  expected_revenue: "under_60k" | "60k_to_ceiling" | "over_ceiling";
+}>;
+
+/**
+ * Answers whose values are ranked, low to high, so `atLeast`/`atMost` have a
+ * meaning. Only answers listed here may be used in a threshold.
+ */
+export const ANSWER_ORDER = {
+  expected_revenue: ["under_60k", "60k_to_ceiling", "over_ceiling"],
+} as const satisfies Record<string, readonly string[]>;
 
 /**
  * A profile-specific override of the task's steps. The first variant whose

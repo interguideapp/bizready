@@ -45,7 +45,9 @@ export const SPECIFIC_TASKS: TaskTemplate[] = [
       product_type: ["physical_products", "digital_products", "mixed"],
     },
     depends_on: ["build-website"],
-    priority: "critical",
+    // re-tiered from "critical": building a storefront is real work, but it is commerce, not compliance.
+    // See legal-basis.ts — "critical" is now reserved for statute-backed duties.
+    priority: "important",
     last_reviewed: REVIEWED,
     sort_order: 7,
   },

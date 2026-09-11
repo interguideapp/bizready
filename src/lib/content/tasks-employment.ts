@@ -36,7 +36,10 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
       fields: [{ key: "deductions_file", label: "מספר תיק ניכויים", required: true }],
     },
     applies_when: { plans_employees: true },
-    depends_on: ["open-income-tax-file"],
+    // alternative prerequisites: an עוסק reaches this through open-income-tax-file,
+    // a company through company-tax-files (which opens the ניכויים file itself).
+    // Only the id present in the plan gates it.
+    depends_on: ["open-income-tax-file", "company-tax-files"],
     deadline_days: 21,
     priority: "critical",
     source_url: "https://www.btl.gov.il/Insurance/Employers/Pages/default.aspx",
@@ -213,7 +216,9 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
     applies_when: { plans_employees: true },
     depends_on: [],
     deadline_days: 30,
-    priority: "critical",
+    // re-tiered from "critical": sits on top of the national-insurance work-injury cover; strongly advisable, not statutory.
+    // See legal-basis.ts — "critical" is now reserved for statute-backed duties.
+    priority: "important",
     last_reviewed: REVIEWED,
     sort_order: 6,
   },

@@ -298,7 +298,11 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
       ],
     },
     applies_when: {},
-    depends_on: ["open-vat-file"],
+    // alternative prerequisites — an עוסק opens open-vat-file, a company opens
+    // company-tax-files. Whichever id is in the plan gates this task; the other
+    // is absent and therefore non-blocking. With only the first id a company got
+    // this task with no prerequisite at all.
+    depends_on: ["open-vat-file", "company-tax-files"],
     deadline_days: 21,
     priority: "critical",
     source_url: "https://www.gov.il/he/service/request-assignment-number-for-tax-invoice",
@@ -327,7 +331,10 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     est_cost: "חינם",
     est_time: "חצי שעה בחודש",
     applies_when: {},
-    depends_on: ["open-vat-file"],
+    // alternative prerequisites: an עוסק opens open-vat-file, a company opens
+    // company-tax-files. Whichever is in the plan gates it; the other is absent
+    // and therefore non-blocking. Without the second id a company had no gate.
+    depends_on: ["open-vat-file", "company-tax-files"],
     deadline_days: 30,
     recurrence: "monthly",
     priority: "critical",

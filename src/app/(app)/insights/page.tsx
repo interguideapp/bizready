@@ -16,6 +16,7 @@ import {
   getMetrics,
   getProducts,
   getTaskEvents,
+  getFiledPeriods,
 } from "@/lib/data";
 import { computeScore } from "@/lib/rules-engine";
 import { computeProfileCompleteness } from "@/lib/profile-score";
@@ -33,8 +34,9 @@ const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
 export default async function InsightsPage() {
   const business = await requireBusiness();
-  const [tasks, documents, costs, products, events] = await Promise.all([
+  const [tasks, filedPeriods, documents, costs, products, events] = await Promise.all([
     getBusinessTasks(business.id),
+    getFiledPeriods(business.id),
     getDocuments(business.id),
     getCosts(business.id),
     getProducts(business.id),
@@ -66,6 +68,9 @@ export default async function InsightsPage() {
         dismissal: t.dismissal,
         completion_data: t.completion_data,
         due_date: t.due_date,
+        // The filing ledger (030), so EVERY missed period can be named
+        // rather than only the oldest one the stored date can reach.
+        filed_periods: filedPeriods.get(t.template_id) ?? [],
       })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),

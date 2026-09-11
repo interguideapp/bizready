@@ -15,7 +15,7 @@ import {
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { Card, EmptyState, FadeIn, InfoPopover, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { requireBusiness, getBusinessTasks, getDocuments } from "@/lib/data";
+import { requireBusiness, getBusinessTasks, getDocuments, getFiledPeriods } from "@/lib/data";
 import {
   computeUpcomingObligations,
   filingsAwaitingPrerequisite,
@@ -70,8 +70,9 @@ export default async function CalendarPage() {
   const business = await requireBusiness();
   const pro = isPro(business);
 
-  const [tasks, documents] = await Promise.all([
+  const [tasks, filedPeriods, documents] = await Promise.all([
     getBusinessTasks(business.id),
+    getFiledPeriods(business.id),
     getDocuments(business.id),
   ]);
 
@@ -84,6 +85,9 @@ export default async function CalendarPage() {
       dismissal: t.dismissal,
       completion_data: t.completion_data,
         due_date: t.due_date,
+        // The filing ledger (030), so EVERY missed period can be named
+        // rather than only the oldest one the stored date can reach.
+        filed_periods: filedPeriods.get(t.template_id) ?? [],
     })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
@@ -115,6 +119,9 @@ export default async function CalendarPage() {
       dismissal: t.dismissal,
       completion_data: t.completion_data,
         due_date: t.due_date,
+        // The filing ledger (030), so EVERY missed period can be named
+        // rather than only the oldest one the stored date can reach.
+        filed_periods: filedPeriods.get(t.template_id) ?? [],
     })),
     TEMPLATES_BY_ID
   );

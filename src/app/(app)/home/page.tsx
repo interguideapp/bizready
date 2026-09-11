@@ -9,6 +9,7 @@ import {
   getMetrics,
   getProducts,
   getTaskEvents,
+  getFiledPeriods,
 } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
@@ -60,8 +61,9 @@ const EVENT_VERB: Record<string, { verb: string; icon: string }> = {
 export default async function HomePage() {
   const business = await requireBusiness();
   const today = new Date();
-  const [tasks, documents, products, events, metrics, contentChanges] = await Promise.all([
+  const [tasks, filedPeriods, documents, products, events, metrics, contentChanges] = await Promise.all([
     getBusinessTasks(business.id),
+    getFiledPeriods(business.id),
     getDocuments(business.id),
     getProducts(business.id),
     getTaskEvents(business.id, 40),
@@ -97,6 +99,9 @@ export default async function HomePage() {
         dismissal: t.dismissal,
         completion_data: t.completion_data,
         due_date: t.due_date,
+        // The filing ledger (030), so EVERY missed period can be named
+        // rather than only the oldest one the stored date can reach.
+        filed_periods: filedPeriods.get(t.template_id) ?? [],
       })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
@@ -268,6 +273,9 @@ export default async function HomePage() {
       dismissal: t.dismissal,
       completion_data: t.completion_data,
         due_date: t.due_date,
+        // The filing ledger (030), so EVERY missed period can be named
+        // rather than only the oldest one the stored date can reach.
+        filed_periods: filedPeriods.get(t.template_id) ?? [],
     })),
     TEMPLATES_BY_ID
   ).map((b) => ({

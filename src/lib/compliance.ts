@@ -7,6 +7,12 @@ import {
   nextAnnouncedFiling,
   type FilingRule,
 } from "@/lib/content/filing-rules";
+import {
+  FILING_RECORD_SINCE,
+  missedPeriodsFor,
+  periodForDue,
+  periodLabel as periodLabelFor,
+} from "@/lib/filings";
 import type { TaskStatus, TaskTemplate } from "@/lib/types";
 
 /**
@@ -73,6 +79,17 @@ export interface ComplianceTask {
    * period was missed.
    */
   due_date?: string | null;
+  /**
+   * Period keys already filed for this template (migration 030), e.g.
+   * ["2026-05..2026-06"].
+   *
+   * Undefined means the caller did not load the filing ledger, and the engine
+   * falls back to inferring a single missed period from `due_date`. That
+   * fallback is all there was before 030, and it can only ever surface the
+   * OLDEST unfiled deadline — so a business two periods behind heard about one
+   * of them and never the other.
+   */
+  filed_periods?: string[];
 }
 
 export interface ComplianceDocument {
@@ -121,34 +138,6 @@ function heDate(isoDate: string): string {
   return `${d}.${m}.${y}`;
 }
 
-/**
- * The filing period a given deadline belonged to.
- *
- * Deadlines are the 15th of the month AFTER the period ends, so the period end
- * is one month before the deadline's month. Used to label a period that was
- * missed, where there is no forward calculation to lean on.
- */
-function periodForDue(dueIso: string, frequency: VatFrequency): { startAbs: number; endAbs: number } | null {
-  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(dueIso);
-  if (!m) return null;
-  const dueAbs = Number(m[1]) * 12 + (Number(m[2]) - 1);
-  const endAbs = dueAbs - 1;
-  const step = frequency === "monthly" ? 1 : 2;
-  return { startAbs: endAbs - (step - 1), endAbs };
-}
-
-/** "יולי–אוגוסט 2026", or "יולי 2026" when the period is a single month. */
-function periodLabelFor(startAbs: number, endAbs: number): string {
-  const sY = Math.floor(startAbs / 12);
-  const sM = startAbs % 12;
-  const eY = Math.floor(endAbs / 12);
-  const eM = endAbs % 12;
-  if (startAbs === endAbs) return `${HE_MONTHS[sM]} ${sY}`;
-  const sameYear = sY === eY;
-  return sameYear
-    ? `${HE_MONTHS[sM]}–${HE_MONTHS[eM]} ${eY}`
-    : `${HE_MONTHS[sM]} ${sY} – ${HE_MONTHS[eM]} ${eY}`;
-}
 
 // ---------- statutory filing calendar ----------
 
@@ -468,46 +457,80 @@ export function computeUpcomingObligations(
     // the self-employed national-insurance advance had none.
     const entry = filingRuleFor(task.template_id);
     if (entry) {
-      // A PERIOD THAT WENT UNFILED.
+      // PERIODS THAT WENT UNFILED.
       //
-      // nextFilingPeriod returns the next deadline that has not passed, which
-      // is the right answer to "when do I file next" and the wrong one to
-      // "what do I owe". The moment a period goes unfiled the two diverge, and
-      // this engine could only ever see the future one — so the reminder sweep
-      // said "באיחור" from the stored column while the obligations board showed
-      // the next period 56 days out. Two surfaces, opposite answers, about a
-      // filing that accrues interest daily.
+      // nextFilingPeriod returns the next deadline that has not passed,
+      // which is the right answer to "when do I file next" and the wrong
+      // one to "what do I owe". The moment a period goes unfiled the two
+      // diverge, and this engine could only ever see the future one — so the
+      // reminder sweep said "באיחור" from the stored column while the board
+      // showed the next period 56 days out. Two surfaces, opposite answers,
+      // about a filing that accrues interest daily.
       //
-      // The stored deadline is the only record that a period passed unfiled:
-      // the sweep rolls it forward only for a COMPLETED task, so on an open one
-      // it stays in the past. Emitted in addition to the upcoming period,
-      // because both are true — you owe a late report and another is coming.
-      if (
-        entry.rule.anchor === "period_plus" &&
-        task.status !== "done" &&
-        task.due_date &&
-        withinOverdueHorizon(task.due_date)
-      ) {
-        const missedPeriod = periodForDue(task.due_date, freq);
-        const missedLabel = missedPeriod
-          ? periodLabelFor(missedPeriod.startAbs, missedPeriod.endAbs)
-          : null;
-        out.push({
-          id: `${entry.kind}:${task.template_id}:missed:${task.due_date}`,
-          kind: entry.kind,
-          basis: "statutory",
-          title: template.title,
-          dueDate: task.due_date,
-          templateId: template.id,
-          daysUntil: daysBetween(task.due_date, today),
-          periodLabel: missedLabel,
-          ruleText:
-            `${entry.periodNoun} ${missedLabel ?? ""} הייתה אמורה להיות מוגשת עד ` +
-            `${heDate(task.due_date)} ולא סומנה כמוגשת. איחור בדיווח ובתשלום צובר ` +
-            `ריבית והצמדה מהיום הראשון. אם הדיווח כבר הוגש — סמנו אותו כבוצע כדי ` +
-            `שנפסיק להתריע.`,
-          sourceUrl: entry.source,
-        });
+      // Two sources, in order of quality:
+      //
+      //   the filing ledger (030) knows exactly which periods were filed, so
+      //     EVERY missed one can be named. Only consulted back to
+      //     FILING_RECORD_SINCE, because before that there is no ledger and
+      //     an absent record is not an absent filing.
+      //
+      //   the deadline stored on the row, which the sweep leaves in the past
+      //     for an open task. It can only ever surface the OLDEST unfiled
+      //     period, which is why the ledger exists — but it is all there is
+      //     for history predating it.
+      if (entry.rule.anchor === "period_plus" && task.status !== "done" && task.due_date) {
+        const missed: { dueIso: string; label: string | null }[] = [];
+
+        if (task.filed_periods) {
+          for (const period of missedPeriodsFor({
+            firstDueIso: task.due_date,
+            todayIso: todayInIsrael(today),
+            frequency: freq,
+            filedKeys: task.filed_periods,
+            knownFrom: FILING_RECORD_SINCE,
+          })) {
+            missed.push({ dueIso: period.dueIso, label: period.label });
+          }
+        }
+
+        // The heuristic covers only what the ledger cannot: history from
+        // before recording began. Where the ledger has authority it WINS —
+        // without this precedence the fallback re-added a period the ledger
+        // had recorded as filed, telling the user they were late for
+        // something they had already done, which is the fastest way to make
+        // someone stop believing the alarm.
+        const ledgerCovers =
+          Boolean(task.filed_periods) && task.due_date >= FILING_RECORD_SINCE;
+        if (
+          !ledgerCovers &&
+          withinOverdueHorizon(task.due_date) &&
+          !missed.some((m) => m.dueIso === task.due_date)
+        ) {
+          const fallback = periodForDue(task.due_date, freq);
+          missed.push({
+            dueIso: task.due_date,
+            label: fallback ? periodLabelFor(fallback.startAbs, fallback.endAbs) : null,
+          });
+        }
+
+        for (const m of missed) {
+          out.push({
+            id: entry.kind + ":" + task.template_id + ":missed:" + m.dueIso,
+            kind: entry.kind,
+            basis: "statutory",
+            title: template.title,
+            dueDate: m.dueIso,
+            templateId: template.id,
+            daysUntil: daysBetween(m.dueIso, today),
+            periodLabel: m.label,
+            ruleText:
+              entry.periodNoun + " " + (m.label ?? "") + " הייתה אמורה להיות מוגשת עד " +
+              heDate(m.dueIso) + " ולא סומנה כמוגשת. איחור בדיווח ובתשלום צובר " +
+              "ריבית והצמדה מהיום הראשון. אם הדיווח כבר הוגש — סמנו אותו כבוצע כדי " +
+              "שנפסיק להתריע.",
+            sourceUrl: entry.source,
+          });
+        }
       }
 
       const occurrence = occurrenceFor(entry, today, freq, profile);

@@ -15,7 +15,7 @@ import {
   summarizeReconcile,
   type ReconcileSummary,
 } from "@/lib/rules-engine";
-import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
+import { isStatutoryFiling, nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status";
 import {
@@ -24,6 +24,7 @@ import {
   statusForStage,
   terminalStageFor,
 } from "@/lib/content/milestones";
+import { periodForDue } from "@/lib/filings";
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
 import { createCheckoutSession } from "@/lib/billing";
@@ -428,7 +429,7 @@ export async function completeTask(
 
   const { data: current } = await supabase
     .from("business_tasks")
-    .select("id, business_id, template_id, status, completion_data")
+    .select("id, business_id, template_id, status, completion_data, due_date")
     .eq("id", taskId)
     .single();
   if (!current) throw new Error("task not found");
@@ -475,6 +476,53 @@ export async function completeTask(
       .from("businesses")
       .update(cleaned)
       .eq("id", current.business_id);
+  }
+
+  // RECORD WHICH PERIOD THIS FILING COVERED (migration 030).
+  //
+  // completion_data is overwritten every period, so without this the product
+  // cannot say whether Jul–Aug was filed — and could therefore only ever report
+  // a single missed period, however far behind the business actually was.
+  //
+  // The period comes from the deadline stored on the ROW, not from today's
+  // date. A late filer is no longer standing in the period they are filing for,
+  // so computing it from the calendar would file a late submission against the
+  // wrong months.
+  if (isStatutoryFiling(current.template_id) && current.due_date) {
+    const { data: biz } = await supabase
+      .from("businesses")
+      .select("onboarding_answers")
+      .eq("id", current.business_id)
+      .single();
+    const answers = (biz?.onboarding_answers ?? {}) as { vat_frequency?: "monthly" | "bimonthly" };
+    const period = periodForDue(current.due_date, answers.vat_frequency ?? "bimonthly");
+    if (period) {
+      // A second submission for the same period is a correction, not a new
+      // filing — the unique key makes that the only representable outcome, and
+      // the row keeps its identity rather than being deleted and re-added.
+      const { error: filingError } = await supabase.from("task_filings").upsert(
+        {
+          business_id: current.business_id,
+          template_id: current.template_id,
+          period_key: period.key,
+          due_date: period.dueIso,
+          evidence: completionData,
+        },
+        { onConflict: "business_id,template_id,period_key" }
+      );
+      // Deliberately not fatal. The task IS completed at this point, and
+      // failing the whole action over the filing ledger would make the user
+      // re-do work they already did. It is reported in the event trail instead.
+      if (filingError) {
+        await supabase.from("task_events").insert({
+          business_id: current.business_id,
+          task_id: taskId,
+          template_id: current.template_id,
+          kind: "status_change",
+          detail: `לא נרשמה תקופת הדיווח (${period.key}): ${filingError.message}`,
+        });
+      }
+    }
   }
 
   const summary = Object.values(completionData).find((v) => v && v.trim()) ?? null;

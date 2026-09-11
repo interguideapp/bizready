@@ -177,6 +177,34 @@ export const getBusinessTasks = cache(async function getBusinessTasks(
   return (critical("את המשימות", data, error) ?? []) as BusinessTask[];
 });
 
+/**
+ * Which reporting periods this business has filed, per template (030).
+ *
+ * Memoised per request like the other shared reads, because the layout and
+ * the page under it both want it. Returned as a Map so the obligations engine
+ * can be handed a plain array per task and stay pure.
+ */
+export const getFiledPeriods = cache(async function getFiledPeriods(
+  businessId: string
+): Promise<Map<string, string[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_filings")
+    .select("template_id, period_key")
+    .eq("business_id", businessId);
+  // Optional, not critical: with no ledger the engine falls back to inferring
+  // a single missed period, which is how it behaved before 030. Failing the
+  // whole page over this would be worse than the degraded answer.
+  const rows = optional("את תקופות הדיווח", data, error, []) ?? [];
+  const out = new Map<string, string[]>();
+  for (const row of rows as { template_id: string; period_key: string }[]) {
+    const list = out.get(row.template_id) ?? [];
+    list.push(row.period_key);
+    out.set(row.template_id, list);
+  }
+  return out;
+});
+
 /** Newest first. Capped, because the archive grows without bound otherwise. */
 export const DOCUMENTS_PAGE_SIZE = 200;
 

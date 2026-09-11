@@ -524,3 +524,143 @@ describe("an old unfiled period does not fade away", () => {
     expect(late[0].daysUntil).toBeLessThan(-100);
   });
 });
+
+describe("more than one missed period, once the ledger knows", () => {
+  /**
+   * The limitation the filing ledger (030) removes. Inferring a missed period
+   * from the task's stored deadline can only ever surface the OLDEST one, so a
+   * business two periods behind heard about the first and never the second —
+   * the user least able to catch up got the least help.
+   */
+  const profile = { entityType: "osek_murshe" as const, vatFrequency: "bimonthly" as const };
+  // Well after FILING_RECORD_SINCE, so the ledger is authoritative throughout.
+  const jan2027 = new Date("2027-01-20T09:00:00Z");
+
+  it("names every unfiled period, not just the oldest", () => {
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "done" }),
+        task({
+          template_id: "vat-reporting",
+          status: "todo",
+          due_date: "2026-09-15",
+          filed_periods: [],
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    );
+    const late = obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0);
+    expect(late.map((o) => o.periodLabel)).toEqual([
+      "יולי–אוגוסט 2026",
+      "ספטמבר–אוקטובר 2026",
+      "נובמבר–דצמבר 2026",
+    ]);
+  });
+
+  it("drops the ones that were filed", () => {
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "done" }),
+        task({
+          template_id: "vat-reporting",
+          status: "todo",
+          due_date: "2026-09-15",
+          filed_periods: ["2026-07..2026-08", "2026-11..2026-12"],
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    );
+    const late = obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0);
+    expect(late.map((o) => o.periodLabel)).toEqual(["ספטמבר–אוקטובר 2026"]);
+  });
+
+  it("reports nothing when the ledger shows everything filed", () => {
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "done" }),
+        task({
+          template_id: "vat-reporting",
+          status: "todo",
+          due_date: "2026-09-15",
+          filed_periods: [
+            "2026-07..2026-08",
+            "2026-09..2026-10",
+            "2026-11..2026-12",
+          ],
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    );
+    expect(obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0)).toEqual([]);
+  });
+
+  it("never reports a period twice when both sources find it", () => {
+    // The heuristic and the ledger overlap on the oldest unfiled period.
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "done" }),
+        task({
+          template_id: "vat-reporting",
+          status: "todo",
+          due_date: "2026-09-15",
+          filed_periods: [],
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      new Date("2026-09-20T09:00:00Z"),
+      profile
+    );
+    const late = obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0);
+    expect(late).toHaveLength(1);
+    expect(new Set(late.map((o) => o.id)).size).toBe(1);
+  });
+
+  it("still works for a caller that did not load the ledger", () => {
+    // filed_periods undefined is the pre-030 path, and must behave as before
+    // rather than reporting nothing.
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "done" }),
+        task({ template_id: "vat-reporting", status: "todo", due_date: "2026-09-15" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    );
+    expect(
+      obs.filter((o) => o.templateId === "vat-reporting" && o.daysUntil < 0)
+    ).toHaveLength(1);
+  });
+
+  it("keeps the prerequisite gate across the whole ledger path", () => {
+    // A business with no VAT file owes no VAT reports, however empty the
+    // ledger is. This is the guard that stops the product inventing debts.
+    const obs = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "todo" }),
+        task({
+          template_id: "vat-reporting",
+          status: "todo",
+          due_date: "2026-09-15",
+          filed_periods: [],
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      jan2027,
+      profile
+    );
+    expect(obs.filter((o) => o.templateId === "vat-reporting")).toEqual([]);
+  });
+});

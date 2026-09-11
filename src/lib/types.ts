@@ -263,6 +263,12 @@ export interface BusinessTask {
   completed_at: string | null;
   notes: string | null;
   is_relevant: boolean;
+  /**
+   * Which kind of "doesn't apply" a not_relevant task is — see lib/task-status.ts.
+   * null on rows written before migration 015; read as not_applicable.
+   */
+  dismissal?: "not_applicable" | "handled_externally" | null;
+  dismissal_note?: string | null;
   completion_data?: Record<string, string>;
   follow_up_date?: string | null;
   waiting_for?: string | null;

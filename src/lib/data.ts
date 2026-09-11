@@ -112,7 +112,7 @@ export async function getBusinessTasks(
   const { data, error } = await supabase
     .from("business_tasks")
     .select(
-      "id, business_id, template_id, status, due_date, completed_at, notes, is_relevant, completion_data, follow_up_date, waiting_for"
+      "id, business_id, template_id, status, due_date, completed_at, notes, is_relevant, dismissal, dismissal_note, completion_data, follow_up_date, waiting_for"
     )
     .eq("business_id", businessId);
   return (critical("את המשימות", data, error) ?? []) as BusinessTask[];

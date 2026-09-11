@@ -38,7 +38,12 @@ export default async function TasksPage({
   const stageOf = (categoryId: string): Stage =>
     (CATEGORIES_BY_ID.get(categoryId)?.stage as Stage) ?? "operating";
   const journey = buildJourney(
-    tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant })),
+    tasks.map((t) => ({
+        template_id: t.template_id,
+        status: t.status,
+        is_relevant: t.is_relevant,
+        dismissal: t.dismissal,
+      })),
     TEMPLATES_BY_ID,
     stageOf
   );

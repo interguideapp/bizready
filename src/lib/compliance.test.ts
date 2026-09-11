@@ -6,6 +6,7 @@ import {
   nextFilingPeriod,
   recommendedDeadline,
   isStatutoryFiling,
+  filingsBlockedByDismissal,
   REMINDER_WINDOWS_PRO,
   type ComplianceTask,
 } from "./compliance";
@@ -204,5 +205,117 @@ describe("crossedWindows", () => {
     expect(crossedWindows(6, REMINDER_WINDOWS_PRO)).toEqual([30, 14, 7]);
     expect(crossedWindows(0, REMINDER_WINDOWS_PRO)).toEqual([30, 14, 7, 1]);
     expect(crossedWindows(-2, REMINDER_WINDOWS_PRO)).toEqual([]);
+  });
+});
+
+describe("a dismissal cannot start a statutory duty running", () => {
+  // The defect: not_relevant fully satisfied a dependency in all three engines,
+  // so an עוסק מורשה who dismissed "open a VAT file" as not relevant thereby
+  // unlocked a real, penalty-framed periodic VAT obligation.
+  const murshe = { entityType: "osek_murshe" as const, vatFrequency: "bimonthly" as const };
+
+  it("does NOT invent a VAT duty when the VAT file was dismissed as not applicable", () => {
+    const obligations = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "not_relevant", dismissal: "not_applicable" }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      today,
+      murshe
+    );
+    expect(obligations.some((o) => o.kind === "vat")).toBe(false);
+  });
+
+  it("reads a legacy dismissal with no recorded kind the same conservative way", () => {
+    const obligations = computeUpcomingObligations(
+      [
+        task({ template_id: "open-vat-file", status: "not_relevant", dismissal: null }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      today,
+      murshe
+    );
+    expect(obligations.some((o) => o.kind === "vat")).toBe(false);
+  });
+
+  it("DOES show the VAT duty when the file is handled outside BizReady", () => {
+    // "my accountant opened it" means the prerequisite is genuinely met, so the
+    // obligation is real and withholding its dates would be the bigger error.
+    const obligations = computeUpcomingObligations(
+      [
+        task({
+          template_id: "open-vat-file",
+          status: "not_relevant",
+          dismissal: "handled_externally",
+        }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID,
+      [],
+      today,
+      murshe
+    );
+    expect(obligations.some((o) => o.kind === "vat")).toBe(true);
+  });
+});
+
+describe("filingsBlockedByDismissal", () => {
+  it("names the filing and the prerequisite the user set aside", () => {
+    const blocked = filingsBlockedByDismissal(
+      [
+        task({ template_id: "open-vat-file", status: "not_relevant", dismissal: "not_applicable" }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID
+    );
+    expect(blocked).toEqual([
+      { templateId: "vat-reporting", blockedBy: "open-vat-file", dismissal: "not_applicable" },
+    ]);
+  });
+
+  it("says nothing when the prerequisite is merely unfinished", () => {
+    // A new business that has not opened its VAT file yet should see no VAT
+    // deadlines and no warning — the duty genuinely does not exist yet. That is
+    // the honest-deadline principle, not a problem to report.
+    const blocked = filingsBlockedByDismissal(
+      [
+        task({ template_id: "open-vat-file", status: "todo" }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID
+    );
+    expect(blocked).toEqual([]);
+  });
+
+  it("says nothing when the prerequisite is handled externally — nothing is blocked", () => {
+    const blocked = filingsBlockedByDismissal(
+      [
+        task({
+          template_id: "open-vat-file",
+          status: "not_relevant",
+          dismissal: "handled_externally",
+        }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID
+    );
+    expect(blocked).toEqual([]);
+  });
+
+  it("says nothing about a prerequisite absent from the plan", () => {
+    // vat-reporting depends on open-vat-file OR company-tax-files; the absent
+    // one is the alternative-prerequisite convention, not a block.
+    const blocked = filingsBlockedByDismissal(
+      [
+        task({ template_id: "company-tax-files", status: "done" }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID
+    );
+    expect(blocked).toEqual([]);
   });
 });

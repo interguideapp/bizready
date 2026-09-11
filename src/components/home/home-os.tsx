@@ -49,6 +49,13 @@ export interface HomeOSData {
   quickWins: QuickWin[];
   completeness: { percent: number; missing: { label: string; href: string }[] };
   nextDeadline: { title: string; date: string; daysUntil: number } | null;
+  /**
+   * Statutory filings whose dates we cannot compute because the user set the
+   * unlocking task aside as "not relevant". Gating them is the safe behaviour,
+   * but gating them SILENTLY would trade a fabricated deadline for a missing
+   * one — so the home screen says so, and names what to undo.
+   */
+  blockedFilings: { title: string; blockedByTitle: string; href: string }[];
   tiles: {
     readiness: number;
     money: { hasIncome: boolean; setAsideLow: number; setAsideHigh: number; monthRevenue: number; showSetAside: boolean };
@@ -175,6 +182,46 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                 ))}
               </div>
               <p className="mt-3 text-[11px] text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
+            </div>
+          </FadeUp>
+        )}
+
+        {/* ===== statutory dates we deliberately stopped computing ===== */}
+        {data.blockedFilings.length > 0 && (
+          <FadeUp delay={0.1}>
+            <div className="os-card rounded-3xl border border-status-overdue/25 p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <AlertTriangle className="h-4.5 w-4.5 text-status-overdue" aria-hidden />
+                <h2 className="text-section text-ink">מועדים שאנחנו לא מחשבים לך</h2>
+              </div>
+              <p className="mb-3 text-sm leading-relaxed text-ink-muted">
+                סימנתם משימה כלא רלוונטית, והיא תנאי מקדים לחובה חוקית. אנחנו לא
+                נמציא לכם מועד שאין לנו בסיס לחשב — אבל גם לא נשתוק על זה.
+              </p>
+              <div className="flex flex-col gap-2">
+                {data.blockedFilings.map((b, i) => (
+                  <Link
+                    key={i}
+                    href={b.href}
+                    className="group flex items-center gap-3 rounded-2xl border border-edge-soft bg-surface/50 p-3 transition hover:border-brand-edge"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink">{b.title}</p>
+                      <p className="truncate text-[11px] text-ink-muted">
+                        {"תלוי ב: " + b.blockedByTitle}
+                      </p>
+                    </div>
+                    <ArrowLeft
+                      className="h-4 w-4 shrink-0 text-ink-muted transition group-hover:text-brand-strong"
+                      aria-hidden
+                    />
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-ink-muted">
+                אם זה בעצם מטופל אצלכם מחוץ ל-BizReady — פתחו את המשימה ושנו את
+                סיבת ההסרה, ונחזיר את המועדים.
+              </p>
             </div>
           </FadeUp>
         )}

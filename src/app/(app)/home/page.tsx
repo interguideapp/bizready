@@ -10,7 +10,7 @@ import {
 } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
-import { computeUpcomingObligations } from "@/lib/compliance";
+import { computeUpcomingObligations, filingsBlockedByDismissal } from "@/lib/compliance";
 import { buildJourney } from "@/lib/journey";
 import { computeAttention, type Stage } from "@/lib/priority";
 import { computeConfidence } from "@/lib/confidence";
@@ -70,12 +70,23 @@ export default async function HomePage() {
 
   // journey + attention
   const journey = buildJourney(
-    tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant })),
+    tasks.map((t) => ({
+        template_id: t.template_id,
+        status: t.status,
+        is_relevant: t.is_relevant,
+        dismissal: t.dismissal,
+      })),
     TEMPLATES_BY_ID,
     stageOf
   );
   const obligations = computeUpcomingObligations(
-    tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant, completion_data: t.completion_data })),
+    tasks.map((t) => ({
+        template_id: t.template_id,
+        status: t.status,
+        is_relevant: t.is_relevant,
+        dismissal: t.dismissal,
+        completion_data: t.completion_data,
+      })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
     today,
@@ -178,6 +189,24 @@ export default async function HomePage() {
     missing: profile.checks.filter((c) => !c.done).map((c) => ({ label: c.label, href: c.href })),
   };
 
+  // A statutory filing gated by a dismissal, not by unfinished work. The user
+  // told us a prerequisite doesn't apply; we believed them and stopped computing
+  // the dates that depend on it, so we owe them that fact plainly.
+  const blockedFilings = filingsBlockedByDismissal(
+    tasks.map((t) => ({
+      template_id: t.template_id,
+      status: t.status,
+      is_relevant: t.is_relevant,
+      dismissal: t.dismissal,
+      completion_data: t.completion_data,
+    })),
+    TEMPLATES_BY_ID
+  ).map((b) => ({
+    title: TEMPLATES_BY_ID.get(b.templateId)?.title ?? b.templateId,
+    blockedByTitle: TEMPLATES_BY_ID.get(b.blockedBy)?.title ?? b.blockedBy,
+    href: `/tasks/${b.blockedBy}`,
+  }));
+
   const data: HomeOSData = {
     name: firstName(business.name),
     confidence: { state: confidence.state, headline: confidence.headline, detail: confidence.detail },
@@ -186,6 +215,7 @@ export default async function HomePage() {
     quickWins,
     completeness,
     nextDeadline,
+    blockedFilings,
     tiles: {
       readiness: score.overall,
       money: { hasIncome, setAsideLow: setAside.low, setAsideHigh: setAside.high, monthRevenue, showSetAside },

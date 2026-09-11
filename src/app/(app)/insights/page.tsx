@@ -58,7 +58,13 @@ export default async function InsightsPage() {
   });
 
   const obligations = computeUpcomingObligations(
-    tasks.map((t) => ({ template_id: t.template_id, status: t.status, is_relevant: t.is_relevant, completion_data: t.completion_data })),
+    tasks.map((t) => ({
+        template_id: t.template_id,
+        status: t.status,
+        is_relevant: t.is_relevant,
+        dismissal: t.dismissal,
+        completion_data: t.completion_data,
+      })),
     TEMPLATES_BY_ID,
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at })),
     new Date(),

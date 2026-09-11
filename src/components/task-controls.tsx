@@ -5,6 +5,11 @@ import { CalendarClock, Check, Loader2, RotateCcw } from "lucide-react";
 import { saveTaskNotes, setTaskStatus } from "@/lib/actions";
 import { CompleteTaskFlow } from "@/components/complete-task-flow";
 import { STATUS_LABELS } from "@/components/badges";
+import {
+  DISMISSAL_EXPLAINER,
+  DISMISSAL_LABEL,
+  type Dismissal,
+} from "@/lib/task-status";
 import type { CompletionSpec, TaskStatus } from "@/lib/types";
 
 const OPEN_STATUSES: Exclude<TaskStatus, "done">[] = [
@@ -39,6 +44,9 @@ export function StatusPicker({
   const [target, setTarget] = useState<TaskStatus | null>(null);
   const [showFlow, setShowFlow] = useState(false);
   const [showWaiting, setShowWaiting] = useState(false);
+  const [showDismiss, setShowDismiss] = useState(false);
+  const [dismissal, setDismissal] = useState<Dismissal>("not_applicable");
+  const [dismissNote, setDismissNote] = useState("");
   const [reason, setReason] = useState(waitingFor ?? "");
   const [followUp, setFollowUp] = useState(followUpDate ?? "");
 
@@ -47,8 +55,26 @@ export function StatusPicker({
       setShowWaiting(true);
       return;
     }
+    // Dismissing is never a single click any more. "Not about me" gates any
+    // statutory duty that depends on this task; "handled elsewhere" satisfies
+    // it. Opposite consequences, so the user has to say which they mean.
+    if (s === "not_relevant") {
+      setShowDismiss(true);
+      return;
+    }
     setTarget(s);
     startTransition(() => setTaskStatus(taskId, s));
+  }
+
+  function saveDismissal() {
+    setTarget("not_relevant");
+    startTransition(async () => {
+      await setTaskStatus(taskId, "not_relevant", {
+        dismissal,
+        dismissalNote: dismissNote.trim() || null,
+      });
+      setShowDismiss(false);
+    });
   }
 
   function saveWaiting() {
@@ -136,6 +162,78 @@ export function StatusPicker({
             </button>
             <button
               onClick={() => setShowWaiting(false)}
+              className="rounded-xl px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* which kind of "doesn't apply" */}
+      {showDismiss && (
+        <div className="mt-3 rounded-xl border border-edge bg-card p-4">
+          <p className="mb-1 text-sm font-semibold text-ink">למה להסיר את המשימה?</p>
+          <p className="mb-3 text-xs leading-relaxed text-ink-muted">
+            לשתי התשובות יש משמעות שונה לגמרי עבור חובות שתלויות במשימה הזאת.
+          </p>
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label="סוג ההסרה">
+            {(["not_applicable", "handled_externally"] as Dismissal[]).map((d) => {
+              const active = dismissal === d;
+              return (
+                <button
+                  key={d}
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setDismissal(d)}
+                  className={`rounded-xl border p-3 text-start transition ${
+                    active
+                      ? "border-brand-600 bg-brand-tint"
+                      : "border-edge bg-card hover:border-edge-strong"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-ink">
+                    {DISMISSAL_LABEL[d]}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">
+                    {DISMISSAL_EXPLAINER[d]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <label
+            htmlFor="dismiss-note"
+            className="mt-3 mb-1 block text-xs font-medium text-ink-muted"
+          >
+            {dismissal === "handled_externally"
+              ? "מי מטפל בזה? (יישמר בתיק ההוכחות)"
+              : "למה זה לא רלוונטי? (לא חובה)"}
+          </label>
+          <input
+            id="dismiss-note"
+            value={dismissNote}
+            onChange={(e) => setDismissNote(e.target.value)}
+            placeholder={
+              dismissal === "handled_externally"
+                ? 'למשל: רו"ח מגיש את הדוח מדי שנה'
+                : "למשל: אין לי אתר ולא מתכוון להקים"
+            }
+            className="mb-3 w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+          />
+
+          <div className="flex gap-2">
+            <button
+              onClick={saveDismissal}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+            >
+              {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+              הסרה מהתכנית
+            </button>
+            <button
+              onClick={() => setShowDismiss(false)}
               className="rounded-xl px-3 py-2 text-sm font-medium text-ink-muted hover:text-ink"
             >
               ביטול

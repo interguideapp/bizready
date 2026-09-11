@@ -16,6 +16,7 @@ import {
 } from "@/lib/rules-engine";
 import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
+import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
@@ -200,7 +201,17 @@ export async function updateAnswers(
 export async function setTaskStatus(
   taskId: string,
   status: Exclude<TaskStatus, "done">,
-  extra?: { waitingFor?: string | null; followUpDate?: string | null }
+  extra?: {
+    waitingFor?: string | null;
+    followUpDate?: string | null;
+    /**
+     * Which kind of "doesn't apply" this is. Required in the UI for
+     * not_relevant, because the two meanings have opposite consequences: one
+     * gates a statutory duty, the other satisfies it. See lib/task-status.ts.
+     */
+    dismissal?: Dismissal | null;
+    dismissalNote?: string | null;
+  }
 ) {
   const { supabase } = await requireUser();
 
@@ -211,6 +222,11 @@ export async function setTaskStatus(
     .single();
   if (!current) throw new Error("task not found");
 
+  // Never trust the payload: a client could send any string, and this column
+  // decides whether a statutory obligation is gated or asserted.
+  const dismissal =
+    status === "not_relevant" && isDismissal(extra?.dismissal) ? extra!.dismissal! : null;
+
   const { error } = await supabase
     .from("business_tasks")
     .update({
@@ -218,6 +234,10 @@ export async function setTaskStatus(
       completed_at: null,
       waiting_for: extra?.waitingFor ?? (status === "waiting" ? undefined : null),
       follow_up_date: extra?.followUpDate ?? (status === "waiting" ? undefined : null),
+      // Leaving not_relevant must clear the reason, or a re-opened task would
+      // carry a stale dismissal that the DB check constraint also forbids.
+      dismissal,
+      dismissal_note: dismissal ? (extra?.dismissalNote?.trim().slice(0, 500) || null) : null,
     })
     .eq("id", taskId);
   if (error) throw new Error(error.message);
@@ -229,7 +249,12 @@ export async function setTaskStatus(
     kind: current.status === "done" ? "reopened" : "status_change",
     from_status: current.status,
     to_status: status,
-    detail: extra?.waitingFor ?? null,
+    // The trail records WHICH dismissal, not just that one happened — the
+    // difference between "my accountant files this" and "not about me" is the
+    // whole point of the split, and an audit has to be able to see it.
+    detail: dismissal
+      ? [DISMISSAL_LABEL[dismissal], extra?.dismissalNote?.trim()].filter(Boolean).join(" — ")
+      : (extra?.waitingFor ?? null),
   });
 
   revalidatePath("/", "layout");

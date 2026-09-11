@@ -1,5 +1,6 @@
 import { todayInIsrael, israelParts } from "@/lib/dates";
-import type { TaskTemplate } from "@/lib/types";
+import { dismissalOf, satisfiesDependency, type Dismissal } from "@/lib/task-status";
+import type { TaskStatus, TaskTemplate } from "@/lib/types";
 
 /**
  * The Compliance Guardian's calendar engine.
@@ -49,6 +50,8 @@ export interface ComplianceTask {
   template_id: string;
   status: string;
   is_relevant: boolean;
+  /** not_applicable / handled_externally. null on rows predating the split. */
+  dismissal?: Dismissal | null;
   completion_data?: Record<string, string> | null;
 }
 
@@ -238,11 +241,17 @@ export function computeUpcomingObligations(
   // opened, so those dates never appear (as pressing or on the calendar) until
   // the setup task that unlocks them is complete.
   const taskById = new Map(tasks.map((t) => [t.template_id, t] as const));
+  // Everything here is a statutory filing, so a bare "not relevant" on the
+  // unlocking setup task does NOT open the gate: a user's view that opening a
+  // VAT file does not apply to them cannot be what starts a penalty-bearing VAT
+  // duty running. satisfiesDependency owns that rule for every engine.
   const prereqsMet = (template: TaskTemplate) =>
     template.depends_on.every((dep) => {
       const dt = taskById.get(dep);
-      if (!dt || !dt.is_relevant) return true; // dependency doesn't apply → not blocking
-      return dt.status === "done" || dt.status === "not_relevant";
+      return satisfiesDependency(
+        dt && { status: dt.status as TaskStatus, is_relevant: dt.is_relevant, dismissal: dt.dismissal },
+        { statutory: true }
+      );
     });
 
   for (const task of tasks) {
@@ -367,4 +376,60 @@ export function crossedWindows(
 ): number[] {
   if (daysUntil < 0) return []; // overdue handled separately
   return windows.filter((w) => daysUntil <= w);
+}
+
+/**
+ * A statutory filing whose date cannot be computed because the user set its
+ * prerequisite aside — not because the prerequisite is merely unfinished.
+ *
+ * That distinction is the point. A brand-new עוסק who has not yet opened a VAT
+ * file SHOULD see no VAT deadlines: the duty does not exist yet, and saying so
+ * is the honest-deadline principle working. But a user who dismissed "open a VAT
+ * file" as not applicable has made a claim the product cannot verify, and
+ * silently withholding the filing dates that depend on it would replace a
+ * fabricated deadline with a missing one — the same failure in the other
+ * direction, which is exactly what this pass exists to stop.
+ *
+ * So these are surfaced and named, with the prerequisite that caused it.
+ */
+export interface BlockedFiling {
+  templateId: string;
+  /** The prerequisite the user dismissed. */
+  blockedBy: string;
+  /** Which kind of dismissal it was. */
+  dismissal: Dismissal;
+}
+
+export function filingsBlockedByDismissal(
+  tasks: ComplianceTask[],
+  templates: Map<string, TaskTemplate>
+): BlockedFiling[] {
+  const taskById = new Map(tasks.map((t) => [t.template_id, t] as const));
+  const out: BlockedFiling[] = [];
+
+  for (const task of tasks) {
+    if (!task.is_relevant) continue;
+    if (!isStatutoryFiling(task.template_id)) continue;
+    const template = templates.get(task.template_id);
+    if (!template) continue;
+
+    for (const dep of template.depends_on) {
+      const dt = taskById.get(dep);
+      // Absent from the plan is the alternative-prerequisite convention, not a
+      // block. Only a dismissal that fails the statutory gate lands here.
+      if (!dt || !dt.is_relevant) continue;
+      const dismissal = dismissalOf({
+        status: dt.status as TaskStatus,
+        is_relevant: dt.is_relevant,
+        dismissal: dt.dismissal,
+      });
+      if (dismissal !== "not_applicable") continue;
+      if (satisfiesDependency(
+        { status: dt.status as TaskStatus, is_relevant: dt.is_relevant, dismissal: dt.dismissal },
+        { statutory: true }
+      )) continue;
+      out.push({ templateId: task.template_id, blockedBy: dep, dismissal });
+    }
+  }
+  return out;
 }

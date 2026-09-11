@@ -89,6 +89,7 @@ export default async function TaskDetailPage({
             template_id: template.id,
             status: task.status,
             is_relevant: task.is_relevant,
+            dismissal: task.dismissal,
             completion_data: task.completion_data,
           },
         ],

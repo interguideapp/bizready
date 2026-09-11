@@ -1,3 +1,5 @@
+import { isStatutoryFiling } from "@/lib/compliance";
+import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { TaskPriority, TaskStatus, TaskTemplate } from "@/lib/types";
 
 /**
@@ -12,6 +14,8 @@ export interface JourneyTask {
   template_id: string;
   status: TaskStatus;
   is_relevant: boolean;
+  /** not_applicable / handled_externally. null on rows predating the split. */
+  dismissal?: Dismissal | null;
 }
 
 export interface JourneyNode {
@@ -47,7 +51,7 @@ export function buildJourney(
   stageOf?: (categoryId: string) => string
 ): Journey {
   const relevant = tasks.filter((t) => t.is_relevant && templates.has(t.template_id));
-  const statusById = new Map(relevant.map((t) => [t.template_id, t.status]));
+  const taskById = new Map(relevant.map((t) => [t.template_id, t] as const));
   const relevantIds = new Set(relevant.map((t) => t.template_id));
 
   // who does each template unlock?
@@ -66,8 +70,17 @@ export function buildJourney(
     const tpl = templates.get(t.template_id)!;
     const deps = tpl.depends_on.filter((d) => relevantIds.has(d));
     const unmet = deps.filter((d) => {
-      const s = statusById.get(d);
-      return s !== "done" && s !== "not_relevant";
+      const dep = taskById.get(d);
+      // A statutory filing's gate is strict; a recommendation's is not. Same
+      // rule as compliance.ts and nextSteps, from the same function.
+      return !satisfiesDependency(
+        dep && {
+          status: dep.status as TaskStatus,
+          is_relevant: dep.is_relevant,
+          dismissal: dep.dismissal,
+        },
+        { statutory: isStatutoryFiling(t.template_id) }
+      );
     });
     const done = t.status === "done";
     const state: NodeState = done ? "done" : unmet.length > 0 ? "locked" : "available";

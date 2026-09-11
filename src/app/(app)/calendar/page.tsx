@@ -68,6 +68,7 @@ export default async function CalendarPage() {
       template_id: t.template_id,
       status: t.status,
       is_relevant: t.is_relevant,
+      dismissal: t.dismissal,
       completion_data: t.completion_data,
     })),
     TEMPLATES_BY_ID,

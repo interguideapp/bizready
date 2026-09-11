@@ -9,6 +9,12 @@ import type {
 import { ANSWER_ORDER, PRIORITY_WEIGHT } from "@/lib/types";
 import { interpolateFigures } from "@/lib/content/figures";
 import {
+  countsTowardScore,
+  dismissalOf,
+  satisfiesDependency,
+  type Dismissal,
+} from "@/lib/task-status";
+import {
   isStatutoryFiling,
   nextStatutoryDueDate,
   type ComplianceProfile,
@@ -242,6 +248,8 @@ export interface ScoredTask {
   template_id: string;
   status: TaskStatus;
   is_relevant: boolean;
+  /** not_applicable / handled_externally. null on rows predating the split. */
+  dismissal?: Dismissal | null;
 }
 
 export interface CategoryScore {
@@ -272,14 +280,17 @@ export function computeScore(
   let possibleAll = 0;
 
   for (const task of tasks) {
-    if (!task.is_relevant || task.status === "not_relevant") continue;
+    // not_applicable leaves the score on both sides — scoring someone on a rule
+    // that does not apply to them is meaningless either way. handled_externally
+    // stays in and earns full credit, because the obligation IS met.
+    if (!countsTowardScore(task)) continue;
     const template = templates.get(task.template_id);
     if (!template) continue;
 
     const weight = PRIORITY_WEIGHT[template.priority as TaskPriority];
     // in-flight work earns partial credit; waiting on a third party counts too
     const credit =
-      task.status === "done"
+      task.status === "done" || dismissalOf(task) === "handled_externally"
         ? 1
         : task.status === "in_progress" || task.status === "waiting"
           ? 0.5
@@ -321,7 +332,7 @@ export function nextSteps(
   templates: Map<string, TaskTemplate>,
   limit = 3
 ): string[] {
-  const statusById = new Map(tasks.map((t) => [t.template_id, t.status]));
+  const taskById = new Map(tasks.map((t) => [t.template_id, t] as const));
   const open = tasks.filter(
     (t) =>
       t.is_relevant &&
@@ -331,11 +342,12 @@ export function nextSteps(
 
   const unblocked = open.filter((t) => {
     const template = templates.get(t.template_id)!;
-    return template.depends_on.every((dep) => {
-      const depStatus = statusById.get(dep);
-      // deps not in the plan (not applicable) don't block
-      return depStatus === undefined || depStatus === "done" || depStatus === "not_relevant";
-    });
+    const statutory = isStatutoryFiling(t.template_id);
+    return template.depends_on.every((dep) =>
+      // deps absent from the plan don't block (the alternative-prerequisite
+      // convention); a dismissed dep blocks a statutory duty but not advice.
+      satisfiesDependency(taskById.get(dep), { statutory })
+    );
   });
 
   const priorityRank: Record<TaskPriority, number> = {

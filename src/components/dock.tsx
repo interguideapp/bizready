@@ -131,8 +131,11 @@ export function Dock({ unreadCount = 0 }: { unreadCount?: number }) {
             {/* more */}
             <DockButton
               mouseX={mouseX}
-              item={{ href: "#more", label: "עוד", icon: LayoutGrid }}
+              // "עוד" was an unlabelled icon hiding /settings and /calendar two
+              // clicks deep, while the app repeatedly deep-links into both.
+              item={{ href: "#more", label: "עוד — לוח החובות, מעקב, חיבורים והגדרות", icon: LayoutGrid }}
               active={moreOpen}
+              expanded={moreOpen}
               onClick={() => setMoreOpen((o) => !o)}
             />
           </motion.nav>
@@ -148,12 +151,15 @@ function DockButton({
   active,
   badge = 0,
   onClick,
+  expanded,
 }: {
   mouseX: MotionValue<number>;
   item: Item;
   active: boolean;
   badge?: number;
   onClick?: () => void;
+  /** Only for the overflow trigger, which is a menu button rather than a link. */
+  expanded?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
@@ -163,7 +169,9 @@ function DockButton({
     if (!b) return 9999;
     return val - (b.x + b.width / 2);
   });
-  const sizeTarget = useTransform(distance, [-110, 0, 110], [36, 60, 36]);
+  // 44px at rest is the floor, not the 36px it used to be. The magnification
+  // on top is a pointer nicety; the resting size is the accessibility contract.
+  const sizeTarget = useTransform(distance, [-110, 0, 110], [44, 62, 44]);
   const size = useSpring(sizeTarget, { mass: 0.1, stiffness: 200, damping: 15 });
   const iconTarget = useTransform(distance, [-110, 0, 110], [17, 27, 17]);
   const iconSize = useSpring(iconTarget, { mass: 0.1, stiffness: 200, damping: 15 });
@@ -175,6 +183,11 @@ function DockButton({
       style={{ width: size, height: size }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      // Focus too, not just hover: the label was hover-only, so a keyboard user
+      // tabbed through seven unlabelled icons with no way to know where they
+      // were. onFocus/onBlur bubble from the anchor, which is the focusable node.
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
       whileTap={{ scale: 0.86 }}
       className={`relative flex aspect-square items-center justify-center rounded-2xl transition-colors ${
         active ? "bg-brand-tint text-brand-strong" : "text-ink-soft hover:text-ink"
@@ -223,15 +236,34 @@ function DockButton({
     </motion.div>
   );
 
+  const focusRing =
+    "shrink-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand-edge focus-visible:ring-offset-2 focus-visible:ring-offset-surface";
+
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} aria-label={item.label} className="shrink-0">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={item.label}
+        // The overflow trigger opens a menu; say so rather than leaving a
+        // screen-reader user to guess what "עוד" does.
+        aria-haspopup="menu"
+        aria-expanded={expanded ?? undefined}
+        className={focusRing}
+      >
         {content}
       </button>
     );
   }
   return (
-    <Link href={item.href} aria-label={item.label} className="shrink-0">
+    <Link
+      href={item.href}
+      aria-label={item.label}
+      // The current page was communicated by colour alone — a brand tint and a
+      // 4px dot. Neither reaches a screen reader.
+      aria-current={active ? "page" : undefined}
+      className={focusRing}
+    >
       {content}
     </Link>
   );

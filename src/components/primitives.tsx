@@ -76,7 +76,7 @@ export function SegmentedControl<T extends string>({
 }) {
   return (
     <div
-      role="tablist"
+      role="group"
       className={cn(
         "relative inline-flex w-full rounded-2xl border border-edge bg-surface-2 p-1",
         className
@@ -87,8 +87,7 @@ export function SegmentedControl<T extends string>({
         return (
           <button
             key={opt.value}
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onChange(opt.value)}
             className={cn(
               "relative z-10 flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors",

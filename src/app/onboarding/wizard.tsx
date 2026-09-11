@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { completeOnboarding } from "@/lib/actions";
+import { FormMessage } from "@/components/form";
 import { ALREADY_DONE_OPTIONS } from "@/lib/content";
 import type { OnboardingAnswers } from "@/lib/types";
 import { YEARLY_FIGURES } from "@/lib/types";
@@ -48,9 +49,22 @@ export function OnboardingWizard() {
   const [draft, setDraft] = useState<Draft>({ already_done: [] });
   const [entityHelp, setEntityHelp] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const step = STEPS[stepIndex];
-  const progress = Math.round((stepIndex / STEPS.length) * 100);
+  // Progress is measured over the steps this particular user will actually
+  // see, not over all 12 — two of them are conditional, so the old count told
+  // someone who answered ten questions that they were on "question 7 of 12".
+  const visibleSteps = useMemo(
+    () => STEPS.map((_, i) => i).filter((i) => isVisible(i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft.plans_employees, draft.entity_type]
+  );
+  const positionInVisible = Math.max(0, visibleSteps.indexOf(stepIndex));
+  const visibleCount = visibleSteps.length;
+  // (position + 1) / count, so the final step reads 100% rather than 92%.
+  const progress = Math.round(((positionInVisible + 1) / visibleCount) * 100);
+  const isLastVisible = positionInVisible === visibleCount - 1;
   const canNext = useMemo(() => step.isValid(draft), [step, draft]);
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -103,7 +117,28 @@ export function OnboardingWizard() {
         : "on_site",
       already_done: draft.already_done ?? [],
     };
-    startTransition(() => completeOnboarding(draft.businessName!.trim(), answers));
+    setSubmitError(null);
+    startTransition(async () => {
+      try {
+        await completeOnboarding(draft.businessName!.trim(), answers);
+      } catch (err) {
+        // redirect() throws a control-flow signal that must be re-thrown, or a
+        // successful onboarding would render as a failure.
+        if (
+          err &&
+          typeof err === "object" &&
+          "digest" in err &&
+          typeof (err as { digest?: unknown }).digest === "string" &&
+          (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+        ) {
+          throw err;
+        }
+        console.error("completeOnboarding failed", err);
+        setSubmitError(
+          "לא הצלחנו לבנות את התכנית. התשובות שלכם נשמרו כאן במסך — נסו שוב."
+        );
+      }
+    });
   }
 
   return (
@@ -113,8 +148,8 @@ export function OnboardingWizard() {
         <div className="mx-auto max-w-lg">
           <div className="mb-2 flex items-center justify-between text-xs text-ink-muted">
             <span className="font-bold text-gradient">BizReady</span>
-            <span>
-              שאלה {stepIndex + 1} מתוך {STEPS.length}
+            <span aria-live="polite">
+              שאלה {positionInVisible + 1} מתוך {visibleCount}
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
@@ -363,6 +398,16 @@ export function OnboardingWizard() {
           </div>
         </div>
 
+        {/* The failure and the retry, where the user is actually looking. The
+            submit used to have no catch at all, so a server error left the
+            button spinning on "בונים את התכנית..." forever and the only escape
+            was to reload and answer all twelve questions again. */}
+        {submitError && (
+          <div className="mb-3">
+            <FormMessage tone="error">{submitError}</FormMessage>
+          </div>
+        )}
+
         {/* nav buttons */}
         <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-3 border-t border-edge bg-surface/95 px-6 py-4 backdrop-blur">
           {stepIndex > 0 && (
@@ -384,8 +429,8 @@ export function OnboardingWizard() {
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 בונים את התכנית...
               </>
-            ) : stepIndex === STEPS.length - 1 ? (
-              "בנו לי את התכנית"
+            ) : isLastVisible ? (
+              submitError ? "נסו שוב" : "בנו לי את התכנית"
             ) : (
               <>
                 המשך
@@ -409,14 +454,16 @@ function ChoiceList<T extends string>({
   options: { value: T; label: string; hint?: string }[];
 }) {
   return (
-    <div className="flex flex-col gap-2.5" role="radiogroup">
+    // Plain group rather than role="radiogroup": a radiogroup promises arrow-key
+    // navigation and a single tab stop, and this has neither. Claiming the role
+    // without the behaviour is worse for a screen-reader user than not claiming it.
+    <div className="flex flex-col gap-2.5" role="group">
       {options.map((opt) => (
         <button
           key={opt.value}
-          role="radio"
-          aria-checked={value === opt.value}
+          aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
-          className={`rounded-2xl border px-5 py-4 text-right transition ${
+          className={`rounded-2xl border px-5 py-4 text-start transition ${
             value === opt.value
               ? "border-brand-600 bg-brand-tint ring-2 ring-brand-edge"
               : "border-edge bg-card hover:border-edge-strong"

@@ -177,14 +177,13 @@ export function StatusPicker({
           <p className="mb-3 text-xs leading-relaxed text-ink-muted">
             לשתי התשובות יש משמעות שונה לגמרי עבור חובות שתלויות במשימה הזאת.
           </p>
-          <div className="flex flex-col gap-2" role="radiogroup" aria-label="סוג ההסרה">
+          <div className="flex flex-col gap-2" role="group" aria-label="סוג ההסרה">
             {(["not_applicable", "handled_externally"] as Dismissal[]).map((d) => {
               const active = dismissal === d;
               return (
                 <button
                   key={d}
-                  role="radio"
-                  aria-checked={active}
+                  aria-pressed={active}
                   onClick={() => setDismissal(d)}
                   className={`rounded-xl border p-3 text-start transition ${
                     active

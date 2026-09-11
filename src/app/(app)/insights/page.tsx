@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Gauge, Info } from "lucide-react";
+import { AlertTriangle, CalendarClock, Flame, Gauge, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
 import { TrophyWall } from "@/components/insights/trophy-wall";
@@ -20,6 +20,7 @@ import {
 import { computeScore } from "@/lib/rules-engine";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeUpcomingObligations } from "@/lib/compliance";
+import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
 import {
   computeBadges,
   computeStreak,
@@ -70,6 +71,34 @@ export default async function InsightsPage() {
     new Date(),
     { entityType: business.entity_type, vatFrequency: answers?.vat_frequency, hasAccountant: Boolean(business.accountant_name) }
   );
+
+  // WHAT THIS PAGE LEADS WITH.
+  //
+  // It led with the readiness score, and that number can sit at 95 while a
+  // statutory filing is overdue: a task handed to the accountant counts as
+  // "waiting" and earns half credit, so the score barely moves. A page called
+  // תובנות that opens with a reassuring number while money is accruing against
+  // you is not analysis, it is decoration — and it is the same false-comfort
+  // shape the audit removed from the home screen (B10: the score is a
+  // secondary progress metric, never the headline).
+  //
+  // Same engines as home, deliberately: one ranking of consequence in the
+  // product, not one per page.
+  const actionable = obligations.filter((o) => o.templateId !== null || o.kind === "document_expiry");
+  const overdueStatutory = actionable.filter(
+    (o) => o.basis === "statutory" && o.daysUntil < 0
+  );
+  const topExposures = rankByExposure(actionable)
+    .filter((e) => e.daysUntil <= 30)
+    .slice(0, 3);
+
+  // Where the score is actually being lost, so the number is explainable
+  // rather than just displayed. Ordered by how many tasks are outstanding,
+  // which is what the user can act on.
+  const weakest = [...score.byCategory]
+    .filter((c) => c.total > c.done)
+    .sort((a, b) => b.total - b.done - (a.total - a.done) || a.score - b.score)
+    .slice(0, 3);
 
   // finance panels — appear once real revenue is synced from invoicing
   const now = new Date();
@@ -123,6 +152,72 @@ export default async function InsightsPage() {
     <div>
       <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
 
+      {/* Consequence before progress. */}
+      {overdueStatutory.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-status-overdue/40 bg-status-overdue/5 p-4">
+          <h2 className="mb-1 flex items-center gap-2 text-section text-status-overdue">
+            <AlertTriangle className="h-4.5 w-4.5" aria-hidden />
+            {overdueStatutory.length === 1
+              ? "חובה חוקית אחת עברה את המועד"
+              : `${overdueStatutory.length} חובות חוקיות עברו את המועד`}
+          </h2>
+          <p className="text-xs leading-relaxed text-ink-soft">
+            כל עוד זה המצב, הציון למטה לא מספר את כל הסיפור — איחור צובר ריבית
+            והצמדה מהיום הראשון, בלי קשר לכמה משימות אחרות הושלמו.
+          </p>
+          <Link
+            href="/calendar"
+            className="mt-2 inline-block text-xs font-semibold text-status-overdue hover:underline"
+          >
+            ללוח החובות ←
+          </Link>
+        </div>
+      )}
+
+      {topExposures.length > 0 && (
+        <FadeIn>
+          <Card className="mb-5 p-5">
+            <h2 className="mb-1 flex items-center gap-2 text-section text-ink">
+              <Flame className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+              מה הכי כדאי לטפל בו
+            </h2>
+            <p className="mb-3 text-xs leading-relaxed text-ink-muted">
+              מדורג לפי מה שקורה אם מתעלמים — לא לפי מה שהתאריך שלו הקרוב ביותר.
+            </p>
+            <ul className="flex flex-col divide-y divide-edge-soft">
+              {topExposures.map((e) => (
+                <li key={e.obligationId} className="py-2.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <Link
+                      href={e.templateId ? `/tasks/${e.templateId}?from=insights` : "/calendar"}
+                      className="truncate text-sm font-semibold text-ink hover:text-brand-strong"
+                    >
+                      {e.title}
+                    </Link>
+                    <span
+                      className={`tnum shrink-0 text-xs font-medium ${
+                        e.daysUntil < 0 ? "text-status-overdue" : "text-ink-muted"
+                      }`}
+                    >
+                      {e.daysUntil < 0
+                        ? `באיחור ${-e.daysUntil} ימים`
+                        : e.daysUntil === 0
+                          ? "היום"
+                          : `בעוד ${e.daysUntil} ימים`}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+                    <span className="font-medium text-ink-soft">{SEVERITY_LABEL[e.severity]}</span>
+                    {" · "}
+                    {e.consequence}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </FadeIn>
+      )}
+
       {/* Say where the numbers come from instead of showing empty bars and ₪0.
           The finance half needs revenue, and revenue arrives either from an
           invoicing connection or from logging it by hand. */}
@@ -147,6 +242,23 @@ export default async function InsightsPage() {
               <h2 className="flex items-center gap-2 text-section text-ink"><Gauge className="h-4.5 w-4.5 text-brand-400" aria-hidden />היערכות לפי תחום</h2>
               <span className="tnum text-sm text-ink-muted">ציון כולל <b className="text-ink">{score.overall}</b></span>
             </div>
+            {/* A bare number invites the reader to treat it as a verdict. This
+                says what is behind it, which is the only part they can act on. */}
+            {weakest.length > 0 && (
+              <p className="mb-3 text-xs leading-relaxed text-ink-muted">
+                מה שמוריד אותו עכשיו:{" "}
+                {weakest.map((c, i) => (
+                  <span key={c.category_id}>
+                    {i > 0 && ", "}
+                    <b className="font-medium text-ink-soft">
+                      {CATEGORIES.find((x) => x.id === c.category_id)?.title ?? c.category_id}
+                    </b>{" "}
+                    ({c.total - c.done} שנותרו)
+                  </span>
+                ))}
+                .
+              </p>
+            )}
             <div className="flex flex-col gap-2.5">
               {CATEGORIES.filter((c) => scoreByCat.has(c.id)).map((c) => {
                 const s = scoreByCat.get(c.id)!;
@@ -200,7 +312,13 @@ export default async function InsightsPage() {
                   ))}
                 </div>
               </div>
-              <Link href="/calendar" className="mt-3 inline-block text-xs font-medium text-brand-strong hover:opacity-80">ללוח החובות המלא ←</Link>
+              {/* It used to slice to 8 and say nothing, so obligations nine
+                  onward simply were not there. */}
+              <Link href="/calendar" className="mt-3 inline-block text-xs font-medium text-brand-strong hover:opacity-80">
+                {obligations.length > 8
+                  ? `עוד ${obligations.length - 8} בלוח החובות המלא ←`
+                  : "ללוח החובות המלא ←"}
+              </Link>
             </Card>
           </FadeIn>
         )}

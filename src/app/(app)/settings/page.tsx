@@ -3,9 +3,11 @@ import { Command } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { PageTitle } from "@/components/ui";
 import { isAdmin, requireBusiness } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
 import { isPro } from "@/lib/subscription";
 import type { OnboardingAnswers } from "@/lib/types";
 import { NotificationPrefs } from "./notification-prefs";
+import { PrivacyControls } from "./privacy-controls";
 import { SettingsForm } from "./settings-form";
 import { SubscriptionBlock } from "./subscription-block";
 
@@ -15,6 +17,12 @@ export default async function SettingsPage() {
   // content-review console reachable only by typing the URL. This is its
   // entry point, and it renders for nobody else.
   const admin = await isAdmin();
+  // The deletion gate compares against the account's own email, so the page
+  // has to be able to show the user which address that is.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return (
     <div>
       <PageTitle
@@ -37,6 +45,10 @@ export default async function SettingsPage() {
         />
       </div>
       <SettingsForm answers={business.onboarding_answers as OnboardingAnswers} />
+
+      <div className="mt-5">
+        <PrivacyControls email={user?.email ?? null} />
+      </div>
 
       {admin && (
         <Link

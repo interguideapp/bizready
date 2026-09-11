@@ -27,7 +27,7 @@ export default async function BusinessPage() {
     const supabase = await createClient();
     const { data } = await supabase.storage
       .from("documents")
-      .createSignedUrl(business.logo_path, 3600);
+      .createSignedUrl(business.logo_path, 300);
     logoUrl = data?.signedUrl ?? null;
   }
 

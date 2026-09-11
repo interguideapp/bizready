@@ -8,6 +8,7 @@ import {
 } from "@/lib/data";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations } from "@/lib/compliance";
+import { maskAccount } from "@/lib/privacy";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import {
   computeBadges,
@@ -111,7 +112,10 @@ export async function loadPassport(): Promise<PassportData | null> {
   push("תיק ביטוח לאומי", business.bituach_leumi_file, true);
   push("בנק", business.bank_name);
   push("סניף", business.bank_branch, true);
-  push("מספר חשבון", business.bank_account, true);
+  // Masked on purpose: this document exists to be shared. The full number is
+  // on the business card, which is the user's own private reference, and in
+  // their data export.
+  push("מספר חשבון", maskAccount(business.bank_account), true);
   push("רו\"ח / יועץ מס", business.accountant_name);
   push("טלפון רו\"ח", business.accountant_phone, true);
   push("אימייל רו\"ח", business.accountant_email, true);

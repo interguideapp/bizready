@@ -17,6 +17,7 @@ import {
 import { nextStatutoryDueDate, STATUTORY_FILINGS } from "@/lib/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status";
+import { deleteAccountCompletely } from "@/lib/privacy";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
@@ -963,4 +964,44 @@ export async function requestOfferLead(
     note: note?.trim() || null,
   });
   return { ok: !error };
+}
+
+/**
+ * Permanently delete the signed-in account and everything attached to it.
+ *
+ * The product ships a `critical`, statute-backed task about תיקון 13 that tells
+ * the user to honour their own customers' right to erasure. Until now it had no
+ * way to honour theirs: an exhaustive search found no delete path, no export
+ * and no retention window anywhere in the codebase.
+ *
+ * Requires the user to type their email to confirm. That is not ceremony — this
+ * removes uploaded tax returns and ID documents with no undo, and a Server
+ * Action is a public POST endpoint, so a single stray request must not be able
+ * to destroy an account.
+ */
+export async function deleteMyAccount(
+  confirmation: string
+): Promise<{ ok: false; error: string } | never> {
+  const { user } = await requireUser();
+
+  // Compare against the account's own email, case-insensitively. A mistyped
+  // confirmation is a no-op, not a partial deletion.
+  const expected = (user.email ?? "").trim().toLowerCase();
+  if (!expected || confirmation.trim().toLowerCase() !== expected) {
+    return { ok: false, error: "הכתובת לא תואמת לכתובת החשבון. המחיקה לא בוצעה." };
+  }
+
+  const report = await deleteAccountCompletely(user.id);
+  if (!report.ok) {
+    // Say what did not happen. Reporting a clean deletion we did not perform is
+    // the exact failure mode this whole pass has been removing.
+    console.error("account deletion incomplete", user.id, report.failures);
+    return {
+      ok: false,
+      error:
+        "המחיקה לא הושלמה במלואה ונרשמה לבדיקה. חלק מהנתונים עדיין קיימים — פנו אלינו כדי להשלים אותה.",
+    };
+  }
+
+  redirect("/?deleted=1");
 }

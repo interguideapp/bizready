@@ -51,8 +51,18 @@ export function LogoUploader({
     <div className="flex items-center gap-4">
       <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-edge bg-surface-2">
         {preview ? (
+          // A plain <img>, not next/image: the source is a local object URL for
+          // a file the user just picked, which the image optimiser cannot
+          // process. The 80px container above reserves the space, so there is
+          // no layout shift; the attributes just give the browser the ratio.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="לוגו העסק" className="h-full w-full object-contain" />
+          <img
+            src={preview}
+            alt="לוגו העסק"
+            width={80}
+            height={80}
+            className="h-full w-full object-contain"
+          />
         ) : (
           <ImagePlus className="h-7 w-7 text-ink-faint" aria-hidden />
         )}

@@ -40,7 +40,10 @@ export default async function DocumentsPage() {
       .from("documents")
       .createSignedUrls(
         documents.map((d) => d.storage_path),
-        3600
+        // 300s, not 3600s. These point at scanned tax returns and ID documents,
+        // and a signed URL embedded as an href outlives the page it rendered on
+        // — it stays in history and in any screenshot of the address bar.
+        300
       );
     data?.forEach((entry, i) => {
       if (entry.signedUrl) signedUrls.set(documents[i].id, entry.signedUrl);

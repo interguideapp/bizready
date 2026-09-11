@@ -65,7 +65,7 @@ export default async function TaskDetailPage({
     const supabase = await createClient();
     const { data } = await supabase.storage
       .from("documents")
-      .createSignedUrls(taskDocs.map((d) => d.storage_path), 3600);
+      .createSignedUrls(taskDocs.map((d) => d.storage_path), 300);
     data?.forEach((entry, i) => {
       if (entry.signedUrl) signedUrls.set(taskDocs[i].id, entry.signedUrl);
     });

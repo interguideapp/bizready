@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status";
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
+import { createCheckoutSession } from "@/lib/billing";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
@@ -652,14 +653,54 @@ export async function markAllNotificationsRead() {
  * (Stripe/Paddle) and only flip the flag on a verified `checkout.completed`
  * webhook. Never ship self-serve free Pro to production.
  */
-export async function startProTrial(): Promise<{ ok: false; error: string }> {
-  // Deliberately inert. This used to set subscription_tier = "pro" with no
-  // payment, no trial-already-used check, and was re-callable indefinitely for
-  // rolling free windows — its own docstring said never to ship it.
-  //
-  // Subscription state is now written in exactly one place: the verified Stripe
-  // checkout webhook (service role). No client-reachable path may grant Pro.
-  return { ok: false, error: "השדרוג ל-Pro ייפתח בקרוב" };
+/**
+ * Starts a paid upgrade: creates a Stripe Checkout Session and hands back its
+ * hosted URL for the client to navigate to.
+ *
+ * Note what this does NOT do: it does not touch subscription_tier. It cannot —
+ * migration 019 rejects any session-level write to those columns, and the
+ * verified webhook is the only writer. That is the whole point. The function it
+ * replaced set subscription_tier = "pro" with no payment, recorded nothing, and
+ * was re-callable indefinitely for rolling free Pro windows.
+ *
+ * Returns a friendly, honest message when billing is not yet configured rather
+ * than sending the user into a broken flow.
+ */
+export async function startProCheckout(): Promise<
+  { ok: true; url: string } | { ok: false; error: string }
+> {
+  const { supabase, user } = await requireUser();
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id, billing_customer_id")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  if (!business) return { ok: false, error: "לא נמצא עסק לחשבון הזה." };
+
+  // Checkout sessions cost money to create in support time if abused, and this
+  // is a logged-in but unmetered endpoint.
+  const limit = await check(`checkout:${user.id}`, 10, 60 * 60 * 1000);
+  if (!limit.ok) {
+    return { ok: false, error: "נפתחו כבר כמה דפי תשלום. נסו שוב בעוד שעה." };
+  }
+
+  const headerBag = await headers();
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (headerBag.get("origin") || `https://${headerBag.get("host") ?? "bizready.app"}`);
+
+  const result = await createCheckoutSession({
+    businessId: business.id,
+    userId: user.id,
+    email: user.email ?? null,
+    origin,
+    existingCustomerId:
+      (business as { billing_customer_id?: string | null }).billing_customer_id ?? null,
+  });
+
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, url: result.url };
 }
 
 export async function cancelPro() {

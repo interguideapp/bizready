@@ -1,10 +1,38 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { Check, ShieldCheck } from "lucide-react";
+import { startProCheckout } from "@/lib/actions";
+import { FormMessage } from "@/components/form";
+import { Button } from "@/components/primitives";
 import { PRO_FEATURES } from "@/lib/subscription";
 
-/** The paywall / upgrade card for the Compliance Guardian. */
+/**
+ * The paywall / upgrade card.
+ *
+ * The button used to be permanently disabled because the only upgrade path was
+ * a self-serve free trial that had to be switched off. It now opens a real
+ * Stripe Checkout session — and when billing is not configured the server says
+ * so in words, rather than the UI guessing.
+ */
 export function UpgradeCta({ compact = false }: { compact?: boolean }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function upgrade() {
+    setError(null);
+    startTransition(async () => {
+      const result = await startProCheckout();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      // Stripe's hosted page. Deliberately a full navigation rather than a
+      // popup, so the payment happens on Stripe's own origin.
+      window.location.href = result.url;
+    });
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-brand-edge bg-gradient-to-l from-brand-tint/70 to-card p-5">
       <div className="mb-2 flex items-center gap-2">
@@ -30,15 +58,17 @@ export function UpgradeCta({ compact = false }: { compact?: boolean }) {
         </ul>
       )}
 
-      <button
-        type="button"
-        disabled
-        className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-brand-600/50 px-6 py-2.5 text-sm font-semibold text-white"
-      >
-        השדרוג ייפתח בקרוב
-      </button>
+      {error && (
+        <div className="mb-3">
+          <FormMessage tone="error">{error}</FormMessage>
+        </div>
+      )}
+
+      <Button onClick={upgrade} loading={pending} icon={<ShieldCheck className="h-4 w-4" aria-hidden />}>
+        שדרוג ל-Pro
+      </Button>
       <p className="mt-2 text-xs text-ink-soft">
-        אנחנו מחברים את התשלום. עד אז — כל מה שיש במערכת פתוח לכם.
+        התשלום מתבצע באתר המאובטח של Stripe. אפשר לבטל בכל עת.
       </p>
     </div>
   );

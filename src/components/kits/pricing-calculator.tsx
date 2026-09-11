@@ -51,7 +51,7 @@ export function PricingCalculator() {
                 className="w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
               />
               {f.suffix && (
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-faint">
+                <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-sm text-ink-faint">
                   {f.suffix}
                 </span>
               )}

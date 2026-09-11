@@ -89,7 +89,7 @@ export function StepTracker({
               <button
                 type="button"
                 onClick={() => toggle(i)}
-                className={`flex-1 pt-0.5 text-right text-sm leading-relaxed transition ${
+                className={`flex-1 pt-0.5 text-start text-sm leading-relaxed transition ${
                   isDone ? "text-ink-faint line-through decoration-edge-strong" : isCurrent ? "font-semibold text-ink" : "text-ink-soft"
                 }`}
               >

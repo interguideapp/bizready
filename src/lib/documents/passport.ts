@@ -13,7 +13,10 @@ export interface PassportData {
   /** real registration facts for the exported profile */
   regStatus?: string[];
   generatedAt: string; // he date
-  identity: { label: string; value: string }[];
+  // ltr marks a value that is digits or Latin text (file numbers, email). It
+  // is opt-in per field: the passport view used to force dir="ltr" on EVERY
+  // identity value, which mis-orders a Hebrew bank name or accountant name.
+  identity: { label: string; value: string; ltr?: boolean }[];
   levelTitle: string;
   levelNumber: number;
   score: number;

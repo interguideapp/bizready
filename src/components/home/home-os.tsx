@@ -233,7 +233,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
               <Hourglass className="h-4.5 w-4.5 text-brand-400" aria-hidden />
               <h2 className="text-section text-ink">ממתין לאישור</h2>
               {data.waiting.length > 0 && (
-                <span className="tnum mr-auto rounded-full bg-surface px-2 py-0.5 text-xs text-ink-muted">
+                <span className="tnum ms-auto rounded-full bg-surface px-2 py-0.5 text-xs text-ink-muted">
                   {data.waiting.length}
                 </span>
               )}
@@ -434,7 +434,7 @@ function OSTile({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="os-card flex min-h-[112px] w-full flex-col justify-between gap-2 p-4 text-right"
+        className="os-card flex min-h-[112px] w-full flex-col justify-between gap-2 p-4 text-start"
       >
         <div className="flex items-center justify-between">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5">{icon}</span>

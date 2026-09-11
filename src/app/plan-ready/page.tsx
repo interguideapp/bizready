@@ -39,7 +39,7 @@ export default async function PlanReadyPage() {
           {byCategory.size} תחומים — כל אחת עם הסבר, צעדים וקישורים רשמיים.
         </p>
 
-        <div className="mt-8 grid grid-cols-2 gap-2.5 text-right">
+        <div className="mt-8 grid grid-cols-2 gap-2.5 text-start">
           {CATEGORIES.filter((c) => byCategory.has(c.id)).map((c, i) => (
             <div
               key={c.id}

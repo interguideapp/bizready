@@ -177,7 +177,7 @@ function CategorySection({
           <CategoryIcon name={category.icon} className="h-4 w-4" />
         </div>
         <h3 className="font-bold text-ink">{category.title}</h3>
-        <span className="tnum mr-auto text-xs font-medium text-ink-faint">{doneCount}/{list.length}</span>
+        <span className="tnum ms-auto text-xs font-medium text-ink-faint">{doneCount}/{list.length}</span>
       </div>
       <Card className="divide-y divide-edge-soft">
         {sorted.map((task) => {

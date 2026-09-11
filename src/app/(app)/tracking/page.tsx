@@ -82,7 +82,7 @@ export default async function TrackingPage() {
                 <h2 className={`mb-2.5 flex items-center gap-2 font-bold ${tone}`}>
                   {icon}
                   {STATUS_LABELS[status]}
-                  <span className="mr-auto text-xs font-normal text-ink-muted">
+                  <span className="ms-auto text-xs font-normal text-ink-muted">
                     {list.length}
                   </span>
                 </h2>

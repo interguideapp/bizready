@@ -79,7 +79,7 @@ export function NotificationPrefs({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="972501234567"
-            className="w-full rounded-xl border border-edge px-3 py-2.5 text-left text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+            className="w-full rounded-xl border border-edge px-3 py-2.5 text-end text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
           />
         </div>
       )}

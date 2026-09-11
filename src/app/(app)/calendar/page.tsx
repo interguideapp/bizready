@@ -207,7 +207,7 @@ function ObligationRow({ ob }: { ob: Obligation }) {
             )}
           </p>
         </div>
-        <div className="shrink-0 text-left">
+        <div className="shrink-0 text-end">
           <p className="text-sm font-semibold text-ink">
             {new Date(ob.dueDate + "T00:00:00").toLocaleDateString("he-IL")}
           </p>
@@ -235,7 +235,7 @@ function ObligationRow({ ob }: { ob: Obligation }) {
       </div>
 
       {/* transparency: why is this the date? — accessible popover */}
-      <div className="mt-1.5 pr-12">
+      <div className="mt-1.5 ps-12">
         <InfoPopover
           trigger={
             <button className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-ink-muted outline-none transition hover:text-brand-strong">
@@ -250,7 +250,7 @@ function ObligationRow({ ob }: { ob: Obligation }) {
               href={ob.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mr-1 mt-2 inline-flex items-center gap-0.5 font-medium text-brand-strong hover:underline"
+              className="ms-1 mt-2 inline-flex items-center gap-0.5 font-medium text-brand-strong hover:underline"
             >
               מקור רשמי
               <ExternalLink className="h-3 w-3" aria-hidden />

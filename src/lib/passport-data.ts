@@ -98,20 +98,23 @@ export async function loadPassport(): Promise<PassportData | null> {
     { entityType: business.entity_type, vatFrequency: answers?.vat_frequency, hasAccountant: Boolean(business.accountant_name) }
   );
 
-  const identity: { label: string; value: string }[] = [];
-  const push = (label: string, v: string | null | undefined) => {
-    if (v && v.trim()) identity.push({ label, value: v });
+  const identity: { label: string; value: string; ltr?: boolean }[] = [];
+  // ltr is declared per field rather than applied to all of them. Forcing
+  // dir="ltr" on every value mis-orders Hebrew content — a bank name, an
+  // accountant's name — which is exactly what the passport view was doing.
+  const push = (label: string, v: string | null | undefined, ltr?: boolean) => {
+    if (v && v.trim()) identity.push({ label, value: v, ltr });
   };
-  push("מספר עוסק", business.dealer_number);
-  push("תיק מע\"מ", business.vat_file);
-  push("תיק מס הכנסה", business.income_tax_file);
-  push("תיק ביטוח לאומי", business.bituach_leumi_file);
+  push("מספר עוסק", business.dealer_number, true);
+  push("תיק מע\"מ", business.vat_file, true);
+  push("תיק מס הכנסה", business.income_tax_file, true);
+  push("תיק ביטוח לאומי", business.bituach_leumi_file, true);
   push("בנק", business.bank_name);
-  push("סניף", business.bank_branch);
-  push("מספר חשבון", business.bank_account);
+  push("סניף", business.bank_branch, true);
+  push("מספר חשבון", business.bank_account, true);
   push("רו\"ח / יועץ מס", business.accountant_name);
-  push("טלפון רו\"ח", business.accountant_phone);
-  push("אימייל רו\"ח", business.accountant_email);
+  push("טלפון רו\"ח", business.accountant_phone, true);
+  push("אימייל רו\"ח", business.accountant_email, true);
 
   const hasCosts = costs.length > 0;
   const entityLabel = ENTITY_LABELS[business.entity_type as keyof typeof ENTITY_LABELS] ?? "עוסק";

@@ -171,13 +171,13 @@ export default async function InsightsPage() {
           <FadeIn>
             <Card className="h-full p-5">
               <h2 className="mb-3 flex items-center gap-2 text-section text-ink"><CalendarClock className="h-4.5 w-4.5 text-brand-400" aria-hidden />מה מתי — ציר המועדים</h2>
-              <div className="relative pr-4">
+              <div className="relative ps-4">
                 <span className="absolute bottom-1 right-[7px] top-1 w-px bg-edge" aria-hidden />
                 <div className="flex flex-col gap-3">
                   {obligations.slice(0, 8).map((o) => (
                     <div key={o.id} className="relative flex items-center gap-3">
                       <span className={`absolute right-[-4px] h-2.5 w-2.5 rounded-full led ${o.daysUntil < 0 ? "text-status-overdue bg-status-overdue" : o.daysUntil <= 7 ? "text-status-progress bg-status-progress" : "text-brand-400 bg-brand-400"}`} />
-                      <div className="mr-4 flex min-w-0 flex-1 items-center justify-between gap-3">
+                      <div className="ms-4 flex min-w-0 flex-1 items-center justify-between gap-3">
                         <span className="min-w-0 truncate text-sm text-ink-soft">{o.title}{o.periodLabel && <span className="text-ink-faint"> · {o.periodLabel}</span>}</span>
                         <span className="tnum shrink-0 text-xs font-semibold text-ink">{new Date(o.dueDate + "T00:00:00").toLocaleDateString("he-IL")}</span>
                       </div>

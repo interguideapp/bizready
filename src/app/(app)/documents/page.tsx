@@ -107,7 +107,7 @@ export default async function DocumentsPage() {
                 <div className="mb-2 flex items-center justify-between">
                   <h2 className="text-sm font-bold text-ink-soft">
                     {cat.label}
-                    <span className="mr-2 font-normal text-ink-faint">
+                    <span className="ms-2 font-normal text-ink-faint">
                       {docs.length > 0 && `(${docs.length})`}
                     </span>
                   </h2>

@@ -56,7 +56,7 @@ export function PassportView({ d }: { d: PassportData }) {
         {/* readiness */}
         <FadeIn>
           <Card elevated className="relative overflow-hidden p-5">
-            <div className="pointer-events-none absolute -left-14 -top-14 h-48 w-48 rounded-full opacity-60 blur-3xl" style={{ background: "radial-gradient(circle, var(--accent-glow), transparent 70%)" }} />
+            <div className="pointer-events-none absolute -end-14 -top-14 h-48 w-48 rounded-full opacity-60 blur-3xl" style={{ background: "radial-gradient(circle, var(--accent-glow), transparent 70%)" }} />
             <div className="relative flex flex-wrap items-center gap-4">
               <span className="tnum flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-400 text-2xl font-bold text-white shadow-e-brand">
                 {d.score}
@@ -109,7 +109,12 @@ export function PassportView({ d }: { d: PassportData }) {
                 {d.identity.map((i) => (
                   <div key={i.label} className="flex items-center justify-between gap-3 border-b border-edge-soft py-1.5">
                     <dt className="text-sm text-ink-muted">{i.label}</dt>
-                    <dd dir="ltr" className="tnum text-sm font-semibold text-ink">{i.value}</dd>
+                    <dd
+                      dir={i.ltr ? "ltr" : undefined}
+                      className="tnum text-sm font-semibold text-ink"
+                    >
+                      {i.value}
+                    </dd>
                   </div>
                 ))}
               </dl>

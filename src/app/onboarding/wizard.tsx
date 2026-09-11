@@ -209,14 +209,14 @@ export function OnboardingWizard() {
                 />
                 <button
                   onClick={() => setEntityHelp((v) => !v)}
-                  className="text-right text-sm font-medium text-brand-strong hover:text-brand-strong"
+                  className="text-start text-sm font-medium text-brand-strong hover:text-brand-strong"
                 >
                   לא בטוחים מה מתאים? ככה מחליטים ←
                 </button>
                 {entityHelp && (
                   <div className="animate-fade-up rounded-2xl border border-brand-edge bg-brand-tint/60 p-4 text-sm leading-relaxed text-ink-soft">
                     <p className="font-semibold text-ink">כלל אצבע:</p>
-                    <ul className="mt-2 list-disc space-y-1.5 pr-5">
+                    <ul className="mt-2 list-disc space-y-1.5 ps-5">
                       <li>
                         צפי מחזור מתחת ל-₪
                         {YEARLY_FIGURES.osekPaturCeiling.toLocaleString()} בשנה
@@ -371,7 +371,7 @@ export function OnboardingWizard() {
                             : [...(draft.already_done ?? []), opt.id]
                         )
                       }
-                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-right text-sm font-medium transition ${
+                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-start text-sm font-medium transition ${
                         selected
                           ? "border-brand-600 bg-brand-tint text-brand-strong"
                           : "border-edge bg-card text-ink-soft hover:border-edge-strong"
@@ -422,7 +422,7 @@ export function OnboardingWizard() {
           <button
             onClick={next}
             disabled={!canNext || pending}
-            className="mr-auto inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-8 py-3 font-semibold text-white shadow-e-brand transition hover:opacity-95 disabled:opacity-40"
+            className="ms-auto inline-flex items-center gap-2 rounded-xl bg-gradient-to-l from-brand-600 to-brand-500 px-8 py-3 font-semibold text-white shadow-e-brand transition hover:opacity-95 disabled:opacity-40"
           >
             {pending ? (
               <>

@@ -63,7 +63,7 @@ export function PriceList({ products }: { products: ProductRow[] }) {
           inputMode="decimal"
           dir="ltr"
           placeholder="₪"
-          className="w-24 rounded-xl border border-edge px-3 py-2.5 text-left text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+          className="w-24 rounded-xl border border-edge px-3 py-2.5 text-end text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
         />
         <select
           value={unit}
@@ -108,7 +108,7 @@ function ProductLine({ product }: { product: ProductRow }) {
       </span>
       <span className="shrink-0 text-sm text-ink-soft">
         {product.price != null ? `₪${Number(product.price).toLocaleString()}` : "—"}
-        <span className="mr-1 text-xs text-ink-muted">
+        <span className="ms-1 text-xs text-ink-muted">
           {UNIT_LABELS[product.unit] ?? ""}
         </span>
       </span>

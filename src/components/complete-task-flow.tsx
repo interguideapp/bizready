@@ -102,7 +102,7 @@ export function CompleteTaskFlow({
               onClick={() =>
                 setChecked((c) => c.map((v, idx) => (idx === i ? !v : v)))
               }
-              className="flex w-full items-start gap-2.5 rounded-xl border border-edge-soft px-3 py-2 text-right text-sm transition hover:border-edge"
+              className="flex w-full items-start gap-2.5 rounded-xl border border-edge-soft px-3 py-2 text-start text-sm transition hover:border-edge"
             >
               <span
                 className={`mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition ${
@@ -134,7 +134,7 @@ export function CompleteTaskFlow({
                   {field.label}
                   {field.required && <span className="text-status-overdue"> *</span>}
                   {field.writesTo && (
-                    <span className="mr-1 text-ink-faint">· יישמר בכרטיס העסק</span>
+                    <span className="ms-1 text-ink-faint">· יישמר בכרטיס העסק</span>
                   )}
                 </span>
                 <input
@@ -156,7 +156,7 @@ export function CompleteTaskFlow({
       {/* 3. confirm */}
       <button
         onClick={() => setConfirmed((c) => !c)}
-        className="mb-4 flex w-full items-start gap-2.5 rounded-xl border border-edge px-3 py-3 text-right transition hover:border-brand-edge"
+        className="mb-4 flex w-full items-start gap-2.5 rounded-xl border border-edge px-3 py-3 text-start transition hover:border-brand-edge"
       >
         <span
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${

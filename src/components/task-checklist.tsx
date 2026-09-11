@@ -150,7 +150,7 @@ function ChecklistRow({
       </div>
 
       {docs.length > 0 && (
-        <ul className="mt-1.5 flex flex-col gap-1 pr-7">
+        <ul className="mt-1.5 flex flex-col gap-1 ps-7">
           {docs.map((doc) => (
             <li key={doc.id} className="flex items-center gap-1.5 text-xs text-ink-muted">
               <FileText className="h-3.5 w-3.5 shrink-0 text-brand-400" aria-hidden />

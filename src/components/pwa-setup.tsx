@@ -57,7 +57,7 @@ export function PwaSetup() {
   if (!deferred) return null;
 
   return (
-    <div className="fixed inset-x-3 bottom-20 z-30 mx-auto max-w-sm rounded-2xl border border-edge bg-card p-4 shadow-lg backdrop-blur-xl md:bottom-4 md:right-auto md:left-4 md:mx-0">
+    <div className="fixed inset-x-3 bottom-20 z-30 mx-auto max-w-sm rounded-2xl border border-edge bg-card p-4 shadow-lg backdrop-blur-xl md:bottom-4 md:end-auto md:start-4 md:mx-0">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-strong">
           <Download className="h-5 w-5" aria-hidden />

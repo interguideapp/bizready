@@ -77,7 +77,7 @@ export function PartnerForm() {
               type="button"
               key={t}
               onClick={() => setTier(t)}
-              className={`rounded-xl border p-3 text-right transition ${
+              className={`rounded-xl border p-3 text-start transition ${
                 active ? "border-brand-600 bg-brand-tint ring-2 ring-brand-edge" : "border-edge bg-card hover:border-edge-strong"
               }`}
             >

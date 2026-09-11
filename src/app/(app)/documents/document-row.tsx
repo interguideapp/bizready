@@ -52,13 +52,13 @@ export function DocumentRowItem({
 
       {/* associate to a task */}
       <span className="relative inline-flex items-center">
-        <Link2 className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-ink-faint" aria-hidden />
+        <Link2 className="pointer-events-none absolute start-2 h-3.5 w-3.5 text-ink-faint" aria-hidden />
         <select
           value={doc.task_id ?? ""}
           onChange={(e) => associate(e.target.value)}
           disabled={pending}
           aria-label="שיוך למשימה"
-          className="max-w-[9rem] rounded-lg border border-edge bg-card py-1 pr-6 pl-2 text-xs text-ink-soft outline-none transition focus:border-brand-500"
+          className="max-w-[9rem] rounded-lg border border-edge bg-card py-1 ps-6 pe-2 text-xs text-ink-soft outline-none transition focus:border-brand-500"
         >
           <option value="">ללא שיוך</option>
           {tasks.map((t) => (

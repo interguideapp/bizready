@@ -70,7 +70,7 @@ export function Dock({ unreadCount = 0 }: { unreadCount?: number }) {
       </AnimatePresence>
 
       {/* the dock is centred by transform, so opening "עוד" can't move it */}
-      <div className="pointer-events-none fixed bottom-3 left-1/2 z-40 -translate-x-1/2 sm:bottom-5">
+      <div className="pointer-events-none fixed bottom-3 end-1/2 z-40 -translate-x-1/2 sm:bottom-5">
         <div className="relative flex flex-col items-center">
           <AnimatePresence>
             {moreOpen && (
@@ -205,7 +205,7 @@ function DockButton({
       </motion.span>
 
       {badge > 0 && (
-        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-overdue px-1 text-xs font-bold text-white">
+        <span className="absolute start-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-overdue px-1 text-xs font-bold text-white">
           {badge > 9 ? "9+" : badge}
         </span>
       )}

@@ -64,7 +64,7 @@ export function IncomeLogger({
             >
               <span className="w-24 shrink-0 text-sm text-ink-soft">{m.label}</span>
               <div className="relative flex-1">
-                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-faint">₪</span>
+                <span className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-faint">₪</span>
                 <input
                   inputMode="numeric"
                   value={values[m.key]}
@@ -74,7 +74,7 @@ export function IncomeLogger({
                   onBlur={() => dirty && save(m.key)}
                   onKeyDown={(e) => e.key === "Enter" && dirty && save(m.key)}
                   placeholder="0"
-                  className="tnum w-full rounded-lg border border-edge bg-card py-1.5 pr-6 pl-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+                  className="tnum w-full rounded-lg border border-edge bg-card py-1.5 ps-6 pe-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
                   aria-label={`הכנסה ${m.label}`}
                 />
               </div>

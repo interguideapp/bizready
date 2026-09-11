@@ -90,7 +90,7 @@ export default function LandingPage() {
             <h2 className="text-2xl font-bold text-ink">
               מתאים לעוסק פטור ולעוסק מורשה
             </h2>
-            <ul className="mx-auto mt-5 flex max-w-md flex-col gap-2 text-right">
+            <ul className="mx-auto mt-5 flex max-w-md flex-col gap-2 text-start">
               {[
                 "כל משימה עם הסבר, צעדים וקישורים רשמיים",
                 "דדליינים ומשימות מחזוריות — כלום לא נופל",

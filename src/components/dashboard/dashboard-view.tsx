@@ -122,7 +122,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
         {/* reactor */}
         <FadeIn>
           <Card elevated className="relative flex h-full items-center gap-6 overflow-hidden p-6">
-            <div className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full opacity-70 blur-3xl" style={{ background: "radial-gradient(circle, var(--glow-c), transparent 70%)" }} />
+            <div className="pointer-events-none absolute -end-16 -top-20 h-56 w-56 rounded-full opacity-70 blur-3xl" style={{ background: "radial-gradient(circle, var(--glow-c), transparent 70%)" }} />
             <Reactor score={data.scoreOverall} />
             <div className="relative min-w-0 flex-1">
               <p className="eyebrow">רמה {data.level.level} · מתוך 5</p>

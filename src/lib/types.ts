@@ -325,4 +325,17 @@ export const YEARLY_FIGURES = {
   /** אגרה שנתית לרשם השותפויות — מופחתת עד 31.3, אחריה הרגילה */
   partnershipAnnualFeeReduced: 1_333,
   partnershipAnnualFeeRegular: 1_771,
+  /**
+   * ניכוי מס במקור מתשלומים בעד שירותים או נכסים, לפי תקנות מס הכנסה
+   * (ניכוי מתשלומים בעד שירותים או נכסים), תשל"ז-1977.
+   *
+   * TWO rates, not one, and this is the whole reason the single
+   * `withholdingDefaultRate: 20` that used to sit here was deleted rather than
+   * wired in: it was LABELLED as the rate for a supplier with no certificate,
+   * and 20% is the rate that applies WHEN the conditions are met. The
+   * no-certificate rate is 30%. Publishing the old constant as labelled would
+   * have understated a supplier's exposure by ten percentage points.
+   */
+  withholdingRateBase: 20,
+  withholdingRateNoCertificate: 30,
 } as const;

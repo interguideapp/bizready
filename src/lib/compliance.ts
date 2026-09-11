@@ -2,7 +2,9 @@ import { todayInIsrael, israelParts } from "@/lib/dates";
 import { dismissalOf, satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import {
   DATED_FILING_IDS,
+  announcedDateFor,
   filingRuleFor,
+  nextAnnouncedFiling,
   type FilingRule,
 } from "@/lib/content/filing-rules";
 import type { TaskStatus, TaskTemplate } from "@/lib/types";
@@ -239,8 +241,19 @@ export function nextStatutoryDueDate(
       return nextFilingPeriod(today, reportingFrequency(profile)).dueIso;
     case "monthly":
       return nextMonthlyDue(today, entry.rule.day).dueIso;
-    case "annual":
-      return nextAnnualDate(today, entry.rule.month, entry.rule.day);
+    case "annual": {
+      const statutoryIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
+      const forYear =
+        entry.kind === "registrar_fee"
+          ? Number(statutoryIso.slice(0, 4))
+          : Number(statutoryIso.slice(0, 4)) - 1;
+      const published = nextAnnouncedFiling(entry.rule, iso(today));
+      const announced = published?.dueIso ?? announcedDateFor(entry.rule, forYear);
+      // Same precedence as occurrenceFor, so the reminder sweep and the
+      // calendar can never disagree about one filing.
+      if (!announced && entry.rule.announcedOnly) return null;
+      return announced ?? statutoryIso;
+    }
     case "on_demand":
       return null;
   }
@@ -310,10 +323,33 @@ function occurrenceFor(
       };
     }
     case "annual": {
-      const dueIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
-      const forYear = entry.kind === "registrar_fee"
-        ? Number(dueIso.slice(0, 4))
-        : Number(dueIso.slice(0, 4)) - 1;
+      const statutoryIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
+      // A registrar fee is FOR the year it falls in; a return is for the year
+      // that just ended.
+      const forYear =
+        entry.kind === "registrar_fee"
+          ? Number(statutoryIso.slice(0, 4))
+          : Number(statutoryIso.slice(0, 4)) - 1;
+
+      // Where the authority publishes the date per tax year, that date wins.
+      // Read from the published map rather than derived from the calendar: the
+      // statutory base rolls forward once it passes, which shifts the derived
+      // year by one, so on 1 May 2026 a calendar derivation lands on tax year
+      // 2026 when the return actually open is 2025.
+      const published = nextAnnouncedFiling(entry.rule, iso(today));
+      const announced = published?.dueIso ?? announcedDateFor(entry.rule, forYear);
+
+      if (!announced && entry.rule.announcedOnly) {
+        // No published date for this year, and no honest way to derive one.
+        // Returning null means the task explains the rule and shows no
+        // deadline — an invented date on the largest penalty exposure in the
+        // product is worse than admitting we do not have it yet.
+        return null;
+      }
+
+      const dueIso = announced ?? statutoryIso;
+      const coveredYear = published?.taxYear ?? forYear;
+
       // The annual tax return is the one place a real, widely-used extension
       // exists, and it depends on being represented. Say that instead of
       // asserting a single date for everyone.
@@ -321,12 +357,15 @@ function occurrenceFor(
         entry.kind === "annual_report" && profile.hasAccountant
           ? ' בייצוג של רו"ח או יועץ מס מקבלים בדרך כלל ארכה לפי מועדי ה"הסדר" של רשות המסים — ודאו את התאריך המדויק מול המייצג.'
           : "";
+
       return {
         dueIso,
-        periodLabel: `${entry.periodNoun} ${forYear}`,
-        ruleText:
-          `מועד קבוע בלוח השנה: ${heDate(dueIso)} (${entry.rule.day} ב${HE_MONTHS[entry.rule.month - 1]}).` +
-          `${note}${representedNote}`,
+        periodLabel: `${entry.periodNoun} ${coveredYear}`,
+        ruleText: announced
+          ? `רשות המסים פרסמה לשנת המס ${coveredYear} מועד הגשה עד ${heDate(dueIso)}.` +
+            `${note}${representedNote}`
+          : `מועד קבוע בלוח השנה: ${heDate(dueIso)} (${entry.rule.day} ב${HE_MONTHS[entry.rule.month - 1]}).` +
+            `${note}${representedNote}`,
       };
     }
     case "on_demand":

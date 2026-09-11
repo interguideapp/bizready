@@ -112,9 +112,10 @@ describe("reviewQueueSummary", () => {
     expect(summary.now + summary.soon + summary.watch).toBe(summary.total);
   });
 
-  it("reports zero plainly when there is nothing to do", () => {
-    const year = FIGURES.osekPaturCeiling.year;
-    const summary = reviewQueueSummary(buildReviewQueue(`${year}-09-11`));
+  it("reports zero plainly when there is genuinely nothing to do", () => {
+    // A date where the figures are current, the content is fresh, AND a
+    // published filing date is still ahead (31.7.2026 for tax year 2025).
+    const summary = reviewQueueSummary(buildReviewQueue("2026-05-01"));
     expect(summary).toMatchObject({ total: 0, now: 0, soon: 0, watch: 0 });
   });
 });
@@ -128,5 +129,32 @@ describe("januaryFiguresDue", () => {
     expect(januaryFiguresDue(`${year}-01-10`)).toBe(false);
     // figures are behind, but this is not the window Israel publishes in
     expect(januaryFiguresDue(`${year + 1}-07-01`)).toBe(false);
+  });
+});
+
+describe("announced filing dates running out", () => {
+  it("asks for next year's date once the published ones have passed", () => {
+    // The company annual return shows the user no date when none is published,
+    // which is correct — and would leave the TEAM never learning that a new
+    // date is needed. Silence is right for a user and wrong for a maintainer.
+    const items = buildReviewQueue("2026-09-11").filter((i) => i.kind === "filing_date");
+    expect(items.length).toBeGreaterThan(0);
+    expect(items[0].id).toBe("company-annual-report-financials");
+    expect(items[0].urgency).toBe("now");
+    expect(items[0].reason).toContain("נגמרו המועדים");
+    expect(items[0].source).toMatch(/^https:\/\//);
+  });
+
+  it("says nothing while a published date is still ahead", () => {
+    // 31.7.2026 covers tax year 2025 and has not passed on 1 May 2026.
+    const items = buildReviewQueue("2026-05-01").filter((i) => i.kind === "filing_date");
+    expect(items).toEqual([]);
+  });
+
+  it("sorts a missing statutory date to the very front", () => {
+    // A statutory filing with no date at all is as urgent as content gets.
+    const all = buildReviewQueue("2028-01-01");
+    expect(all[0].urgency).toBe("now");
+    expect(all[0].legalBasis).toBe("statute");
   });
 });

@@ -44,6 +44,7 @@ const COMPANY_REGISTRATION = "https://www.gov.il/he/service/company_registration
 const PARTNERSHIP_REGISTRAR =
   "https://www.gov.il/he/departments/topics/registrar_of_partnerships/govil-landing-page";
 const EXEMPT_DEALER = "https://www.gov.il/he/service/request-open-exempt-dealer-via-internet";
+const WITHHOLDING_CERTIFICATES = "https://www.gov.il/he/service/itc-gmishurim";
 const BTL_SELF_EMPLOYED =
   "https://www.btl.gov.il/Insurance/National%20Insurance/type_list/Self_Employed/Pages/howtoregister.aspx";
 
@@ -134,21 +135,41 @@ export const FIGURES = {
     label: "אגרה שנתית לרשם השותפויות — רגילה",
     source: REGISTRAR_ANNUAL,
   },
+  withholdingRateBase: {
+    value: YEARLY_FIGURES.withholdingRateBase,
+    year: YEAR,
+    kind: "percent",
+    label: "ניכוי מס במקור משירותים ונכסים — השיעור הרגיל",
+    source: WITHHOLDING_CERTIFICATES,
+  },
+  withholdingRateNoCertificate: {
+    value: YEARLY_FIGURES.withholdingRateNoCertificate,
+    year: YEAR,
+    kind: "percent",
+    label: "ניכוי מס במקור בהיעדר אישור ניהול ספרים",
+    source: WITHHOLDING_CERTIFICATES,
+  },
 } as const satisfies Record<string, Figure>;
 
 /**
- * Deliberately absent: the default withholding rate applied to a supplier with
- * no valid אישור ניכוי מס במקור. It sat in YEARLY_FIGURES as
- * `withholdingDefaultRate: 20` with no reader anywhere, and it has been removed
- * rather than wired in.
+ * A note on the withholding rates, because the research changed the answer.
  *
- * The reason is the same standard the rest of this file enforces: a rate that
- * determines how much money one business must hold back from another is a legal
- * claim, and this one was never verified against an official source. Publishing
- * it because it happened to be in the codebase would be exactly the confident,
- * unsourced assertion these tests exist to prevent. It belongs in the sourced
- * research pass on the payer side of withholding, alongside the missing employer
- * filings (טופס 102 / 126 / 856) — not in prose before then.
+ * These were originally a single `withholdingDefaultRate: 20` in
+ * YEARLY_FIGURES, read by nothing, commented as "שיעור ברירת מחדל לניכוי מס
+ * במקור מנותן שירותים ללא אישור" — the rate for a supplier WITHOUT a
+ * certificate. I deleted it rather than publish an unverified rate.
+ *
+ * The sourced pass showed the deletion was right for a better reason than
+ * "unverified": the figure was mislabelled. Under תקנות מס הכנסה (ניכוי
+ * מתשלומים בעד שירותים או נכסים), תשל"ז-1977 there are TWO rates — 20% is the
+ * ordinary rate, and 30% applies where the recipient has not shown the
+ * assessing officer that they keep proper books and filed their returns, and
+ * holds no written approval. Wiring in the old constant as labelled would have
+ * told users a supplier with no certificate faces 20% when the answer is 30%:
+ * understating their exposure by ten percentage points.
+ *
+ * Both rates are now present, sourced and dated, and the content states which
+ * is which.
  */
 
 export type FigureKey = keyof typeof FIGURES;

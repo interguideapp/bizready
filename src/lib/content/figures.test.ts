@@ -75,15 +75,26 @@ describe("no figure is hardcoded in content prose", () => {
     expect(bad).toEqual([]);
   });
 
-  it("no figure value appears as a literal in template prose", () => {
+  it("no shekel figure appears as a literal in template prose", () => {
     // This is the test that prevents the original defect from returning: the
     // numbers were typed into Hebrew prose, so updating the config changed
     // nothing a user could read. If you are adding content, write
     // {{osekPaturCeiling}} rather than ₪122,833.
+    //
+    // SHEKEL figures only, and that limit is deliberate. An amount like
+    // ₪122,833 is distinctive enough that finding it in prose almost certainly
+    // means the figure. A bare percentage is not: adding the withholding rates
+    // made this test flag "כ-30%–40% למס" in pricing advice and the עסק זעיר
+    // automatic 30% expense deduction — three unrelated, correct uses of the
+    // same two characters. A test that fires on correct content gets disabled,
+    // so percentages are covered by the token-reachability test below and by
+    // pairing them with their own words in the content ("מס חברות
+    // {{corporateTaxRate}}").
     const bad: string[] = [];
     for (const t of TASK_TEMPLATES) {
       const prose = proseOf(t).join("\n");
       for (const key of Object.keys(FIGURES) as FigureKey[]) {
+        if (FIGURES[key].kind !== "ils") continue;
         const formatted = formatFigure(key);
         if (prose.includes(formatted)) bad.push(`${t.id}: "${formatted}" — use {{${key}}}`);
       }
@@ -91,21 +102,17 @@ describe("no figure is hardcoded in content prose", () => {
     expect(bad).toEqual([]);
   });
 
-  it("no figure value appears as a literal in the content source files", () => {
+  it("no shekel figure appears as a literal in the content source files", () => {
     // Catches amounts written in a form the template-object scan above cannot
-    // see — a comment, or prose assembled at render time.
+    // see — a comment, or prose assembled at render time. Shekel amounts only,
+    // for the same reason as the test above.
     const dir = path.join(process.cwd(), "src/lib/content");
     const bad: string[] = [];
     for (const file of fs.readdirSync(dir).filter((f) => f.startsWith("tasks-"))) {
       const src = fs.readFileSync(path.join(dir, file), "utf8");
       for (const key of Object.keys(FIGURES) as FigureKey[]) {
-        const f = FIGURES[key];
-        // Only amounts are distinctive enough to match on. A bare "23" would
-        // fire on step numbers and dates; "₪1,338" and "23%" would not.
-        const literal =
-          f.kind === "percent"
-            ? `${f.value}%`
-            : `₪${f.value.toLocaleString("he-IL", { maximumFractionDigits: 0 })}`;
+        if (FIGURES[key].kind !== "ils") continue;
+        const literal = formatFigure(key);
         if (src.includes(literal)) bad.push(`${file}: "${literal}" — use {{${key}}}`);
       }
     }

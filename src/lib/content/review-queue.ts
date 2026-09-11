@@ -1,4 +1,5 @@
-import { TASK_TEMPLATES } from "@/lib/content";
+import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
+import { FILING_RULES, nextAnnouncedFiling } from "@/lib/content/filing-rules";
 import { FIGURES, type FigureKey } from "@/lib/content/figures";
 import { legalBasisOf, type LegalBasis } from "@/lib/content/legal-basis";
 import { reviewAge, type ReviewState } from "@/lib/staleness";
@@ -25,7 +26,13 @@ import type { TaskTemplate } from "@/lib/types";
 export type ReviewUrgency = "now" | "soon" | "watch";
 
 export interface ReviewItem {
-  kind: "template" | "figure";
+  /**
+   * template    the content behind a task has aged out
+   * figure      an amount belongs to a previous tax year
+   * filing_date an obligation whose deadline the authority publishes per year
+   *             has run out of published dates
+   */
+  kind: "template" | "figure" | "filing_date";
   id: string;
   title: string;
   urgency: ReviewUrgency;
@@ -118,10 +125,43 @@ function figureItems(todayIso: string): ReviewItem[] {
 }
 
 /**
+ * Obligations whose deadline the authority publishes per year, where we have
+ * run out of published dates.
+ *
+ * Without this the product goes quietly silent: the company annual return
+ * correctly shows no date once the map is exhausted, and nobody would ever
+ * learn that it needs a new one. Silence is the right thing to show a USER and
+ * the wrong thing to show the team.
+ */
+function announcedGapItems(todayIso: string): ReviewItem[] {
+  const out: ReviewItem[] = [];
+  for (const [templateId, entry] of Object.entries(FILING_RULES)) {
+    if (entry.rule.anchor !== "annual" || !entry.rule.announcedOnly) continue;
+    if (nextAnnouncedFiling(entry.rule, todayIso)) continue;
+
+    const template = TEMPLATES_BY_ID.get(templateId);
+    out.push({
+      kind: "filing_date",
+      id: templateId,
+      title: template?.title ?? templateId,
+      // A statutory filing with no date at all is as urgent as content gets.
+      urgency: "now",
+      reason: "נגמרו המועדים שרשות המסים פרסמה — צריך להוסיף את מועד ההגשה לשנה הבאה",
+      legalBasis: "statute",
+      reviewState: "stale",
+      monthsSinceReview: null,
+      source: entry.source,
+    });
+  }
+  return out;
+}
+
+/**
  * The full queue, most consequential first. Pure — pass the date in.
  */
 export function buildReviewQueue(todayIso: string): ReviewItem[] {
   const items = [
+    ...announcedGapItems(todayIso),
     ...figureItems(todayIso),
     ...TASK_TEMPLATES.map((t) => templateItem(t, todayIso)).filter(
       (i): i is ReviewItem => i !== null

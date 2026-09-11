@@ -258,14 +258,59 @@ describe("the new filings reach the people they apply to", () => {
   });
 });
 
-describe("the rules a source could not be found for stay out", () => {
-  it("does not invent a date for a company annual return", () => {
-    // One of the largest penalty exposures, and the audit is right that it has
-    // no anchored date. The filing runs through the רשות המסים "הסדר"
-    // arrangement with representative-dependent extensions, so any single date
-    // would be a guess dressed as a rule. Better absent than fabricated.
-    expect(filingRuleFor("company-annual-report-financials")).toBeNull();
+describe("a company's annual return uses the date the authority published", () => {
+  // There is no fixed calendar rule for this: רשות המסים announces the date per
+  // tax year, and it has moved (tax year 2021 was due 30.6.2022, 2024 was
+  // 31.7.2025, 2025 is 31.7.2026). Computing it from a calendar rule would be
+  // three months early every year; omitting it leaves the largest penalty
+  // exposure in the product undated. So the published dates are listed, and an
+  // unpublished year yields no date at all.
+  const profile = { entityType: "company" as const, vatFrequency: "bimonthly" as const };
+  const rule = filingRuleFor("company-annual-report-financials")!;
+
+  it("is announced-only, not a calendar rule", () => {
+    expect(rule.rule.anchor).toBe("annual");
+    if (rule.rule.anchor === "annual") {
+      expect(rule.rule.announcedOnly).toBe(true);
+      expect(rule.rule.announced).toBeTruthy();
+    }
   });
+
+  it("uses the published date for a tax year it knows", () => {
+    // During 2026 the open obligation is tax year 2025, published as 31.7.2026.
+    const due = nextStatutoryDueDate(
+      "company-annual-report-financials",
+      new Date("2026-05-01"),
+      profile
+    );
+    expect(due).toBe("2026-07-31");
+  });
+
+  it("shows NO date for a tax year that has not been published", () => {
+    // Rather than falling back to the statutory 30 April, which would be
+    // months early and would read as a real deadline.
+    const due = nextStatutoryDueDate(
+      "company-annual-report-financials",
+      new Date("2031-05-01"),
+      profile
+    );
+    expect(due).toBeNull();
+  });
+
+  it("never silently falls back to the statutory base date", () => {
+    // The base is kept in the rule for reference. If announcedOnly were ever
+    // dropped, this is what would catch it.
+    const due = nextStatutoryDueDate(
+      "company-annual-report-financials",
+      new Date("2031-05-01"),
+      profile
+    );
+    expect(due).not.toBe("2031-04-30");
+    expect(due).not.toBe("2032-04-30");
+  });
+});
+
+describe("the rules a source could not be found for stay out", () => {
 
   it("does not invent a withholding-certificate renewal date", () => {
     expect(filingRuleFor("withholding-certificate")).toBeNull();

@@ -40,8 +40,30 @@ export type DateRule =
   | { anchor: "period_plus"; day: number }
   /** Day N of every month, covering the previous calendar month. */
   | { anchor: "monthly"; day: number }
-  /** A fixed calendar date each year. `month` is 1-12. */
-  | { anchor: "annual"; month: number; day: number }
+  /**
+   * A fixed calendar date each year. `month` is 1-12.
+   *
+   * `announced` carries the dates the authority has actually published for a
+   * given TAX year, keyed by that tax year. It exists because the annual return
+   * is not really a fixed date: רשות המסים announces an extension each spring
+   * under its arrangement with the representatives, and the published date has
+   * moved year to year (tax year 2021 was due 30.6.2022; 2024 was 31.7.2025;
+   * 2025 is 31.7.2026). Showing the bare statutory date to a company would be
+   * three months early every year.
+   *
+   * When a tax year is not in the map we show NO date rather than guessing —
+   * the task explains that the date is announced in the spring. An invented
+   * deadline on the largest penalty exposure in the product is worse than an
+   * honest "not published yet".
+   */
+  | {
+      anchor: "annual";
+      month: number;
+      day: number;
+      announced?: Record<number, string>;
+      /** True when an unannounced year must show nothing at all. */
+      announcedOnly?: boolean;
+    }
   /**
    * N days from a demand we cannot see. There is no computable date, so these
    * obligations never appear as a deadline and never as overdue — the product
@@ -142,6 +164,41 @@ export const FILING_RULES: Record<string, FilingRule> = {
     note: 'ביטוח לאומי דורש 126 גם באמצע השנה: עד 18 ביולי עבור ינואר–יוני, ועד 18 בינואר עבור השנה שקדמה.',
   },
   /**
+   * דוח מס שנתי לחברה (טופס 1214) plus the audited financials.
+   *
+   * The audit flagged this as one of the largest penalty exposures with no
+   * anchored date, and my first pass left it out because I could not source a
+   * single defensible date. The research showed why: there isn't one. רשות
+   * המסים publishes the date per tax year under its arrangement with the
+   * representatives, and it has moved — tax year 2021 was due 30.6.2022, 2024
+   * was 31.7.2025, and 2025 is 31.7.2026 (announced 23 April 2026).
+   *
+   * So the rule is announced-only: the published dates are listed, and a tax
+   * year with no published date yields no deadline instead of a guess. That is
+   * the honest model, and it is better than both omitting the obligation and
+   * inventing a calendar rule for it.
+   */
+  "company-annual-report-financials": {
+    kind: "annual_report",
+    rule: {
+      anchor: "annual",
+      // The statutory base under the פקודה, kept for reference; announcedOnly
+      // means it is never shown on its own.
+      month: 4,
+      day: 30,
+      announced: {
+        2024: "2025-07-31",
+        2025: "2026-07-31",
+      },
+      announcedOnly: true,
+    },
+    source: "https://www.gov.il/he/departments/topics/annual-reports-1214/govil-landing-page",
+    verified: VERIFIED,
+    periodNoun: "שנת המס",
+    note: "רשות המסים מפרסמת את המועד לכל שנת מס, בדרך כלל באביב, ובייצוג רו\"ח נהוגות ארכות נוספות לפי ההסדר עם המייצגים. כל עוד המועד לשנה הנוכחית לא פורסם — לא נמציא תאריך.",
+  },
+
+  /**
    * אגרה שנתית לרשם החברות / השותפויות. Both templates existed and said
    * "31 March" in prose, but nothing computed it — so the one date in the
    * product that is a hard cliff (the fee jumps on 1 April) never reminded
@@ -200,15 +257,6 @@ export function filingRuleFor(templateId: string): FilingRule | null {
 /**
  * NOT in this registry, deliberately:
  *
- * - `company-annual-report-financials` — a company's annual return (טופס 1214)
- *   plus audited financials and the registrar's annual return. The audit
- *   correctly flags this as one of the largest penalty exposures with no
- *   anchored date. I could not establish a single defensible date from an
- *   official source in this pass: the filing runs through the רשות המסים
- *   "הסדר" arrangement with representative-dependent extensions, so any date I
- *   picked would be a guess dressed as a rule. It keeps its recommended date
- *   and its prose, and stays on the research list.
- *
  * - `withholding-certificate` renewal — the certificate's validity period drives
  *   it, and that is per-business data we do not hold. Better handled by the
  *   renewal-date capture path than by a guessed calendar rule.
@@ -219,3 +267,37 @@ export function filingRuleFor(templateId: string): FilingRule | null {
  *   a fact onboarding does not currently ask. Inventing that gate would put a
  *   filing duty in front of people who do not have it.
  */
+
+/**
+ * The published date for a tax year, if the authority has announced one.
+ *
+ * Returns null when it has not, which the caller must treat as "no deadline to
+ * show" rather than falling back to the statutory date — see the note on the
+ * annual anchor.
+ */
+export function announcedDateFor(rule: DateRule, taxYear: number): string | null {
+  if (rule.anchor !== "annual") return null;
+  return rule.announced?.[taxYear] ?? null;
+}
+
+/**
+ * The next published deadline that has not yet passed, with the tax year it
+ * covers.
+ *
+ * Derived by scanning the published dates rather than by computing a tax year
+ * from the calendar. That distinction matters: the statutory base date rolls
+ * forward once it passes, which shifts the derived year by one — so on 1 May
+ * 2026 a calendar derivation lands on tax year 2026 when the return actually
+ * open is 2025. Reading the published map directly cannot make that mistake.
+ */
+export function nextAnnouncedFiling(
+  rule: DateRule,
+  todayIso: string
+): { taxYear: number; dueIso: string } | null {
+  if (rule.anchor !== "annual" || !rule.announced) return null;
+  const upcoming = Object.entries(rule.announced)
+    .map(([taxYear, dueIso]) => ({ taxYear: Number(taxYear), dueIso }))
+    .filter((entry) => entry.dueIso >= todayIso)
+    .sort((a, b) => a.dueIso.localeCompare(b.dueIso));
+  return upcoming[0] ?? null;
+}

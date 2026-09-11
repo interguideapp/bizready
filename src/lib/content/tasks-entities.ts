@@ -15,9 +15,11 @@ const REVIEWED = "2026-09-09";
  * come due once the company's tax files are open — the same "one truth" gate the
  * osek track gets from `open-vat-file`.
  *
- * Figures are 2026 (see YEARLY_FIGURES): registrar registration ₪3,123 (₪2,559
- * online), annual registrar fee ₪1,338 reduced until 31.3 / ₪1,777 after,
- * corporate tax 23%.
+ * Amounts are written as {{figureKey}} tokens and resolved at render from
+ * content/figures.ts, which carries the year and the official source for each
+ * one. They used to be typed in here as literals under a comment claiming they
+ * came from YEARLY_FIGURES — a constant this file never imported — so updating
+ * the config changed nothing a user could see.
  */
 export const ENTITY_TASKS: TaskTemplate[] = [
   // ============ חברה בע"מ ============
@@ -35,7 +37,7 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     ],
     steps: `1. בחרו שם חברה פנוי (בדיקה באתר רשם החברות) והחליטו על בעלי המניות והון המניות
 2. הכינו: תקנון חברה, טופס הגשה (טופס 1), הצהרת בעלי מניות והצהרת דירקטורים ראשונים
-3. הגישו את הבקשה — מקוונת זולה יותר (כ-₪2,559 לעומת ₪3,123 בהגשה רגילה)
+3. הגישו את הבקשה — מקוונת זולה יותר (כ-{{companyRegistrationFeeOnline}} לעומת {{companyRegistrationFee}} בהגשה רגילה)
 4. רוב האנשים עושים את השלב הזה דרך עו"ד (החל מכמה מאות ש"ח) כדי לוודא תקנון תקין
 5. שמרו את תעודת ההתאגדות ומספר הח.פ. שתקבלו`,
     official_links: [
@@ -43,7 +45,7 @@ export const ENTITY_TASKS: TaskTemplate[] = [
       { label: "פתיחת חברה — כל-זכות", url: "https://www.kolzchut.org.il/he/רישום_חברה_פרטית" },
     ],
     docs_needed: ["תעודות זהות של בעלי המניות והדירקטורים", "תקנון חברה", "החלטה על שם והון מניות"],
-    est_cost: "₪2,559 מקוון (₪3,123 רגיל) + שכ\"ט עו\"ד",
+    est_cost: "{{companyRegistrationFeeOnline}} מקוון ({{companyRegistrationFee}} רגיל) + שכ\"ט עו\"ד",
     est_time: "כמה ימי עסקים",
     completion: {
       confirm: "החברה נרשמה וקיבלתי מספר ח.פ.",
@@ -131,7 +133,7 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     id: "company-annual-fee",
     category_id: "tax",
     title: "אגרה שנתית לרשם החברות",
-    why: "כל חברה חייבת באגרה שנתית לרשם החברות. שילום עד 31 במרץ מזכה בתעריף מופחת (₪1,338 ב-2026); אחריו קופץ לתעריף הרגיל (₪1,777). אי-תשלום מצטבר לחוב ועלול להוביל לחברה מפרה.",
+    why: "כל חברה חייבת באגרה שנתית לרשם החברות. שילום עד 31 במרץ מזכה בתעריף מופחת ({{registrarAnnualFeeReduced}} ב-2026); אחריו קופץ לתעריף הרגיל ({{registrarAnnualFeeRegular}}). אי-תשלום מצטבר לחוב ועלול להוביל לחברה מפרה.",
     after_submit:
       "אחרי התשלום שמרו את האסמכתא. האגרה חוזרת כל שנה קלנדרית — המערכת תזכיר לקראת סוף מרץ כדי לנצל את התעריף המופחת.",
     pitfalls: [
@@ -139,13 +141,13 @@ export const ENTITY_TASKS: TaskTemplate[] = [
       "לצבור אי-תשלום שנים — החברה מוכרזת 'מפרת חוק', ולבעלים ולדירקטורים נחסמות פעולות.",
     ],
     steps: `1. שלמו את האגרה השנתית באתר רשות התאגידים לפי מספר הח"פ
-2. שלמו עד 31 במרץ כדי לקבל את התעריף המופחת (₪1,338 ב-2026 במקום ₪1,777)
+2. שלמו עד 31 במרץ כדי לקבל את התעריף המופחת ({{registrarAnnualFeeReduced}} ב-2026 במקום {{registrarAnnualFeeRegular}})
 3. שמרו את אישור התשלום`,
     official_links: [
       { label: "תשלום אגרה שנתית לחברה — רשות התאגידים", url: "https://www.gov.il/he/service/company_partnership_annual_payment" },
     ],
     docs_needed: ["מספר ח.פ."],
-    est_cost: "₪1,338 מופחת / ₪1,777 רגיל (2026)",
+    est_cost: "{{registrarAnnualFeeReduced}} מופחת / {{registrarAnnualFeeRegular}} רגיל (2026)",
     est_time: "10 דקות",
     applies_when: { entity_type: ["company"] },
     depends_on: ["register-company"],
@@ -160,24 +162,24 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     id: "company-annual-report-financials",
     category_id: "tax",
     title: "דוחות כספיים מבוקרים, דוח שנתי לרשם ומס חברות",
-    why: "חברה חייבת בדוחות כספיים מבוקרים על ידי רו\"ח, בדוח שנתי לרשם החברות, ובדוח מס חברות שנתי (טופס 1214). רווחי החברה מחויבים במס חברות של 23%.",
+    why: "חברה חייבת בדוחות כספיים מבוקרים על ידי רו\"ח, בדוח שנתי לרשם החברות, ובדוח מס חברות שנתי (טופס 1214). רווחי החברה מחויבים במס חברות של {{corporateTaxRate}}.",
     after_submit:
       "אחרי הגשת הדוחות ותשלום המס מתקבלות אסמכתאות. משיכת רווחים לבעלים (דיבידנד) ממוסה בנוסף — כדאי לתכנן מול הרו\"ח את שילוב המשכורת/דיבידנד.",
     pitfalls: [
       "לנהל חברה בלי רו\"ח — דוח מבוקר הוא חובה, לא בחירה.",
-      "לשכוח שמס חברות (23%) חל על רווחי החברה, ומשיכת דיבידנד ממוסה בנפרד אצל הבעלים.",
+      "לשכוח שמס חברות ({{corporateTaxRate}}) חל על רווחי החברה, ומשיכת דיבידנד ממוסה בנפרד אצל הבעלים.",
       "לאחר בהגשת הדוח לרשם — עלול להוביל לעיצומים ולחברה מפרה.",
     ],
     steps: `1. עבדו עם רו"ח שיכין דוחות כספיים מבוקרים לשנה
 2. הגישו דוח שנתי לרשם החברות (כולל עדכון פרטי בעלי מניות ודירקטורים)
-3. הגישו דוח מס חברות שנתי (טופס 1214) ושלמו מס חברות על הרווח (23%)
+3. הגישו דוח מס חברות שנתי (טופס 1214) ושלמו מס חברות על הרווח ({{corporateTaxRate}})
 4. תכננו מול הרו"ח את שילוב המשכורת והדיבידנד למשיכת רווחים`,
     official_links: [
       { label: "מס חברות — רשות המסים", url: "https://www.gov.il/he/departments/israel_tax_authority" },
       { label: "דוח שנתי לרשם החברות — רשות התאגידים", url: "https://www.gov.il/he/departments/topics/corporations_authority" },
     ],
     docs_needed: ["הנהלת חשבונות שנתית", "דוחות כספיים מבוקרים"],
-    est_cost: "שכ\"ט רו\"ח + מס חברות 23% על הרווח",
+    est_cost: "שכ\"ט רו\"ח + מס חברות {{corporateTaxRate}} על הרווח",
     est_time: "תהליך שנתי מול רו\"ח",
     applies_when: { entity_type: ["company"] },
     depends_on: ["company-tax-files"],
@@ -194,7 +196,7 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     id: "register-partnership",
     category_id: "legal-setup",
     title: "רישום שותפות ברשם השותפויות",
-    why: "שותפות שמנהלת עסק צריכה להירשם אצל רשם השותפויות. הרישום מסדיר את מעמד השותפות מול צדדים שלישיים ובנקים. אגרת רישום שותפות כללית ₪1,128 (מוגבלת ₪3,112) ב-2026.",
+    why: "שותפות שמנהלת עסק צריכה להירשם אצל רשם השותפויות. הרישום מסדיר את מעמד השותפות מול צדדים שלישיים ובנקים. אגרת רישום שותפות כללית {{partnershipRegistrationGeneral}} (מוגבלת {{partnershipRegistrationLimited}}) ב-2026.",
     after_submit:
       "אחרי הרישום מתקבלת תעודת רישום ומספר שותפות. שנה אחרי הרישום מתחילה חובת אגרה שנתית לרשם השותפויות. השותפות עצמה שקופה למס — כל שותף מדווח על חלקו.",
     pitfalls: [
@@ -204,14 +206,14 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     ],
     steps: `1. גבשו הסכם שותפות (ראו משימה נפרדת) המגדיר חלוקת רווחים, ניהול וזכויות
 2. הגישו בקשת רישום לרשם השותפויות עם פרטי השותפים ושם השותפות
-3. שלמו את אגרת הרישום (שותפות כללית ₪1,128 / מוגבלת ₪3,112 ב-2026)
+3. שלמו את אגרת הרישום (שותפות כללית {{partnershipRegistrationGeneral}} / מוגבלת {{partnershipRegistrationLimited}} ב-2026)
 4. פתחו לשותפות תיק מע"מ; כל שותף מסדיר תיק מס הכנסה על חלקו`,
     official_links: [
       { label: "רשם השותפויות — רשות התאגידים", url: "https://www.gov.il/he/departments/topics/registrar_of_partnerships/govil-landing-page" },
       { label: "שותפות — כל-זכות", url: "https://www.kolzchut.org.il/he/שותפות" },
     ],
     docs_needed: ["תעודות זהות של השותפים", "הסכם שותפות", "שם השותפות ותחום העיסוק"],
-    est_cost: "₪1,128 כללית / ₪3,112 מוגבלת (2026)",
+    est_cost: "{{partnershipRegistrationGeneral}} כללית / {{partnershipRegistrationLimited}} מוגבלת (2026)",
     est_time: "כמה ימי עסקים",
     applies_when: { entity_type: ["partnership"] },
     depends_on: [],
@@ -252,7 +254,7 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     id: "partnership-annual-fee",
     category_id: "tax",
     title: "אגרה שנתית לרשם השותפויות",
-    why: "שותפות רשומה חייבת באגרה שנתית לרשם השותפויות. תשלום עד 31 במרץ מזכה בתעריף מופחת (₪1,333 ב-2026); אחריו התעריף הרגיל (₪1,771).",
+    why: "שותפות רשומה חייבת באגרה שנתית לרשם השותפויות. תשלום עד 31 במרץ מזכה בתעריף מופחת ({{partnershipAnnualFeeReduced}} ב-2026); אחריו התעריף הרגיל ({{partnershipAnnualFeeRegular}}).",
     after_submit:
       "שמרו את אסמכתת התשלום. האגרה חוזרת כל שנה קלנדרית — המערכת תזכיר לקראת סוף מרץ.",
     pitfalls: [
@@ -260,13 +262,13 @@ export const ENTITY_TASKS: TaskTemplate[] = [
       "להזניח את האגרה שנים — צובר חוב מול הרשם.",
     ],
     steps: `1. שלמו את האגרה השנתית באתר רשות התאגידים לפי מספר השותפות
-2. שלמו עד 31 במרץ לתעריף המופחת (₪1,333 במקום ₪1,771 ב-2026)
+2. שלמו עד 31 במרץ לתעריף המופחת ({{partnershipAnnualFeeReduced}} במקום {{partnershipAnnualFeeRegular}} ב-2026)
 3. שמרו אישור תשלום`,
     official_links: [
       { label: "תשלום אגרה שנתית לשותפות — רשות התאגידים", url: "https://www.gov.il/he/service/company_partnership_annual_payment" },
     ],
     docs_needed: ["מספר שותפות"],
-    est_cost: "₪1,333 מופחת / ₪1,771 רגיל (2026)",
+    est_cost: "{{partnershipAnnualFeeReduced}} מופחת / {{partnershipAnnualFeeRegular}} רגיל (2026)",
     est_time: "10 דקות",
     applies_when: { entity_type: ["partnership"] },
     depends_on: ["register-partnership"],

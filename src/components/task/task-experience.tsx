@@ -29,6 +29,7 @@ import { TaskChecklist } from "@/components/task-checklist";
 import { DocumentUpload } from "@/components/document-upload";
 import { OfferCard } from "@/components/offer-card";
 import { fadeUp, spring } from "@/lib/motion";
+import { BasisChip, ProvenanceCard } from "@/components/task/provenance";
 import type { TaskView } from "@/lib/task-view";
 import { ArchetypeAction, archetypePrimaryCta } from "@/components/task/archetype-action";
 
@@ -95,6 +96,9 @@ export function TaskExperience({
           </div>
           <h1 className="text-title text-ink">{view.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {/* What kind of obligation this is, before how urgent it is —
+                "the law requires this" is the fact that changes behaviour. */}
+            <BasisChip basis={view.legalBasis} />
             <PriorityBadge priority={view.priority} />
             {!done && (
               <DueDateControl
@@ -192,6 +196,15 @@ export function TaskExperience({
               )}
             </Card>
           )}
+
+          {/* Provenance sits above the link list on purpose: the question
+              "who says so, and is this still true?" comes before "where do I
+              go to do it". */}
+          <ProvenanceCard
+            legalBasis={view.legalBasis}
+            reviewAge={view.reviewAge}
+            sourceUrl={view.sourceUrl}
+          />
 
           {view.officialLinks.length > 0 && (
             <Card className="p-4">

@@ -319,6 +319,4 @@ export const YEARLY_FIGURES = {
   /** אגרה שנתית לרשם השותפויות — מופחתת עד 31.3, אחריה הרגילה */
   partnershipAnnualFeeReduced: 1_333,
   partnershipAnnualFeeRegular: 1_771,
-  /** שיעור ברירת מחדל לניכוי מס במקור מנותן שירותים ללא אישור (%) */
-  withholdingDefaultRate: 20,
 } as const;

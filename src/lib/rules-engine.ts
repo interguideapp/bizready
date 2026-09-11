@@ -7,6 +7,7 @@ import type {
   TaskTemplate,
 } from "@/lib/types";
 import { ANSWER_ORDER, PRIORITY_WEIGHT } from "@/lib/types";
+import { interpolateFigures } from "@/lib/content/figures";
 import {
   isStatutoryFiling,
   nextStatutoryDueDate,
@@ -84,14 +85,23 @@ export function resolveTemplate(
   template: TaskTemplate,
   answers: OnboardingAnswers | Record<string, never>
 ): { steps: string; why: string } {
+  // Figure tokens are resolved here, at the single point every caller goes
+  // through, so an amount can never be rendered straight from the template
+  // source with its {{token}} showing.
   if (template.variants && "entity_type" in answers) {
     for (const variant of template.variants) {
       if (templateApplies(variant.when, answers as OnboardingAnswers)) {
-        return { steps: variant.steps, why: variant.why ?? template.why };
+        return {
+          steps: interpolateFigures(variant.steps),
+          why: interpolateFigures(variant.why ?? template.why),
+        };
       }
     }
   }
-  return { steps: template.steps, why: template.why };
+  return {
+    steps: interpolateFigures(template.steps),
+    why: interpolateFigures(template.why),
+  };
 }
 
 export interface PlannedTask {

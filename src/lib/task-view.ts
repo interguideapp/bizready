@@ -7,6 +7,8 @@ import type {
   TaskStatus,
 } from "@/lib/types";
 import type { GeneratedDoc } from "@/lib/documents/generators";
+import type { LegalBasis } from "@/lib/content/legal-basis";
+import type { ReviewAge } from "@/lib/staleness";
 
 /** Serializable bundle the server page hands to the client TaskExperience. */
 export interface TaskView {
@@ -30,6 +32,17 @@ export interface TaskView {
 
   /** statutory = a real legal deadline; recommended = a suggestion. */
   basis: "statutory" | "recommended";
+  /**
+   * What kind of obligation this is — the answer to "who says I have to?".
+   * Distinct from `basis` above, which is about the DATE: a task can be a
+   * statutory duty with no statutory deadline (a company's annual fee), or
+   * carry a recommended date for something no law requires at all.
+   */
+  legalBasis: LegalBasis;
+  /** How old this template's legal review is. Drives the staleness notice. */
+  reviewAge: ReviewAge;
+  /** The single source the content was written from, when one is recorded. */
+  sourceUrl: string | null;
   dueDate: string | null;
   obligation: {
     dueDate: string;

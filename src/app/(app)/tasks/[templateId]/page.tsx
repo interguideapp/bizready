@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { resolveArchetype } from "@/lib/content/archetypes";
+import { interpolateFigures } from "@/lib/content/figures";
+import { legalBasisOf } from "@/lib/content/legal-basis";
 import { resolveTemplate } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
 import { GENERATOR_BY_TEMPLATE } from "@/lib/documents/generators";
@@ -13,6 +15,8 @@ import {
   getOffersForTemplate,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { todayInIsrael } from "@/lib/dates";
+import { reviewAge } from "@/lib/staleness";
 import { DEFAULT_COMPLETION, YEARLY_FIGURES } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/types";
 import type { TaskView } from "@/lib/task-view";
@@ -129,10 +133,15 @@ export default async function TaskDetailPage({
     why: resolved.why,
     steps,
     stepsDone,
-    guide: template.guide,
-    pitfalls: template.pitfalls ?? [],
-    afterSubmit: template.after_submit ?? null,
+    guide: template.guide ? interpolateFigures(template.guide) : template.guide,
+    pitfalls: (template.pitfalls ?? []).map(interpolateFigures),
+    afterSubmit: template.after_submit ? interpolateFigures(template.after_submit) : null,
     basis: statutory ? "statutory" : "recommended",
+    legalBasis: legalBasisOf(template.id),
+    // Israel time, not UTC: a review that aged out overnight should read the
+    // same to the user as it does to the review queue.
+    reviewAge: reviewAge(template.last_reviewed, todayInIsrael()),
+    sourceUrl: template.source_url ?? null,
     dueDate: task.due_date,
     obligation: obligation
       ? {
@@ -149,7 +158,7 @@ export default async function TaskDetailPage({
     waitingFor: task.waiting_for ?? null,
     followUpDate: task.follow_up_date ?? null,
     docsNeeded: template.docs_needed,
-    estCost: template.est_cost,
+    estCost: template.est_cost ? interpolateFigures(template.est_cost) : undefined,
     estTime: template.est_time,
     officialLinks: template.official_links,
     primaryLink: template.official_links[0] ?? null,

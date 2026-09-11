@@ -45,7 +45,9 @@ export function DocumentGenerator({
   );
   const [errorMsg, setErrorMsg] = useState("");
 
-  const visibleSections = isPro ? doc.sections : doc.sections.slice(0, 1);
+  // Whatever the server sent IS the document. The truncation happens there —
+  // slicing here left the gated sections in the page source.
+  const visibleSections = doc.sections;
 
   async function saveToVault() {
     setSaveState("saving");
@@ -119,14 +121,20 @@ export function DocumentGenerator({
             </div>
           ))}
 
-          {!isPro && doc.sections.length > 1 && (
+          {/* doc.sections is already truncated by the server, so its length no
+              longer tells us whether anything was withheld. gatedSectionCount
+              does, and it is the only thing about the hidden sections that
+              reaches the browser. */}
+          {(doc.gatedSectionCount ?? 0) > 0 && (
             <div className="pointer-events-none mt-2 h-16 bg-gradient-to-t from-card to-transparent" />
           )}
         </div>
 
         {!isPro && (
-          <p className="mt-2 text-center text-xs text-ink-faint">
-            תצוגה מקדימה · הפקת המסמך המלא, הורדה ל-PDF ותיוק בארכיון — ב-Pro
+          <p className="mt-2 text-center text-xs text-ink-muted">
+            {(doc.gatedSectionCount ?? 0) > 0
+              ? `תצוגה מקדימה · עוד ${doc.gatedSectionCount} סעיפים, הורדה ל-PDF ותיוק בארכיון — ב-Pro`
+              : "תצוגה מקדימה · הורדה ל-PDF ותיוק בארכיון — ב-Pro"}
           </p>
         )}
       </div>

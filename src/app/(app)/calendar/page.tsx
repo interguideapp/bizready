@@ -100,6 +100,17 @@ export default async function CalendarPage() {
     byMonth.set(key, list);
   }
 
+  // The paywall is decided HERE, on the server, before anything is serialised.
+  // A free plan gets the nearest month; the rest never reaches the browser, so
+  // there is no class to delete and nothing for a screen reader to leak.
+  const allMonths = [...byMonth.entries()];
+  const visibleMonths = pro ? allMonths : allMonths.slice(0, 1);
+  const visibleCount = visibleMonths.reduce((n, [, list]) => n + list.length, 0);
+  // The old copy advertised obligations.length — the TOTAL, including the month
+  // the user could already see.
+  const hiddenCount = obligations.length - visibleCount;
+  const hiddenMonthCount = allMonths.length - visibleMonths.length;
+
   return (
     <div>
       <PageTitle
@@ -133,12 +144,9 @@ export default async function CalendarPage() {
           )}
 
           <div className="flex flex-col gap-6">
-            {[...byMonth.entries()].map(([key, list]) => {
+            {visibleMonths.map(([key, list]) => {
               const [, month] = key.split("-").map(Number);
               const year = Number(key.split("-")[0]);
-              // free users see full first month, the rest blurred behind the paywall
-              const isFirst = key === [...byMonth.keys()][0];
-              const gated = !pro && !isFirst;
               return (
                 <FadeIn key={key} whenInView>
                   <section>
@@ -147,9 +155,7 @@ export default async function CalendarPage() {
                         {MONTHS[month]} {year}
                       </span>
                     </h2>
-                    <Card
-                      className={`divide-y divide-edge-soft ${gated ? "pointer-events-none select-none blur-sm" : ""}`}
-                    >
+                    <Card className="divide-y divide-edge-soft">
                       {list.map((ob) => (
                         <ObligationRow key={ob.id} ob={ob} />
                       ))}
@@ -160,10 +166,22 @@ export default async function CalendarPage() {
             })}
           </div>
 
-          {!pro && byMonth.size > 1 && (
-            <p className="mt-4 text-center text-sm text-ink-muted">
-              יש עוד {obligations.length} חובות בהמשך — פותחים אותן עם Pro ⬆
-            </p>
+          {/* A real paywall: the gated obligations were never serialised, so
+              there is nothing here to un-blur. We say how many and when, which
+              is the honest amount of information to give away. */}
+          {hiddenCount > 0 && (
+            <Card className="mt-4 p-5 text-center">
+              <p className="text-sm font-semibold text-ink">
+                עוד {hiddenCount} חובות ב-{hiddenMonthCount} החודשים הבאים
+              </p>
+              <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-ink-muted">
+                התכנית החינמית מציגה את החודש הקרוב. עם Pro רואים את כל הלוח
+                קדימה, עם תזכורות 30, 14, 7 ויום לפני כל מועד.
+              </p>
+              <div className="mt-4">
+                <UpgradeCta compact />
+              </div>
+            </Card>
           )}
         </>
       )}

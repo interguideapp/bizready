@@ -5,7 +5,7 @@ import { interpolateFigures } from "@/lib/content/figures";
 import { legalBasisOf } from "@/lib/content/legal-basis";
 import { resolveTemplate } from "@/lib/rules-engine";
 import { computeUpcomingObligations, isStatutoryFiling } from "@/lib/compliance";
-import { GENERATOR_BY_TEMPLATE } from "@/lib/documents/generators";
+import { GENERATOR_BY_TEMPLATE, gateDocument } from "@/lib/documents/generators";
 import { isPro } from "@/lib/subscription";
 import {
   requireBusiness,
@@ -104,6 +104,7 @@ export default async function TaskDetailPage({
       )[0] ?? null
     : null;
 
+  const pro = isPro(business);
   const gen = GENERATOR_BY_TEMPLATE.get(template.id) ?? null;
   const genRelevantCtx = {
     businessName: business.name,
@@ -173,7 +174,7 @@ export default async function TaskDetailPage({
     })),
     checklist: checklist.map((c) => ({ id: c.id, label: c.label, done: c.done })),
     notes: task.notes ?? "",
-    pro: isPro(business),
+    pro,
     businessName: business.name,
     dealerNumber: business.dealer_number,
     unlocks,
@@ -181,7 +182,10 @@ export default async function TaskDetailPage({
       showGenerator && gen
         ? { id: gen.id, title: gen.title, description: gen.description, category: gen.category }
         : null,
-    generatedDoc: showGenerator && gen ? gen.build(genRelevantCtx) : null,
+    // Truncated HERE, on the server. The client used to receive every section
+    // and slice it for display, which is not a paywall — it is the full
+    // document in the page source with a CSS crop over it.
+    generatedDoc: showGenerator && gen ? gateDocument(gen.build(genRelevantCtx), pro) : null,
     ceiling: template.id === "patur-ceiling-watch" ? YEARLY_FIGURES.osekPaturCeiling : null,
   };
 

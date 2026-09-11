@@ -34,6 +34,12 @@ export interface GeneratedDoc {
   sections: DocSection[];
   disclaimer: string;
   updatedLabel: string; // "עודכן: dd.mm.yyyy"
+  /**
+   * How many sections were withheld by the plan gate. Set by gateDocument so
+   * the UI can say "3 more sections with Pro" without being handed the
+   * sections themselves.
+   */
+  gatedSectionCount?: number;
 }
 
 export interface DocGenerator {
@@ -465,4 +471,24 @@ ${sections}
 <div class="disclaimer">${escapeHtml(doc.disclaimer)}</div>
 </body>
 </html>`;
+}
+
+/**
+ * Truncates a generated document to what the caller's plan is entitled to.
+ *
+ * This runs on the server, before the document is serialised. It used to be a
+ * `.slice(0, 1)` inside the client component, which meant the complete document
+ * — every Pro-only clause of a client agreement or a privacy policy — was
+ * already in the RSC payload of a free account, one devtools panel away.
+ *
+ * `totalSections` is kept so the UI can honestly say how much more there is
+ * without being handed the content.
+ */
+export function gateDocument(doc: GeneratedDoc, pro: boolean): GeneratedDoc {
+  if (pro) return doc;
+  return {
+    ...doc,
+    sections: doc.sections.slice(0, 1),
+    gatedSectionCount: Math.max(0, doc.sections.length - 1),
+  };
 }

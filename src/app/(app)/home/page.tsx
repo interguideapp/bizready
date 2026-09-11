@@ -11,6 +11,7 @@ import {
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, filingsBlockedByDismissal } from "@/lib/compliance";
+import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
 import { buildJourney } from "@/lib/journey";
 import { computeAttention, type Stage } from "@/lib/priority";
 import { computeConfidence } from "@/lib/confidence";
@@ -109,6 +110,24 @@ export default async function HomePage() {
     actionable.map((o) => ({ templateId: o.templateId, title: o.title, dueDate: o.dueDate, daysUntil: o.daysUntil, basis: o.basis, periodLabel: o.periodLabel })),
     journey.nodes, dueByTemplate, todayIso, stageOf
   );
+  // Ranked by consequence, not by date. The old ordering put whatever was
+  // nearest first, so a harmless task due today outranked a VAT filing that
+  // had been accruing a penalty for a week.
+  const ranked = rankByExposure(actionable).slice(0, 4);
+  const exposures = ranked.map((e) => ({
+    title: e.title,
+    href: e.templateId ? `/tasks/${e.templateId}` : "/calendar",
+    dueLabel:
+      e.daysUntil < 0
+        ? `באיחור ${-e.daysUntil} ימים`
+        : e.daysUntil === 0
+          ? "היום"
+          : `בעוד ${e.daysUntil} ימים`,
+    severityLabel: SEVERITY_LABEL[e.severity],
+    consequence: e.consequence,
+    overdue: e.daysUntil < 0,
+  }));
+
   const urgent = attention.urgent;
   const nextTpl = attention.nextTemplateId ? TEMPLATES_BY_ID.get(attention.nextTemplateId) : null;
 
@@ -216,6 +235,7 @@ export default async function HomePage() {
     completeness,
     nextDeadline,
     blockedFilings,
+    exposures,
     tiles: {
       readiness: score.overall,
       money: { hasIncome, setAsideLow: setAside.low, setAsideHigh: setAside.high, monthRevenue, showSetAside },

@@ -56,6 +56,20 @@ export interface HomeOSData {
    * one — so the home screen says so, and names what to undo.
    */
   blockedFilings: { title: string; blockedByTitle: string; href: string }[];
+  /**
+   * Obligations ranked by what ignoring them will actually cost — severity x
+   * proximity x certainty — rather than by how soon they fall due. The score
+   * itself is never displayed; it decides the order, and each row states its
+   * consequence in words.
+   */
+  exposures: {
+    title: string;
+    href: string;
+    dueLabel: string;
+    severityLabel: string;
+    consequence: string;
+    overdue: boolean;
+  }[];
   tiles: {
     readiness: number;
     money: { hasIncome: boolean; setAsideLow: number; setAsideHigh: number; monthRevenue: number; showSetAside: boolean };
@@ -216,6 +230,58 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                 ))}
               </div>
               <p className="mt-3 text-xs text-ink-faint">לחיצה על פריט לוקחת אתכם ישר להשלמה שלו</p>
+            </div>
+          </FadeUp>
+        )}
+
+        {/* ===== ranked by what it will cost, not by what is nearest ===== */}
+        {data.exposures.length > 0 && (
+          <FadeUp delay={0.06}>
+            <div className="os-card rounded-3xl p-5">
+              <div className="mb-1 flex items-center gap-2">
+                <AlertTriangle className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+                <h2 className="text-section text-ink">מה באמת עלול לעלות לכם</h2>
+              </div>
+              <p className="mb-3 text-sm leading-relaxed text-ink-muted">
+                לפי חומרה, קרבה למועד ומידת הוודאות שהחובה חלה עליכם — לא לפי מה
+                שהכי קרוב בלוח השנה.
+              </p>
+              <div className="flex flex-col gap-2">
+                {data.exposures.map((e, i) => (
+                  <Link
+                    key={i}
+                    href={e.href}
+                    className={`group flex flex-col gap-1 rounded-2xl border p-3 transition hover:border-brand-edge ${
+                      e.overdue
+                        ? "border-status-overdue/30 bg-status-overdue-bg/30"
+                        : "border-edge-soft bg-surface/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                        {e.title}
+                      </span>
+                      <span
+                        className={`shrink-0 text-xs font-semibold ${
+                          e.overdue ? "text-status-overdue" : "text-ink-muted"
+                        }`}
+                      >
+                        {e.dueLabel}
+                      </span>
+                      <ArrowLeft
+                        className="h-4 w-4 shrink-0 text-ink-muted transition group-hover:text-brand-strong"
+                        aria-hidden
+                      />
+                    </div>
+                    {/* The consequence in words. The score that produced this
+                        ordering is never shown — "risk score 47" is exactly the
+                        meaningless metric this replaced. */}
+                    <p className="text-xs leading-relaxed text-ink-muted">
+                      <b className="text-ink-soft">{e.severityLabel}.</b> {e.consequence}
+                    </p>
+                  </Link>
+                ))}
+              </div>
             </div>
           </FadeUp>
         )}

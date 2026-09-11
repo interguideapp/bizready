@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessTask, OnboardingAnswers } from "@/lib/types";
@@ -88,7 +89,7 @@ function optional<T>(what: string, data: T | null, error: DbError, fallback: T):
  * UI offers — and the database independently enforces the same split, so a bug
  * in the UI cannot become a data breach.
  */
-export async function getBusinessContext(): Promise<{
+export const getBusinessContext = cache(async function getBusinessContext(): Promise<{
   business: BusinessRow;
   role: EffectiveRole;
 } | null> {
@@ -127,7 +128,7 @@ export async function getBusinessContext(): Promise<{
   if (!sharedRow) return null;
 
   return { business: sharedRow, role: membership.role as EffectiveRole };
-}
+});
 
 /** Current user's business, or null if onboarding hasn't been completed. */
 export async function getBusiness(): Promise<BusinessRow | null> {
@@ -163,7 +164,7 @@ export async function requireBusiness(): Promise<BusinessRow> {
   return business;
 }
 
-export async function getBusinessTasks(
+export const getBusinessTasks = cache(async function getBusinessTasks(
   businessId: string
 ): Promise<BusinessTask[]> {
   const supabase = await createClient();
@@ -174,7 +175,7 @@ export async function getBusinessTasks(
     )
     .eq("business_id", businessId);
   return (critical("את המשימות", data, error) ?? []) as BusinessTask[];
-}
+});
 
 /** Newest first. Capped, because the archive grows without bound otherwise. */
 export const DOCUMENTS_PAGE_SIZE = 200;
@@ -222,6 +223,12 @@ export interface NotificationRow {
   title: string;
   body: string | null;
   template_id: string | null;
+  /**
+   * The idempotency key the sweep writes (migration 013). Typed here because
+   * merging stored rows with live-derived ones needs it to tell the same fact
+   * from two different ones — see lib/live-attention.ts.
+   */
+  dedupe_key: string | null;
   read_at: string | null;
   created_at: string;
 }

@@ -55,6 +55,16 @@ export interface Obligation {
   daysUntil: number;
   /** The reporting period this filing covers, e.g. "יולי–אוגוסט 2026". */
   periodLabel: string | null;
+  /**
+   * The period's stable key ("2026-07..2026-08") when this obligation is a
+   * MISSED period the user can clear.
+   *
+   * Present only on those. Without it the product could name a missed period
+   * and offer no way to mark it filed — an alarm with no off switch, which is
+   * worse than not raising it, because the user learns to ignore the surface
+   * rather than the item.
+   */
+  periodKey?: string | null;
   /** Plain-Hebrew explanation of why this is the date — shown as "למה התאריך הזה?". */
   ruleText: string;
   /** Official source backing the rule. */
@@ -479,7 +489,7 @@ export function computeUpcomingObligations(
       //     period, which is why the ledger exists — but it is all there is
       //     for history predating it.
       if (entry.rule.anchor === "period_plus" && task.status !== "done" && task.due_date) {
-        const missed: { dueIso: string; label: string | null }[] = [];
+        const missed: { dueIso: string; label: string | null; key: string | null }[] = [];
 
         if (task.filed_periods) {
           for (const period of missedPeriodsFor({
@@ -489,7 +499,7 @@ export function computeUpcomingObligations(
             filedKeys: task.filed_periods,
             knownFrom: FILING_RECORD_SINCE,
           })) {
-            missed.push({ dueIso: period.dueIso, label: period.label });
+            missed.push({ dueIso: period.dueIso, label: period.label, key: period.key });
           }
         }
 
@@ -510,6 +520,7 @@ export function computeUpcomingObligations(
           missed.push({
             dueIso: task.due_date,
             label: fallback ? periodLabelFor(fallback.startAbs, fallback.endAbs) : null,
+            key: fallback?.key ?? null,
           });
         }
 
@@ -523,6 +534,7 @@ export function computeUpcomingObligations(
             templateId: template.id,
             daysUntil: daysBetween(m.dueIso, today),
             periodLabel: m.label,
+            periodKey: m.key,
             ruleText:
               entry.periodNoun + " " + (m.label ?? "") + " הייתה אמורה להיות מוגשת עד " +
               heDate(m.dueIso) + " ולא סומנה כמוגשת. איחור בדיווח ובתשלום צובר " +

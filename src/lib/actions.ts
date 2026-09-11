@@ -578,6 +578,61 @@ export async function toggleTaskStep(taskId: string, stepIndex: number, done: bo
 }
 
 /** Set or clear a personal deadline; logs it to the activity feed. */
+/**
+ * Mark one past reporting period as filed.
+ *
+ * The obligations board can now name every period that went unfiled, and
+ * without this it could only name them. Completing the task records the period
+ * its stored deadline points at — the oldest — so once that one is cleared the
+ * deadline rolls to the NEXT upcoming period and the intermediate misses
+ * become unreachable. The product would be reporting a debt it gave the user no
+ * way to settle, which is worse than not reporting it: an alarm with no off
+ * switch teaches people to ignore the whole surface.
+ *
+ * This does not touch task status. Marking Sep–Oct filed says nothing about
+ * whether the CURRENT period is done, and conflating the two would quietly
+ * close an open obligation.
+ */
+export async function markPeriodFiled(templateId: string, periodKey: string) {
+  const { supabase } = await requireUser();
+
+  // Both arrive from a Server Action, which is a public POST endpoint.
+  if (!isStatutoryFiling(templateId)) throw new Error("not a statutory filing");
+  if (!/^d{4}-d{2}..d{4}-d{2}$/.test(periodKey)) {
+    throw new Error("invalid period");
+  }
+
+  const { data: task, error: readError } = await supabase
+    .from("business_tasks")
+    .select("id, business_id, template_id")
+    .eq("template_id", templateId)
+    .maybeSingle();
+  if (readError) throw new Error(readError.message);
+  // RLS decides which business this resolves to, so there is no id to trust
+  // from the client and nothing to authorise here beyond the row existing.
+  if (!task) throw new Error("task not found");
+
+  const { error } = await supabase.from("task_filings").upsert(
+    {
+      business_id: task.business_id,
+      template_id: templateId,
+      period_key: periodKey,
+      evidence: { marked: "מסומן כמוגש מלוח החובות" },
+    },
+    { onConflict: "business_id,template_id,period_key" }
+  );
+  if (error) throw new Error(error.message);
+
+  await supabase.from("task_events").insert({
+    business_id: task.business_id,
+    task_id: task.id,
+    template_id: templateId,
+    kind: "status_change",
+    detail: "תקופת דיווח " + periodKey + " סומנה כמוגשת",
+  });
+
+  revalidatePath("/", "layout");
+}
 export async function setTaskDueDate(taskId: string, dueDate: string | null) {
   const { supabase } = await requireUser();
   const { data: current } = await supabase

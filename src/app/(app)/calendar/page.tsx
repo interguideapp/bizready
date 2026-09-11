@@ -13,9 +13,11 @@ import {
   Users,
 } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
+import { MarkPeriodFiled } from "@/components/mark-period-filed";
 import { Card, EmptyState, FadeIn, InfoPopover, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { requireBusiness, getBusinessTasks, getDocuments, getFiledPeriods } from "@/lib/data";
+import { requireBusinessContext, getBusinessTasks, getDocuments, getFiledPeriods } from "@/lib/data";
+import { capabilitiesFor } from "@/lib/members";
 import {
   computeUpcomingObligations,
   filingsAwaitingPrerequisite,
@@ -67,8 +69,11 @@ const MONTHS = [
 ];
 
 export default async function CalendarPage() {
-  const business = await requireBusiness();
+  const { business, role } = await requireBusinessContext();
   const pro = isPro(business);
+  // A viewer's write would be rejected by RLS anyway (022), so offering the
+  // control would be offering a button guaranteed to fail.
+  const canEdit = capabilitiesFor(role).completeTasks;
 
   const [tasks, filedPeriods, documents] = await Promise.all([
     getBusinessTasks(business.id),
@@ -186,7 +191,7 @@ export default async function CalendarPage() {
           </p>
           <Card className="divide-y divide-edge-soft">
             {overdue.map((ob) => (
-              <ObligationRow key={ob.id} ob={ob} />
+              <ObligationRow key={ob.id} ob={ob} canEdit={canEdit} />
             ))}
           </Card>
         </div>
@@ -326,7 +331,7 @@ export default async function CalendarPage() {
   );
 }
 
-function ObligationRow({ ob }: { ob: Obligation }) {
+function ObligationRow({ ob, canEdit = false }: { ob: Obligation; canEdit?: boolean }) {
   const meta = KIND_META[ob.kind];
   const overdue = ob.daysUntil < 0;
   const soon = ob.daysUntil >= 0 && ob.daysUntil <= 7;
@@ -383,7 +388,7 @@ function ObligationRow({ ob }: { ob: Obligation }) {
       </div>
 
       {/* transparency: why is this the date? — accessible popover */}
-      <div className="mt-1.5 ps-12">
+      <div className="mt-1.5 flex flex-wrap items-center gap-3 ps-12">
         <InfoPopover
           trigger={
             <button className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-ink-muted outline-none transition hover:text-brand-strong">
@@ -405,6 +410,17 @@ function ObligationRow({ ob }: { ob: Obligation }) {
             </a>
           )}
         </InfoPopover>
+
+        {/* A named missed period has to be clearable, or it is an alarm with
+            no off switch. Only offered to someone whose write the database
+            will actually accept. */}
+        {canEdit && ob.periodKey && ob.templateId && (
+          <MarkPeriodFiled
+            templateId={ob.templateId}
+            periodKey={ob.periodKey}
+            periodLabel={ob.periodLabel}
+          />
+        )}
       </div>
     </div>
   );

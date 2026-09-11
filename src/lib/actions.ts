@@ -21,6 +21,7 @@ import { DISMISSAL_LABEL, isDismissal, type Dismissal } from "@/lib/task-status"
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
 import { createCheckoutSession } from "@/lib/billing";
+import { looksLikeEmail, normaliseEmail, type MemberRole } from "@/lib/members";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
@@ -1082,4 +1083,159 @@ export async function deleteMyAccount(
   }
 
   redirect("/?deleted=1");
+}
+
+// ============================================================================
+// Collaborators
+//
+// The accountant is the most important collaborator in Israeli compliance and
+// the product had no way to admit one, so users shared their password. These
+// actions are owner-only; the database enforces the same thing independently
+// (migration 022), so a mistake here cannot become a data breach.
+// ============================================================================
+
+/** Owner-only gate. Returns the business or redirects. */
+async function requireOwnedBusiness() {
+  const { supabase, user } = await requireUser();
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id, name, owner_id")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  // A collaborator has no business here. They reach this only by crafting a
+  // request, and the RLS policy would reject the write anyway.
+  if (!business) redirect("/home");
+  return { supabase, user, business };
+}
+
+/**
+ * Invites someone to collaborate.
+ *
+ * We invite an EMAIL, not a user: the accountant may not have an account yet,
+ * and requiring them to sign up before being invited puts the chicken before
+ * the egg. The token is what binds the invitation to the person who received
+ * it, so it is single-use, unguessable, and never shown to anyone but the
+ * invitee.
+ */
+export async function inviteMember(
+  emailInput: string,
+  role: MemberRole
+): Promise<{ ok: true; inviteUrl: string } | { ok: false; error: string }> {
+  const { supabase, user, business } = await requireOwnedBusiness();
+
+  if (role !== "accountant" && role !== "viewer") {
+    return { ok: false, error: "תפקיד לא מוכר." };
+  }
+
+  const email = normaliseEmail(emailInput);
+  if (!looksLikeEmail(email)) {
+    return { ok: false, error: "כתובת האימייל לא נראית תקינה." };
+  }
+  if (email === normaliseEmail(user.email ?? "")) {
+    return { ok: false, error: "זו הכתובת שלכם — אתם כבר בעלי העסק." };
+  }
+
+  // Inviting is a write to someone else's inbox. Meter it.
+  const limit = await check(`invite:${user.id}`, 20, 24 * 60 * 60 * 1000);
+  if (!limit.ok) {
+    return { ok: false, error: "שלחתם הרבה הזמנות היום. נסו שוב מחר." };
+  }
+
+  const inviteToken = randomBytes(24).toString("base64url");
+
+  const { error } = await supabase.from("business_members").insert({
+    business_id: business.id,
+    invited_email: email,
+    role,
+    invited_by: user.id,
+    invite_token: inviteToken,
+  });
+
+  if (error) {
+    // 23505 = unique violation on the live-email index.
+    if (error.code === "23505") {
+      return { ok: false, error: "הכתובת הזאת כבר מוזמנת או משותפת לעסק." };
+    }
+    console.error("inviteMember failed", error.message);
+    return { ok: false, error: "ההזמנה לא נשלחה. נסו שוב." };
+  }
+
+  revalidatePath("/settings");
+
+  const headerBag = await headers();
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (headerBag.get("origin") || `https://${headerBag.get("host") ?? "bizready.app"}`);
+
+  // Returned to the owner to pass on. We do not send it ourselves yet — a
+  // half-working mail path that silently drops invitations would be worse than
+  // handing over a link the owner can see and verify.
+  return { ok: true, inviteUrl: `${origin}/invite/${inviteToken}` };
+}
+
+/**
+ * Revokes access. Keeps the row, so the history of who had access survives —
+ * deleting it would erase the record along with the permission.
+ */
+export async function revokeMember(memberId: string): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, business } = await requireOwnedBusiness();
+  const { error } = await supabase
+    .from("business_members")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", memberId)
+    .eq("business_id", business.id);
+  if (error) {
+    console.error("revokeMember failed", error.message);
+    return { ok: false, error: "ההסרה נכשלה. נסו שוב." };
+  }
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+/**
+ * Accepts an invitation, binding it to the signed-in user.
+ *
+ * The token is the credential. We deliberately do NOT require the signed-in
+ * address to equal the invited one: an accountant may have been invited at
+ * their firm address and sign in with a personal one, and refusing that would
+ * strand the invitation with no way to fix it. The token was sent to the
+ * invited address, so holding it is the proof.
+ */
+export async function acceptInvite(
+  token: string
+): Promise<{ ok: true; businessName: string } | { ok: false; error: string }> {
+  const { supabase, user } = await requireUser();
+
+  // Guessing a 192-bit token is not the threat; hammering the endpoint is.
+  const limit = await check(`accept-invite:${user.id}`, 20, 60 * 60 * 1000);
+  if (!limit.ok) return { ok: false, error: "יותר מדי נסיונות. נסו שוב מאוחר יותר." };
+
+  const { data: invite } = await supabase
+    .from("business_members")
+    .select("id, business_id, accepted_at, revoked_at")
+    .eq("invite_token", token)
+    .maybeSingle();
+
+  if (!invite) return { ok: false, error: "ההזמנה לא נמצאה או שפג תוקפה." };
+  if (invite.revoked_at) return { ok: false, error: "ההזמנה בוטלה." };
+
+  if (!invite.accepted_at) {
+    const { error } = await supabase
+      .from("business_members")
+      .update({ user_id: user.id, accepted_at: new Date().toISOString() })
+      .eq("id", invite.id);
+    if (error) {
+      console.error("acceptInvite failed", error.message);
+      return { ok: false, error: "לא הצלחנו לאשר את ההזמנה. נסו שוב." };
+    }
+  }
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("name")
+    .eq("id", invite.business_id)
+    .maybeSingle();
+
+  revalidatePath("/", "layout");
+  return { ok: true, businessName: (business?.name as string) ?? "העסק" };
 }

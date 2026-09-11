@@ -2,17 +2,20 @@ import Link from "next/link";
 import { Command } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import { PageTitle } from "@/components/ui";
-import { isAdmin, requireBusiness } from "@/lib/data";
+import { getMembers, isAdmin, requireBusinessContext } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { isPro } from "@/lib/subscription";
+import { capabilitiesFor } from "@/lib/members";
 import type { OnboardingAnswers } from "@/lib/types";
 import { NotificationPrefs } from "./notification-prefs";
+import { MembersPanel } from "./members-panel";
 import { PrivacyControls } from "./privacy-controls";
 import { SettingsForm } from "./settings-form";
 import { SubscriptionBlock } from "./subscription-block";
 
 export default async function SettingsPage() {
-  const business = await requireBusiness();
+  const { business, role } = await requireBusinessContext();
+  const caps = capabilitiesFor(role);
   // /admin had zero inbound links anywhere — a full marketplace and
   // content-review console reachable only by typing the URL. This is its
   // entry point, and it renders for nobody else.
@@ -46,9 +49,21 @@ export default async function SettingsPage() {
       </div>
       <SettingsForm answers={business.onboarding_answers as OnboardingAnswers} />
 
-      <div className="mt-5">
-        <PrivacyControls email={user?.email ?? null} />
-      </div>
+      {/* Collaborators and privacy are the owner's, not an advisor's: exporting
+          everything and deleting the account are rights of the data subject,
+          and the member list is who can see their books. The database enforces
+          the same split independently. */}
+      {caps.manageMembers && (
+        <div className="mt-5">
+          <MembersPanel members={await getMembers(business.id)} />
+        </div>
+      )}
+
+      {caps.managePrivacy && (
+        <div className="mt-5">
+          <PrivacyControls email={user?.email ?? null} />
+        </div>
+      )}
 
       {admin && (
         <Link

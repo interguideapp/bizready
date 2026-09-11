@@ -195,6 +195,72 @@ begin
   then raise exception 'billing_events has a policy — billing history must be service-role only'; end if;
 end $$;
 
+-- 022: membership. This is the migration where a mistake means cross-tenant
+-- access, so the checks are behavioural rather than structural.
+do $$
+begin
+  if not exists (select 1 from pg_proc where proname = 'is_business_member')
+  then raise exception 'is_business_member() is missing'; end if;
+  if not exists (select 1 from pg_proc where proname = 'can_edit_business')
+  then raise exception 'can_edit_business() is missing'; end if;
+  -- The owner policies must still be there: 022 is additive, and if it replaced
+  -- them the owner path would now depend on the membership code being right.
+  if not exists (select 1 from pg_policies
+                 where tablename = 'business_tasks' and policyname like '%owner%')
+  then raise exception 'the owner policies on business_tasks were replaced, not added to'; end if;
+  -- A viewer must not be able to write, so there must be no membership-wide
+  -- write policy: only can_edit_business ones.
+  if exists (select 1 from pg_policies
+             where tablename = 'business_tasks'
+               and cmd in ('INSERT','UPDATE')
+               and qual like '%is_business_member%')
+  then raise exception 'business_tasks has a write policy gated on mere membership — a viewer could edit'; end if;
+  -- task_events is append-only for everyone, including an accountant.
+  if exists (select 1 from pg_policies
+             where tablename = 'task_events' and cmd in ('UPDATE','DELETE'))
+  then raise exception 'task_events is no longer append-only — the audit trail is editable'; end if;
+end $$;
+
+-- The membership functions must actually discriminate. Two businesses, one
+-- member on the first: the helper has to say yes to one and no to the other.
+do $$
+declare
+  u1 uuid; u2 uuid; b1 uuid; b2 uuid;
+begin
+  insert into auth.users default values returning id into u1;
+  insert into auth.users default values returning id into u2;
+  insert into public.profiles (id) values (u1), (u2);
+
+  insert into public.businesses (owner_id, name) values (u1, 'ci-a') returning id into b1;
+  insert into public.businesses (owner_id, name) values (u2, 'ci-b') returning id into b2;
+
+  insert into public.business_members
+    (business_id, user_id, invited_email, role, invited_by, invite_token, accepted_at)
+  values (b1, u2, 'ci@example.com', 'viewer', u1, 'ci-token-1', now());
+
+  -- auth.uid() is null in this context, so the helpers must return false rather
+  -- than erroring or defaulting to true. A membership check that fails open is
+  -- the whole risk of this migration.
+  if public.is_business_member(b1) then
+    raise exception 'is_business_member returned true with no authenticated user';
+  end if;
+  if public.can_edit_business(b1) then
+    raise exception 'can_edit_business returned true with no authenticated user';
+  end if;
+
+  -- A revoked membership must stop counting.
+  update public.business_members set revoked_at = now() where business_id = b1;
+  if exists (
+    select 1 from public.business_members
+    where business_id = b1 and revoked_at is null and accepted_at is not null
+  ) then
+    raise exception 'revoking a membership did not clear it';
+  end if;
+
+  delete from auth.users where id in (u1, u2);
+  if b2 is null then raise exception 'unreachable'; end if;
+end $$;
+
 -- every public table must have RLS enabled
 do $$
 declare unprotected text := '';

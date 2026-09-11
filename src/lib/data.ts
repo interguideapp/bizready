@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessTask, OnboardingAnswers } from "@/lib/types";
+import type { EffectiveRole, MemberRow } from "@/lib/members";
 
 export interface BusinessRow {
   id: string;
@@ -77,19 +78,75 @@ function optional<T>(what: string, data: T | null, error: DbError, fallback: T):
   return data ?? fallback;
 }
 
-/** Current user's business, or null if onboarding hasn't been completed. */
-export async function getBusiness(): Promise<BusinessRow | null> {
+/**
+ * The business for the current session, and the caller's role in it.
+ *
+ * Looks for an owned business first, then for one the user has been invited to
+ * as a collaborator. RLS allows both reads (migration 022 adds a membership
+ * SELECT policy alongside the owner one), so the role is what decides what the
+ * UI offers — and the database independently enforces the same split, so a bug
+ * in the UI cannot become a data breach.
+ */
+export async function getBusinessContext(): Promise<{
+  business: BusinessRow;
+  role: EffectiveRole;
+} | null> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data, error } = await supabase
+
+  const { data: owned, error: ownedError } = await supabase
     .from("businesses")
     .select("*")
     .eq("owner_id", user.id)
     .maybeSingle();
-  return critical("את פרטי העסק", data, error) as BusinessRow | null;
+  const ownedRow = critical("את פרטי העסק", owned, ownedError) as BusinessRow | null;
+  if (ownedRow) return { business: ownedRow, role: "owner" };
+
+  // Not an owner — are they a live collaborator somewhere?
+  const { data: membership } = await supabase
+    .from("business_members")
+    .select("business_id, role")
+    .eq("user_id", user.id)
+    .not("accepted_at", "is", null)
+    .is("revoked_at", null)
+    .order("invited_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!membership) return null;
+
+  const { data: shared, error: sharedError } = await supabase
+    .from("businesses")
+    .select("*")
+    .eq("id", membership.business_id as string)
+    .maybeSingle();
+  const sharedRow = critical("את פרטי העסק", shared, sharedError) as BusinessRow | null;
+  if (!sharedRow) return null;
+
+  return { business: sharedRow, role: membership.role as EffectiveRole };
+}
+
+/** Current user's business, or null if onboarding hasn't been completed. */
+export async function getBusiness(): Promise<BusinessRow | null> {
+  return (await getBusinessContext())?.business ?? null;
+}
+
+/**
+ * The business and role for the current request, guaranteed non-null.
+ *
+ * A collaborator is sent to the shared business, not to onboarding — inviting
+ * an accountant and then asking them to answer twelve questions about a
+ * business that is not theirs would be absurd.
+ */
+export async function requireBusinessContext(): Promise<{
+  business: BusinessRow;
+  role: EffectiveRole;
+}> {
+  const context = await getBusinessContext();
+  if (!context) redirect("/onboarding");
+  return context;
 }
 
 /**
@@ -488,4 +545,21 @@ export async function getAllOffers(): Promise<OfferRow[]> {
     .order("is_active", { ascending: false })
     .order("sort_order");
   return (data ?? []) as OfferRow[];
+}
+
+/**
+ * Collaborators on a business, newest invitation first.
+ *
+ * Revoked rows are included on purpose: "who used to have access" is part of
+ * the answer to "who has access", and hiding it would make a removal look like
+ * it never happened.
+ */
+export async function getMembers(businessId: string): Promise<MemberRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("business_members")
+    .select("id, business_id, user_id, invited_email, role, invited_at, accepted_at, revoked_at")
+    .eq("business_id", businessId)
+    .order("invited_at", { ascending: false });
+  return optional("את המשתפים", data, error, []) as MemberRow[];
 }

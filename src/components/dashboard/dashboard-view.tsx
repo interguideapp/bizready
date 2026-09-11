@@ -82,7 +82,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
   const link = (id: string) => (id === "calendar" ? "/calendar" : `/tasks/${id}`);
 
   return (
-    <div className="pb-24 md:pb-8">
+    <div>
       {/* ===== hero: confidence (big-type) + reactor ===== */}
       <div className="mb-4 grid gap-5 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
         <motion.div variants={fadeUp} initial="hidden" animate="show">

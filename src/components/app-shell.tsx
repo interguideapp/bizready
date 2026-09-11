@@ -30,7 +30,7 @@ export function AppShell({
           which carries its own status bar. */}
       {!fullBleed && (
         <header className="sticky top-0 z-30 border-b border-white/5 bg-card/50 backdrop-blur-2xl">
-          <div className="mx-auto flex h-14 max-w-3xl items-center px-4 md:px-8">
+          <div className="mx-auto flex h-14 max-w-3xl items-center px-4 md:px-8 lg:max-w-5xl xl:max-w-6xl">
             <Link href="/home" className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-accent-to text-white shadow-e-brand">
                 <Command className="h-4.5 w-4.5" aria-hidden />
@@ -58,7 +58,7 @@ export function AppShell({
             variants={pageTransition}
             initial="hidden"
             animate="show"
-            className="mx-auto w-full max-w-3xl px-4 pb-36 pt-6 md:px-8"
+            className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6 md:px-8 md:pb-10 lg:max-w-5xl xl:max-w-6xl"
           >
             {children}
           </motion.div>

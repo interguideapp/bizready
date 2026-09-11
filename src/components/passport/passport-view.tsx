@@ -27,7 +27,7 @@ export function PassportView({ d }: { d: PassportData }) {
     d.products.length > 0;
 
   return (
-    <div className="pb-24 md:pb-8">
+    <div>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <PageTitle eyebrow="הפרופיל הרשמי" title="תיק העסק" subtitle="כל העסק במקום אחד — לבנק, לרו״ח, ולשקט הנפשי שלכם" />
         <div className="flex shrink-0 flex-wrap gap-2">

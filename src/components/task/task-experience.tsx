@@ -76,7 +76,7 @@ export function TaskExperience({
   const cta = archetypePrimaryCta(view);
 
   return (
-    <div className="pb-24 md:pb-8">
+    <div>
       <Link
         href="/tasks"
         className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-ink-muted transition hover:text-ink"

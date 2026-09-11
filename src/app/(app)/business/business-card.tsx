@@ -216,8 +216,8 @@ function FieldRow({
   }
 
   return (
-    <div className="flex items-center gap-3 px-5 py-3">
-      <span className="w-32 shrink-0 text-sm text-ink-muted">{label}</span>
+    <div className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:gap-3">
+      <span className="text-sm text-ink-muted sm:w-32 sm:shrink-0">{label}</span>
       <span
         dir={dir}
         // text-start, not text-left: the value follows its own direction rather

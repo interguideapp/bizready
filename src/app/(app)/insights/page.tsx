@@ -120,7 +120,7 @@ export default async function InsightsPage() {
     : null;
 
   return (
-    <div className="pb-24 md:pb-8">
+    <div>
       <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
 
       <div className="flex flex-col gap-4">

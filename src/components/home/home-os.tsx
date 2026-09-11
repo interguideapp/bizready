@@ -110,7 +110,9 @@ export function HomeOS({ data }: { data: HomeOSData }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="flex min-h-[42vh] flex-col items-center justify-center text-center"
+          // 42vh pushed the primary action below the fold on a short phone.
+          // Reserve the dramatic height only where the viewport can afford it.
+          className="flex min-h-[30vh] flex-col items-center justify-center text-center sm:min-h-[38vh] lg:min-h-[42vh]"
         >
           <p className="eyebrow mb-2">{greeting}, {data.name}</p>
           <motion.div

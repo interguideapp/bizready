@@ -29,8 +29,9 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
         setName("");
         setAmount("");
         toast.success("העלות נוספה");
-      } catch {
-        toast.error("ההוספה נכשלה — ודאו שהרצתם את המיגרציה");
+      } catch (err) {
+        console.error("addCost failed", err);
+        toast.error("לא הצלחנו להוסיף את העלות. נסו שוב בעוד רגע.");
       }
     });
   }
@@ -71,7 +72,7 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
       )}
 
       <form onSubmit={add} className="flex flex-wrap items-end gap-2">
-        <label className="min-w-0 flex-1">
+        <label className="min-w-0 basis-full sm:basis-0 sm:flex-1">
           <span className="mb-1 block text-xs font-medium text-ink-muted">על מה (כלי / שירות)</span>
           <input
             value={name}

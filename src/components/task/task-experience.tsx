@@ -27,6 +27,7 @@ import { PriorityBadge } from "@/components/badges";
 import { DueDateControl } from "@/components/due-date-editor";
 import { StatusPicker, NotesEditor } from "@/components/task-controls";
 import { MilestoneTracker } from "@/components/task/milestone-tracker";
+import { NextCycleNote, ReopenedNote } from "@/components/task/next-cycle";
 import { TaskChecklist } from "@/components/task-checklist";
 import { DocumentUpload } from "@/components/document-upload";
 import { OfferCard } from "@/components/offer-card";
@@ -156,6 +157,15 @@ export function TaskExperience({
           )}
         </div>
       )}
+
+      {/* Which cycle this is, before anything about how to do it.
+          A reopening has to explain itself; a closed-and-current duty has to
+          say when the next one lands. Neither was said at all before. */}
+      {view.cycle.reopened ? (
+        <ReopenedNote cycle={view.cycle.reopened} todayIso={view.todayIso} />
+      ) : done && view.cycle.next ? (
+        <NextCycleNote cycle={view.cycle.next} todayIso={view.todayIso} />
+      ) : null}
 
       {/* Where the task actually is. Above the tabs on purpose: the status
           model used to be three clicks deep and people never reached it. */}

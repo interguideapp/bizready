@@ -1,3 +1,4 @@
+import { aheadLabel, lateLabel } from "@/lib/he-distance";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -37,26 +38,6 @@ const KIND_META: Record<ObligationKind, { label: string; icon: React.ReactNode }
   renewal: { label: "חידוש", icon: <RefreshCw className="h-4 w-4" aria-hidden /> },
   document_expiry: { label: "תפוגת מסמך", icon: <FileClock className="h-4 w-4" aria-hidden /> },
 };
-
-/**
- * How late, in words a person would use.
- *
- * "עבר המועד" was the same string whether a filing was five days late or a
- * hundred and sixty-five, which read as equally urgent and is not. Past a
- * couple of months the day count stops being meaningful and the month count
- * starts, so it switches.
- */
-function lateLabel(days: number): string {
-  if (days <= 1) return "באיחור יום";
-  // Hebrew has a dual form, and "2 ימים" / "כ-2 חודשים" is exactly the
-  // translated-from-English texture the product has been clearing out.
-  if (days === 2) return "באיחור יומיים";
-  if (days < 60) return `באיחור ${days} ימים`;
-  const months = Math.floor(days / 30);
-  if (months >= 12) return "באיחור למעלה משנה";
-  if (months === 2) return "באיחור כחודשיים";
-  return `באיחור כ-${months} חודשים`;
-}
 
 export function ObligationRow({
   ob,
@@ -105,10 +86,8 @@ export function ObligationRow({
                 <AlertTriangle className="h-3 w-3" aria-hidden />
                 {lateLabel(-ob.daysUntil)}
               </span>
-            ) : ob.daysUntil === 0 ? (
-              "היום"
             ) : (
-              `בעוד ${ob.daysUntil} ימים`
+              aheadLabel(ob.daysUntil)
             )}
           </p>
         </div>

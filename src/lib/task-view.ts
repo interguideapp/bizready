@@ -10,6 +10,7 @@ import type { GeneratedDoc } from "@/lib/documents/generators";
 import type { LegalBasis } from "@/lib/content/legal-basis";
 import type { ReviewAge } from "@/lib/staleness";
 import type { Stage } from "@/lib/content/milestones";
+import type { CycleNote } from "@/components/task/next-cycle";
 
 /** Serializable bundle the server page hands to the client TaskExperience. */
 export interface TaskView {
@@ -52,6 +53,19 @@ export interface TaskView {
     sourceUrl: string | null;
   } | null;
   recurrence: Recurrence;
+
+  /**
+   * The cycle this duty is in, decided by cycles.ts.
+   *
+   * "reopened" is set when the task was closed and a new cycle has since
+   * opened — the screen has to say WHY, or it reads as the product having
+   * forgotten work the user remembers doing. "next" is what is coming, which a
+   * recurring task could not previously state at all.
+   */
+  cycle: {
+    reopened: CycleNote | null;
+    next: CycleNote | null;
+  };
 
   /**
    * Where this task is in its own process, and the chain it belongs to.

@@ -81,6 +81,7 @@ function view(over: Partial<TaskView> = {}): TaskView {
     dueDate: "2026-10-15",
     obligation: null,
     recurrence: null,
+    cycle: { reopened: null, next: null },
     completion: DEFAULT_COMPLETION,
     completionData: {},
     completedAt: null,

@@ -1,3 +1,4 @@
+import { aheadLabel, lateLabel } from "@/lib/he-distance";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -62,7 +63,7 @@ export function DueBadge({
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-status-overdue-bg px-2.5 py-1 text-xs font-medium text-status-overdue">
           <AlertTriangle className="h-3.5 w-3.5" />
-          עבר המועד
+          {lateLabel(-days)}
         </span>
       );
     // a recommendation that slipped — neutral, no alarm
@@ -75,7 +76,7 @@ export function DueBadge({
   if (days <= 7)
     return (
       <span className="rounded-full bg-status-progress-bg px-2.5 py-1 text-xs font-medium text-status-progress">
-        {days === 0 ? "היום" : `בעוד ${days} ימים`}
+        {aheadLabel(days)}
       </span>
     );
   return (

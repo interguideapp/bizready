@@ -1,3 +1,4 @@
+import { distanceLabel } from "@/lib/he-distance";
 import Link from "next/link";
 import { AlertTriangle, Flame } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -82,11 +83,7 @@ export function TopExposures({ exposures }: { exposures: ExposureView[] }) {
                   e.daysUntil < 0 ? "text-status-overdue" : "text-ink-muted"
                 }`}
               >
-                {e.daysUntil < 0
-                  ? `באיחור ${-e.daysUntil} ימים`
-                  : e.daysUntil === 0
-                    ? "היום"
-                    : `בעוד ${e.daysUntil} ימים`}
+                {distanceLabel(e.daysUntil)}
               </span>
             </div>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">

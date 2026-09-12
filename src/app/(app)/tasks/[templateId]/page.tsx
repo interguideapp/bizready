@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { loadLiveTasks } from "@/lib/tasks-live";
+import { loadLiveTasks, profileOf } from "@/lib/tasks-live";
+import { nextCycleFor } from "@/lib/cycles";
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { resolveArchetype } from "@/lib/content/archetypes";
 import { interpolateFigures } from "@/lib/content/figures";
@@ -14,6 +15,7 @@ import {
   requireBusinessContext,
   getChecklistItems,
   getDocuments,
+  getFiledPeriods,
   getOffersForTemplate,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -51,10 +53,11 @@ export default async function TaskDetailPage({
   const task = tasks.find((t) => t.template_id === templateId);
   if (!task) notFound();
 
-  const [allDocs, offers, checklist] = await Promise.all([
+  const [allDocs, offers, checklist, filedPeriods] = await Promise.all([
     getDocuments(business.id),
     getOffersForTemplate(template.id),
     getChecklistItems(task.id),
+    getFiledPeriods(business.id),
   ]);
   const category = CATEGORIES_BY_ID.get(template.category_id)!;
   const answers = business.onboarding_answers as OnboardingAnswers;
@@ -97,6 +100,12 @@ export default async function TaskDetailPage({
   });
 
   const statutory = isStatutoryFiling(template.id);
+  // The deadline and the ledger are passed in deliberately. Without them the
+  // engine could only ever answer "when is the next one", so this page showed
+  // the next period's comfortable date while task.due_date — projected from the
+  // same ledger by loadLiveTasks — pointed at a period already overdue. Two
+  // dates for one filing, on one screen. Sorted by date, so [0] is the oldest
+  // thing actually owed.
   const obligation = statutory
     ? computeUpcomingObligations(
         [
@@ -106,18 +115,32 @@ export default async function TaskDetailPage({
             is_relevant: task.is_relevant,
             dismissal: task.dismissal,
             completion_data: task.completion_data,
+            due_date: task.due_date,
+            filed_periods: filedPeriods.get(template.id),
           },
         ],
         TEMPLATES_BY_ID,
         [],
         new Date(),
-        {
-          entityType: business.entity_type,
-          vatFrequency: answers?.vat_frequency,
-          hasAccountant: Boolean(business.accountant_name),
-        }
+        profileOf(business)
       )[0] ?? null
     : null;
+
+  // What comes after this one. The whole reason a filed task can now say
+  // anything other than "done".
+  const nextCycle = nextCycleFor({
+    task: {
+      template_id: template.id,
+      status: task.status,
+      due_date: task.due_date,
+      completed_at: task.completed_at,
+      completion_data: task.completion_data,
+      filed_periods: filedPeriods.get(template.id),
+    },
+    template,
+    today: new Date(),
+    profile: profileOf(business),
+  });
 
   const pro = isPro(business);
   const gen = GENERATOR_BY_TEMPLATE.get(template.id) ?? null;
@@ -169,6 +192,26 @@ export default async function TaskDetailPage({
         }
       : null,
     recurrence: template.recurrence ?? null,
+    cycle: {
+      // task.cycle is set by loadLiveTasks when the projection reopened this
+      // row. Only then is there a reopening to explain.
+      reopened: task.cycle
+        ? {
+            reason: task.cycle.reason,
+            dueIso: task.cycle.dueIso,
+            periodLabel: task.cycle.periodLabel,
+            open: task.cycle.dueIso <= todayInIsrael(),
+          }
+        : null,
+      next: nextCycle
+        ? {
+            reason: nextCycle.reason,
+            dueIso: nextCycle.dueIso,
+            periodLabel: nextCycle.periodLabel,
+            open: nextCycle.open,
+          }
+        : null,
+    },
     milestones: {
       chain: position.chain,
       currentId: position.stage.id,

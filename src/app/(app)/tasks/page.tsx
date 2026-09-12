@@ -13,6 +13,7 @@ import { requireBusiness } from "@/lib/data";
 import { buildJourney, type Journey, type JourneyNode } from "@/lib/journey";
 import { taskImportance, type Stage } from "@/lib/priority";
 import { LIFE_STAGES, type BusinessTask, type Category } from "@/lib/types";
+import type { LiveTask } from "@/lib/tasks-live";
 
 export default async function TasksPage({
   searchParams,
@@ -184,7 +185,7 @@ function CategorySection({
   nextId,
 }: {
   category: Category;
-  list: BusinessTask[];
+  list: LiveTask[];
   journey: Journey;
   nextId: string | null;
 }) {
@@ -231,6 +232,7 @@ function CategorySection({
               blockedBy={node?.blockedBy}
               unlocksCount={node?.unlocks.length ?? 0}
               isNext={task.template_id === nextId}
+              cycle={task.cycle ?? null}
             />
           );
         })}

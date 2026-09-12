@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, ChevronLeft, CircleDashed, Hourglass, Lock, Unlock, Zap } from "lucide-react";
+import { Check, ChevronLeft, CircleDashed, Hourglass, Lock, RefreshCw, Unlock, Zap } from "lucide-react";
 import { DueBadge, PriorityBadge } from "@/components/badges";
 import { isStatutoryFiling } from "@/lib/compliance";
 import type { NodeState } from "@/lib/journey";
@@ -22,6 +22,7 @@ export function TaskRow({
   blockedBy,
   unlocksCount = 0,
   isNext = false,
+  cycle,
 }: {
   templateId: string;
   title: string;
@@ -36,6 +37,12 @@ export function TaskRow({
   blockedBy?: string[];
   unlocksCount?: number;
   isNext?: boolean;
+  /**
+   * Set when this row is open again because a new cycle started, rather than
+   * because it was never done. Without saying so the list looks like it lost
+   * the completion the user remembers — so the label names the cycle.
+   */
+  cycle?: { reason: "period" | "renewal" | "habit"; periodLabel: string | null } | null;
 }) {
   const done = status === "done";
   const locked = state === "locked";
@@ -58,6 +65,16 @@ export function TaskRow({
             <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-xs font-bold text-white">
               <Zap className="h-3 w-3" aria-hidden />
               הצעד הבא
+            </span>
+          )}
+          {cycle && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand-strong">
+              <RefreshCw className="h-3 w-3" aria-hidden />
+              {cycle.reason === "renewal"
+                ? "מועד חידוש"
+                : cycle.reason === "period"
+                  ? (cycle.periodLabel ? "תקופה חדשה: " + cycle.periodLabel : "תקופה חדשה")
+                  : "חזר שוב"}
             </span>
           )}
           {!done && !locked && <PriorityBadge priority={priority} />}

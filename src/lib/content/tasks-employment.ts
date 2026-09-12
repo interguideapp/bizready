@@ -312,7 +312,10 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
     est_time: "15 דקות בחודש (או אוטומטי מתוכנת השכר)",
     completion: {
       confirm: "דיווחתי ושילמתי את הניכויים לחודש שחלף",
-      fields: [{ key: "period", label: "עבור איזה חודש דיווחתם?", placeholder: "למשל 08/2026" }],
+      fields: [
+        { key: "amount", label: "הסכום ששולם (₪)", type: "amount", required: true },
+        { key: "reference", label: "אסמכתת התשלום", type: "reference" },
+      ],
     },
     applies_when: { plans_employees: true },
     // The ניכויים file is what you report through.
@@ -352,7 +355,10 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
     est_time: "שעה, בעיקר בדיקות",
     completion: {
       confirm: "שידרתי את הדוח השנתי וקיבלתי אישור הגשה",
-      fields: [{ key: "confirmation", label: "מספר אישור ההגשה" }],
+      fields: [
+        { key: "reference", label: "מספר אישור ההגשה", type: "reference", required: true },
+        { key: "taxYear", label: "עבור שנת המס", placeholder: "למשל 2026" },
+      ],
     },
     applies_when: { plans_employees: true },
     depends_on: ["employer-monthly-102"],

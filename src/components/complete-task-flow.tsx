@@ -138,8 +138,18 @@ export function CompleteTaskFlow({
                   )}
                 </span>
                 <input
-                  type={field.type === "date" ? "date" : "text"}
-                  dir={field.type === "url" ? "ltr" : undefined}
+                  type={field.type === "date" ? "date" : field.type === "amount" ? "number" : "text"}
+                  // An amount and a reference number are Latin-digit strings
+                  // and belong LTR inside an otherwise RTL form; without this a
+                  // confirmation number reorders as you type it.
+                  dir={
+                    field.type === "url" || field.type === "amount" || field.type === "reference"
+                      ? "ltr"
+                      : undefined
+                  }
+                  inputMode={field.type === "amount" ? "decimal" : undefined}
+                  min={field.type === "amount" ? 0 : undefined}
+                  step={field.type === "amount" ? "0.01" : undefined}
                   placeholder={field.placeholder}
                   value={values[field.key] ?? ""}
                   onChange={(e) =>

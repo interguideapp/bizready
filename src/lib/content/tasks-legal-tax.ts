@@ -343,6 +343,13 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     // and therefore non-blocking. Without the second id a company had no gate.
     depends_on: ["open-vat-file", "company-tax-files"],
     deadline_days: 30,
+    completion: {
+      confirm: "שילמתי את המקדמה לתקופה",
+      fields: [
+        { key: "amount", label: "הסכום ששולם (₪)", type: "amount", required: true },
+        { key: "reference", label: "אסמכתת התשלום", type: "reference" },
+      ],
+    },
     recurrence: "monthly",
     priority: "critical",
     source_url: "https://www.gov.il/he/departments/israel_tax_authority",
@@ -402,6 +409,24 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     ],
     docs_needed: ["חשבוניות עסקאות ותשומות לתקופה"],
     est_time: "שעה בכל תקופה",
+    completion: {
+      confirm: "שידרתי את הדיווח לתקופה וקיבלתי אסמכתא",
+      fields: [
+        {
+          key: "reference",
+          label: "אסמכתת ההגשה",
+          type: "reference",
+          placeholder: "המספר שהתקבל בסוף השידור",
+          required: true,
+        },
+        {
+          key: "amount",
+          label: 'סכום מע"מ לתשלום (₪)',
+          type: "amount",
+          placeholder: "אם יצא החזר — אפשר להשאיר ריק",
+        },
+      ],
+    },
     // companies are always מורשה for VAT. The two prerequisites are alternatives:
     // an osek's file is open-vat-file, a company's is company-tax-files — whichever
     // applies gates the obligation; the other isn't in the plan, so it can't block.
@@ -442,6 +467,19 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["open-income-tax-file"],
     deadline_days: 365,
+    completion: {
+      confirm: "הדוח השנתי הוגש וקיבלתי אישור הגשה",
+      fields: [
+        { key: "reference", label: "מספר אישור ההגשה", type: "reference", required: true },
+        { key: "taxYear", label: "עבור שנת המס", placeholder: "למשל 2026" },
+        {
+          key: "amount",
+          label: "יתרה לתשלום (₪)",
+          type: "amount",
+          placeholder: "אם יצא החזר — אפשר להשאיר ריק",
+        },
+      ],
+    },
     recurrence: "yearly",
     priority: "critical",
     source_url: "https://www.kolzchut.org.il/he/עסק_זעיר",

@@ -24,7 +24,8 @@ import {
   statusForStage,
   terminalStageFor,
 } from "@/lib/content/milestones";
-import { periodForDue } from "@/lib/filings";
+import { ledgerPeriodFor } from "@/lib/filings";
+import { filingRuleFor } from "@/lib/content/filing-rules";
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
 import { createCheckoutSession } from "@/lib/billing";
@@ -488,14 +489,27 @@ export async function completeTask(
   // date. A late filer is no longer standing in the period they are filing for,
   // so computing it from the calendar would file a late submission against the
   // wrong months.
-  if (isStatutoryFiling(current.template_id) && current.due_date) {
+  const rule = filingRuleFor(current.template_id);
+  if (rule && current.due_date) {
     const { data: biz } = await supabase
       .from("businesses")
       .select("onboarding_answers")
       .eq("id", current.business_id)
       .single();
     const answers = (biz?.onboarding_answers ?? {}) as { vat_frequency?: "monthly" | "bimonthly" };
-    const period = periodForDue(current.due_date, answers.vat_frequency ?? "bimonthly");
+    // Not periodForDue: that reads any deadline as if it closed a two-month VAT
+    // period, so paying the 31 March registrar fee was recorded against
+    // "ינואר–פברואר 2027". Nothing read it, so nothing broke — but the ledger
+    // IS the evidence record, and a row that mislabels what it is evidence of
+    // is worth less than no row.
+    const period = ledgerPeriodFor({
+      anchor: rule.rule.anchor,
+      dueIso: current.due_date,
+      frequency: answers.vat_frequency ?? "bimonthly",
+      // A registrar fee is billed for the year it falls in; an annual return
+      // covers the year before. Same precedence as nextStatutoryDueDate.
+      coversDueYear: rule.kind === "registrar_fee",
+    });
     if (period) {
       // A second submission for the same period is a correction, not a new
       // filing — the unique key makes that the only representable outcome, and

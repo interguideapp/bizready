@@ -82,6 +82,7 @@ function view(over: Partial<TaskView> = {}): TaskView {
     obligation: null,
     recurrence: null,
     cycle: { reopened: null, next: null },
+    filings: [],
     completion: DEFAULT_COMPLETION,
     completionData: {},
     completedAt: null,

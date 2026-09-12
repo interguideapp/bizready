@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dueForPeriod,
+  ledgerPeriodFor,
   missedPeriods,
   missedPeriodsFor,
   periodEndingAt,
@@ -201,5 +202,60 @@ describe("the honesty guard on history we never recorded", () => {
       knownFrom: "2027-01-01",
     });
     expect(missed).toEqual([]);
+  });
+});
+
+describe("the ledger key for a filing that is not a VAT period", () => {
+  it("labels a reporting period by the months it covers", () => {
+    const p = ledgerPeriodFor({ anchor: "period_plus", dueIso: "2026-09-15", frequency: "bimonthly" });
+    expect(p?.key).toBe("2026-07..2026-08");
+  });
+
+  it("labels a monthly filing by the single month it closes", () => {
+    // טופס 102 for August is filed by 15 September.
+    const p = ledgerPeriodFor({ anchor: "monthly", dueIso: "2026-09-15", frequency: "bimonthly" });
+    expect(p?.key).toBe("2026-08..2026-08");
+  });
+
+  it("labels an annual return by the year it reports on, not the year it is filed", () => {
+    // The 2026 return is filed by 30 April 2027.
+    const p = ledgerPeriodFor({ anchor: "annual", dueIso: "2027-04-30", frequency: "bimonthly" });
+    expect(p?.key).toBe("2026-01..2026-12");
+    expect(p?.label).toBe("שנת 2026");
+  });
+
+  it("labels a registrar fee by the year it is billed FOR", () => {
+    // The fee due 31 March 2027 is the 2027 fee, not the 2026 one. Same
+    // precedence as nextStatutoryDueDate.
+    const p = ledgerPeriodFor({
+      anchor: "annual",
+      dueIso: "2027-03-31",
+      frequency: "bimonthly",
+      coversDueYear: true,
+    });
+    expect(p?.key).toBe("2027-01..2027-12");
+  });
+
+  it("never invented a bimonthly period for a fee", () => {
+    // The bug: periodForDue read 31 March 2027 as closing ינואר–פברואר 2027,
+    // so the evidence row said it was evidence of something it was not.
+    const wrong = periodForDue("2027-03-31", "bimonthly");
+    expect(wrong?.key).toBe("2027-01..2027-02");
+    const right = ledgerPeriodFor({
+      anchor: "annual",
+      dueIso: "2027-03-31",
+      frequency: "bimonthly",
+      coversDueYear: true,
+    });
+    expect(right?.key).not.toBe(wrong?.key);
+  });
+
+  it("gives no key for a demand-triggered filing rather than naming a period", () => {
+    expect(ledgerPeriodFor({ anchor: "on_demand", dueIso: "2026-09-15", frequency: "bimonthly" })).toBeNull();
+  });
+
+  it("rejects a malformed deadline instead of producing a nonsense key", () => {
+    expect(ledgerPeriodFor({ anchor: "annual", dueIso: "not-a-date", frequency: "bimonthly" })).toBeNull();
+    expect(ledgerPeriodFor({ anchor: "monthly", dueIso: "2026-13-01", frequency: "bimonthly" })).toBeNull();
   });
 });

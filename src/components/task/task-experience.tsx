@@ -28,6 +28,7 @@ import { DueDateControl } from "@/components/due-date-editor";
 import { StatusPicker, NotesEditor } from "@/components/task-controls";
 import { MilestoneTracker } from "@/components/task/milestone-tracker";
 import { NextCycleNote, ReopenedNote } from "@/components/task/next-cycle";
+import { FilingHistory } from "@/components/task/filing-history";
 import { TaskChecklist } from "@/components/task-checklist";
 import { DocumentUpload } from "@/components/document-upload";
 import { OfferCard } from "@/components/offer-card";
@@ -166,6 +167,11 @@ export function TaskExperience({
       ) : done && view.cycle.next ? (
         <NextCycleNote cycle={view.cycle.next} todayIso={view.todayIso} />
       ) : null}
+
+      {/* Which periods this task has on record. Right after the cycle note,
+          because "a new period is open" immediately raises "which ones did I
+          already do" — and the ledger has held the answer all along. */}
+      <FilingHistory entries={view.filings} />
 
       {/* Where the task actually is. Above the tabs on purpose: the status
           model used to be three clicks deep and people never reached it. */}

@@ -11,6 +11,7 @@ import type { LegalBasis } from "@/lib/content/legal-basis";
 import type { ReviewAge } from "@/lib/staleness";
 import type { Stage } from "@/lib/content/milestones";
 import type { CycleNote } from "@/components/task/next-cycle";
+import type { FilingEntry } from "@/components/task/filing-history";
 
 /** Serializable bundle the server page hands to the client TaskExperience. */
 export interface TaskView {
@@ -66,6 +67,14 @@ export interface TaskView {
     reopened: CycleNote | null;
     next: CycleNote | null;
   };
+
+  /**
+   * Periods recorded as filed, newest first (migration 030).
+   *
+   * The ledger has held these since it shipped and nothing rendered them, so
+   * the only evidence a user had that they filed was their own memory.
+   */
+  filings: FilingEntry[];
 
   /**
    * Where this task is in its own process, and the chain it belongs to.

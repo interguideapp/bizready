@@ -205,6 +205,37 @@ export const getFiledPeriods = cache(async function getFiledPeriods(
   return out;
 });
 
+export interface FilingRecord {
+  template_id: string;
+  period_key: string;
+  due_date: string | null;
+  filed_at: string;
+  evidence: Record<string, string> | null;
+}
+
+/**
+ * The filing ledger in full, newest first.
+ *
+ * getFiledPeriods reduces the same table to a set of keys, which is all the
+ * obligations engine needs. This is for the screen: the ledger has recorded
+ * every filing since 030 and NOTHING displayed it, so a user could not answer
+ * "what did I file for Jul-Aug, and what did I pay" — the question a recurring
+ * duty raises every single period.
+ */
+export const getFilings = cache(async function getFilings(
+  businessId: string
+): Promise<FilingRecord[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_filings")
+    .select("template_id, period_key, due_date, filed_at, evidence")
+    .eq("business_id", businessId)
+    .order("filed_at", { ascending: false });
+  // Optional like getFiledPeriods: an empty history is a worse answer than the
+  // truth, but not a worse answer than a 500.
+  return (optional("את היסטוריית ההגשות", data, error, []) ?? []) as FilingRecord[];
+});
+
 /** Newest first. Capped, because the archive grows without bound otherwise. */
 export const DOCUMENTS_PAGE_SIZE = 200;
 

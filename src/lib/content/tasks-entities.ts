@@ -149,6 +149,13 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     docs_needed: ["מספר ח.פ."],
     est_cost: "{{registrarAnnualFeeReduced}} מופחת / {{registrarAnnualFeeRegular}} רגיל (2026)",
     est_time: "10 דקות",
+    completion: {
+      confirm: "שילמתי את האגרה השנתית ושמרתי את האישור",
+      fields: [
+        { key: "amount", label: "הסכום ששולם (₪)", type: "amount", required: true },
+        { key: "reference", label: "אסמכתת התשלום", type: "reference" },
+      ],
+    },
     applies_when: { entity_type: ["company"] },
     depends_on: ["register-company"],
     deadline_days: 30,
@@ -270,6 +277,13 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     docs_needed: ["מספר שותפות"],
     est_cost: "{{partnershipAnnualFeeReduced}} מופחת / {{partnershipAnnualFeeRegular}} רגיל (2026)",
     est_time: "10 דקות",
+    completion: {
+      confirm: "שילמתי את האגרה השנתית ושמרתי את האישור",
+      fields: [
+        { key: "amount", label: "הסכום ששולם (₪)", type: "amount", required: true },
+        { key: "reference", label: "אסמכתת התשלום", type: "reference" },
+      ],
+    },
     applies_when: { entity_type: ["partnership"] },
     depends_on: ["register-partnership"],
     deadline_days: 30,

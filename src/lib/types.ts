@@ -108,7 +108,16 @@ export interface CompletionField {
   key: string;
   label: string;
   placeholder?: string;
-  type?: "text" | "url" | "date";
+  /**
+   * `amount` is money in ₪ and `reference` a confirmation number. Both exist
+   * because a recurring filing's evidence has to answer "what did I pay for
+   * Jul–Aug, and what is the reference" — questions the product could not
+   * answer at all: vat-reporting, income-tax-advances and annual-tax-report had
+   * no completion spec, so the filing ledger recorded a period and nothing else.
+   * Both render LTR, since a Latin-digit string inside an RTL form reorders as
+   * it is typed.
+   */
+  type?: "text" | "url" | "date" | "amount" | "reference";
   required?: boolean;
   /** When set, the answer is also saved onto the business card. */
   writesTo?: BusinessField;

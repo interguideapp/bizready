@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { loadLiveTasks, profileOf } from "@/lib/tasks-live";
 import { nextCycleFor } from "@/lib/cycles";
+import { ledgerPeriodFor } from "@/lib/filings";
+import { filingRuleFor } from "@/lib/content/filing-rules";
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { resolveArchetype } from "@/lib/content/archetypes";
 import { interpolateFigures } from "@/lib/content/figures";
@@ -16,6 +18,7 @@ import {
   getChecklistItems,
   getDocuments,
   getFiledPeriods,
+  getFilings,
   getOffersForTemplate,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -53,11 +56,12 @@ export default async function TaskDetailPage({
   const task = tasks.find((t) => t.template_id === templateId);
   if (!task) notFound();
 
-  const [allDocs, offers, checklist, filedPeriods] = await Promise.all([
+  const [allDocs, offers, checklist, filedPeriods, allFilings] = await Promise.all([
     getDocuments(business.id),
     getOffersForTemplate(template.id),
     getChecklistItems(task.id),
     getFiledPeriods(business.id),
+    getFilings(business.id),
   ]);
   const category = CATEGORIES_BY_ID.get(template.category_id)!;
   const answers = business.onboarding_answers as OnboardingAnswers;
@@ -142,6 +146,37 @@ export default async function TaskDetailPage({
     profile: profileOf(business),
   });
 
+  // What this task has actually filed. The ledger (030) has recorded it all
+  // along and nothing displayed it, so the only evidence a user had that they
+  // filed was their own memory.
+  const rule = filingRuleFor(template.id);
+  const filings = allFilings
+    .filter((f) => f.template_id === template.id)
+    .map((f) => {
+      // The stored key is authoritative; the label is presentation, so it is
+      // recomputed from the rule rather than stored and allowed to go stale.
+      const named = rule && f.due_date
+        ? ledgerPeriodFor({
+            anchor: rule.rule.anchor,
+            dueIso: f.due_date,
+            frequency: profileOf(business).vatFrequency ?? "bimonthly",
+            coversDueYear: rule.kind === "registrar_fee",
+          })
+        : null;
+      const evidence = f.evidence ?? {};
+      return {
+        periodKey: f.period_key,
+        periodLabel: named?.key === f.period_key ? named.label : null,
+        dueIso: f.due_date,
+        filedAt: f.filed_at,
+        amount: typeof evidence.amount === "string" && evidence.amount.trim() ? evidence.amount : null,
+        reference:
+          typeof evidence.reference === "string" && evidence.reference.trim()
+            ? evidence.reference
+            : null,
+      };
+    });
+
   const pro = isPro(business);
   const gen = GENERATOR_BY_TEMPLATE.get(template.id) ?? null;
   const genRelevantCtx = {
@@ -212,6 +247,7 @@ export default async function TaskDetailPage({
           }
         : null,
     },
+    filings,
     milestones: {
       chain: position.chain,
       currentId: position.stage.id,

@@ -237,3 +237,56 @@ export function missedPeriodsFor(args: {
   }).filter((p) => p.dueIso >= args.knownFrom);
   return missedPeriods(due, args.filedKeys);
 }
+
+/**
+ * The ledger key for ANY filing, not just a bimonthly reporting period.
+ *
+ * The ledger write used periodForDue unconditionally, which reads a deadline as
+ * if it closed a two-month VAT period. So paying the 31 March registrar fee was
+ * recorded against "ינואר–פברואר 2027" — a period that has nothing to do with
+ * an annual fee. Nothing read it, so nothing broke; but the ledger is the
+ * evidence record, and a row that mislabels what it is evidence OF is worth
+ * less than no row.
+ *
+ * One key shape per anchor:
+ *   period_plus  the reporting period the deadline closes ("2026-07..2026-08")
+ *   monthly      the single month it closes ("2026-08..2026-08")
+ *   annual       the full year the filing covers ("2026-01..2026-12")
+ *   on_demand    none — there is no period, and naming one would invent a fact
+ */
+export function ledgerPeriodFor(args: {
+  anchor: "period_plus" | "monthly" | "annual" | "on_demand";
+  dueIso: string;
+  frequency: VatFrequency;
+  /** True for a fee billed FOR the year it falls in, rather than the year before. */
+  coversDueYear?: boolean;
+}): { key: string; label: string; dueIso: string } | null {
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(args.dueIso);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return null;
+
+  switch (args.anchor) {
+    case "period_plus": {
+      const p = periodForDue(args.dueIso, args.frequency);
+      return p ? { key: p.key, label: p.label, dueIso: args.dueIso } : null;
+    }
+    case "monthly": {
+      // The month a monthly filing closes is the one before its deadline.
+      const endAbs = year * 12 + (month - 1) - 1;
+      const p = periodEndingAt(endAbs, "monthly");
+      return { key: p.key, label: p.label, dueIso: args.dueIso };
+    }
+    case "annual": {
+      const covered = args.coversDueYear ? year : year - 1;
+      return {
+        key: `${covered}-01..${covered}-12`,
+        label: `שנת ${covered}`,
+        dueIso: args.dueIso,
+      };
+    }
+    case "on_demand":
+      return null;
+  }
+}

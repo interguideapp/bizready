@@ -6,6 +6,7 @@ import {
   type ComplianceProfile,
 } from "@/lib/compliance";
 import { computeReminders, type ReminderTask } from "@/lib/reminders";
+import { projectCycles } from "@/lib/cycles";
 
 /**
  * The two engines must never disagree about whether you are late.
@@ -287,5 +288,97 @@ describe("the filing ledger does not break the agreement", () => {
       .filter((o) => o.daysUntil < 0)
       .map((o) => o.periodLabel);
     expect(labels).not.toContain("יולי–אוגוסט 2026");
+  });
+});
+
+/**
+ * The sweep and the screens must reach the same conclusion about a new cycle.
+ *
+ * This is the design claim of cycles.ts, so it is asserted rather than
+ * asserted-in-a-comment. Before it, the nightly sweep was the ONLY thing that
+ * could decide a new reporting period had opened: with the sweep not running, a
+ * filed VAT task read "בוצע" while the obligations board, which computes its
+ * dates independently, showed the next period. One duty, two answers, decided
+ * by whether a cron had fired.
+ *
+ * Both sides now call reopenedCycle, so the only way they can diverge is if one
+ * of them is fed different data — which is exactly what this catches, and
+ * exactly the defect that shipped twice already (the cron select missing
+ * `dismissal`, then missing the ledger).
+ */
+describe("the sweep and the read path agree about a new cycle", () => {
+  const FILED_PERIODS = ["2026-07..2026-08"];
+
+  /** What the sweep would persist: the reset it pushes, or null. */
+  function sweepSays(today: Date, profile: ComplianceProfile): string | null {
+    const { recurringResets } = computeReminders(
+      [
+        {
+          id: "t1",
+          template_id: "open-vat-file",
+          status: "done",
+          is_relevant: true,
+          due_date: null,
+          completed_at: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "t2",
+          template_id: "vat-reporting",
+          status: "done",
+          is_relevant: true,
+          due_date: "2026-09-15",
+          completed_at: "2026-09-12T00:00:00Z",
+          filed_periods: FILED_PERIODS,
+        },
+      ],
+      TEMPLATES_BY_ID,
+      today,
+      true,
+      profile
+    );
+    return recurringResets.find((r) => r.templateId === "vat-reporting")?.newDueDate ?? null;
+  }
+
+  /** What the screens render, with nothing persisted at all. */
+  function screensSay(today: Date, profile: ComplianceProfile): string | null {
+    const [projected] = projectCycles(
+      [
+        {
+          template_id: "vat-reporting",
+          status: "done" as const,
+          due_date: "2026-09-15",
+          completed_at: "2026-09-12T00:00:00Z",
+          filed_periods: FILED_PERIODS,
+        },
+      ],
+      { templates: TEMPLATES_BY_ID, today, profile }
+    );
+    return projected.cycle?.dueIso ?? null;
+  }
+
+  it("agrees on every day across half a year, at both filing frequencies", () => {
+    const disagreements: string[] = [];
+    for (const profile of PROFILES) {
+      for (let day = 0; day < 190; day += 1) {
+        const today = new Date(Date.UTC(2026, 8, 1 + day, 9, 0, 0));
+        const sweep = sweepSays(today, profile.profile);
+        const screens = screensSay(today, profile.profile);
+        if (sweep !== screens) {
+          disagreements.push(
+            `${profile.name} on ${today.toISOString().slice(0, 10)}: sweep=${sweep} screens=${screens}`
+          );
+        }
+      }
+    }
+    expect(disagreements).toEqual([]);
+  });
+
+  it("and the agreement is not the trivial one of both always saying nothing", () => {
+    // A matrix test that passes because neither side ever fires proves nothing.
+    const profile = PROFILES[0].profile;
+    const opened = Array.from({ length: 190 }, (_, day) =>
+      screensSay(new Date(Date.UTC(2026, 8, 1 + day, 9, 0, 0)), profile)
+    ).filter(Boolean);
+    expect(opened.length).toBeGreaterThan(0);
   });
 });

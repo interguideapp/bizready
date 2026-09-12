@@ -20,15 +20,37 @@
  * starts, so it switches; past a year no number helps at all.
  */
 
+/**
+ * How long, on its own, with no claim attached.
+ *
+ * Separated from lateLabel because "באיחור" is a claim: it says a deadline was
+ * missed. An insurance policy that expired three months ago missed no deadline
+ * — there is simply no cover — and the obligations board needs the same
+ * duration vocabulary with a different sentence around it.
+ */
+export function durationLabel(days: number): string {
+  if (days <= 1) return "יום";
+  if (days === 2) return "יומיים";
+  if (days < 60) return `${days} ימים`;
+  const months = Math.floor(days / 30);
+  if (months >= 12) return "למעלה משנה";
+  if (months === 2) return "כחודשיים";
+  return `כ-${months} חודשים`;
+}
+
 /** How late, given a POSITIVE number of days past the deadline. */
 export function lateLabel(days: number): string {
-  if (days <= 1) return "באיחור יום";
-  if (days === 2) return "באיחור יומיים";
-  if (days < 60) return `באיחור ${days} ימים`;
-  const months = Math.floor(days / 30);
-  if (months >= 12) return "באיחור למעלה משנה";
-  if (months === 2) return "באיחור כחודשיים";
-  return `באיחור כ-${months} חודשים`;
+  return `באיחור ${durationLabel(days)}`;
+}
+
+/**
+ * How long a cover has been expired.
+ *
+ * Not "באיחור": nothing was filed late and no authority is charging interest.
+ * What is true is that the cover ran out and has been out for this long.
+ */
+export function lapsedLabel(days: number): string {
+  return `פג לפני ${durationLabel(days)}`;
 }
 
 /** How far ahead, given a NON-NEGATIVE number of days until the deadline. */

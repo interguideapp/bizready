@@ -3,6 +3,7 @@ import { loadLiveTasks } from "@/lib/tasks-live";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import {
   ObligationRow,
+  LapsedSection,
   OverdueSection,
   PendingFilingsSection,
   PersonalTargetsSection,
@@ -77,7 +78,21 @@ export default async function CalendarPage() {
   // month buried a late filing under last month's heading, styled like any
   // other row, at the top of a long scroll. The one thing on this page that
   // costs money every day it is ignored was the easiest thing to miss.
-  const overdue = obligations.filter((o) => o.daysUntil < 0);
+  // A LAPSED COVER IS NOT AN INTEREST-BEARING DEBT.
+  //
+  // Everything past its date used to go into one group, under a heading reading
+  // "חובות עברו את המועד" and the line "איחור בדיווח או בתשלום צובר ריבית
+  // והצמדה מהיום הראשון". True of a VAT period. Not true of an expired
+  // professional-liability policy: no authority charges interest on it, and for
+  // most professions it is not a legal duty at all — the template was
+  // deliberately re-tiered away from "critical" for exactly that reason.
+  //
+  // Overclaiming legal consequence is the one thing this product must never do,
+  // so the two kinds of late are separated by basis and each gets the
+  // consequence that is actually its own.
+  const pastDue = obligations.filter((o) => o.daysUntil < 0);
+  const overdue = pastDue.filter((o) => o.basis === "statutory");
+  const lapsed = pastDue.filter((o) => o.basis !== "statutory");
   const upcoming = obligations.filter((o) => o.daysUntil >= 0);
 
   // Statutory duties this business has but that have not started, because the
@@ -147,6 +162,9 @@ export default async function CalendarPage() {
       {/* Late first, never behind the paywall: being late is not a premium
           feature, and this is the section the whole page exists for. */}
       <OverdueSection overdue={overdue} canEdit={canEdit} />
+
+      {/* Cover that has run out — a different consequence, said differently. */}
+      <LapsedSection lapsed={lapsed} />
 
       <PendingFilingsSection
         pending={pendingFilings.map((f: PendingFiling) => ({

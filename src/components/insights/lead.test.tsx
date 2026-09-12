@@ -19,6 +19,7 @@ function exposure(over: Partial<ExposureView> = {}): ExposureView {
     templateId: "vat-reporting",
     title: 'דיווח מע"מ תקופתי',
     daysUntil: -5,
+    basis: "statutory" as const,
     severity: "penalty_accruing",
     consequence: "איחור בדיווח ובתשלום צובר ריבית והצמדה מהיום הראשון.",
     ...over,
@@ -86,5 +87,32 @@ describe("what is most worth doing", () => {
     // promotes the least irrelevant item to look busy.
     const { container } = render(<TopExposures exposures={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe("insights words a passed date by what it is", () => {
+  it("says 'באיחור' about a statutory filing", () => {
+    render(<TopExposures exposures={[exposure({ daysUntil: -95 })]} />);
+    expect(screen.getByText("באיחור כ-3 חודשים")).toBeDefined();
+  });
+
+  it("does not say 'באיחור' about a cover that ran out", () => {
+    // Same overclaim the obligations board carried: "באיחור" asserts a missed
+    // deadline, and an expired policy missed none.
+    render(
+      <TopExposures
+        exposures={[
+          exposure({
+            daysUntil: -95,
+            basis: "renewal",
+            templateId: "professional-liability-insurance",
+            title: "חידוש: ביטוח אחריות מקצועית",
+            severity: "advisory",
+          }),
+        ]}
+      />
+    );
+    expect(screen.queryByText(/באיחור/)).toBeNull();
+    expect(screen.getByText("פג לפני כ-3 חודשים")).toBeDefined();
   });
 });

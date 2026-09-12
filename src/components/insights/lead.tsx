@@ -1,4 +1,4 @@
-import { distanceLabel } from "@/lib/he-distance";
+import { distanceLabel, lapsedLabel } from "@/lib/he-distance";
 import Link from "next/link";
 import { AlertTriangle, Flame } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -47,6 +47,12 @@ export interface ExposureView {
   templateId: string | null;
   title: string;
   daysUntil: number;
+  /**
+   * Statutory or not. Decides the WORDS: "באיחור" is a claim that a deadline
+   * was missed, which is true of a VAT period and false of an insurance policy
+   * that simply ran out. The board makes the same distinction.
+   */
+  basis: "statutory" | "renewal";
   severity: Severity;
   consequence: string;
 }
@@ -83,7 +89,9 @@ export function TopExposures({ exposures }: { exposures: ExposureView[] }) {
                   e.daysUntil < 0 ? "text-status-overdue" : "text-ink-muted"
                 }`}
               >
-                {distanceLabel(e.daysUntil)}
+                {e.daysUntil < 0 && e.basis !== "statutory"
+                  ? lapsedLabel(-e.daysUntil)
+                  : distanceLabel(e.daysUntil)}
               </span>
             </div>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">

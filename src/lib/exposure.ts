@@ -35,6 +35,12 @@ export interface Exposure {
   title: string;
   dueDate: string;
   daysUntil: number;
+  /**
+   * Statutory or not, carried through so a surface can word a passed date
+   * correctly. "באיחור" is a claim that a deadline was missed — true of a VAT
+   * period, false of an insurance policy that simply ran out.
+   */
+  basis: "statutory" | "renewal";
   severity: Severity;
   /** 0-1. Higher = sooner or longer overdue. */
   proximity: number;
@@ -159,6 +165,7 @@ export function exposureOf(obligation: Obligation): Exposure {
     title: obligation.title,
     dueDate: obligation.dueDate,
     daysUntil: obligation.daysUntil,
+    basis: obligation.basis,
     severity,
     proximity,
     certainty,

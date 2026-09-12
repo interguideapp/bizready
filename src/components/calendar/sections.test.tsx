@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Obligation } from "@/lib/compliance";
 import {
+  LapsedSection,
   ObligationRow,
   OverdueSection,
   PendingFilingsSection,
@@ -180,5 +181,119 @@ describe("the user's own targets", () => {
   it("disappears when there are none", () => {
     const { container } = render(<PersonalTargetsSection targets={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe("the board leads somewhere", () => {
+  it("makes the obligation title a link to its task", () => {
+    // The page that tells you what is late offered no way to go and do it:
+    // every title was a <p>. /insights already linked its rows this way.
+    render(<ObligationRow ob={ob()} />);
+    const link = screen.getByRole("link", { name: 'דיווח מע"מ תקופתי' });
+    expect(link.getAttribute("href")).toBe("/tasks/vat-reporting?from=calendar");
+  });
+
+  it("does not pretend an expiry is a link when it has no task", () => {
+    // A document expiry comes from the archive, not from a task.
+    render(<ObligationRow ob={ob({ templateId: null, kind: "document_expiry" })} />);
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByText('דיווח מע"מ תקופתי')).toBeDefined();
+  });
+});
+
+/**
+ * A lapsed cover is not an interest-bearing debt.
+ *
+ * Everything past its date used to land in one group, under "חובות עברו את
+ * המועד" with the line "איחור בדיווח או בתשלום צובר ריבית והצמדה מהיום הראשון".
+ * True of a VAT period; false of an expired professional-liability policy — no
+ * authority charges interest on it, and for most professions it is not a legal
+ * duty at all. Overclaiming legal consequence is the one thing this product
+ * must never do.
+ */
+describe("lapsed cover, said honestly", () => {
+  const policy = () =>
+    ob({
+      id: "p1",
+      kind: "renewal",
+      basis: "renewal",
+      title: "חידוש: ביטוח אחריות מקצועית",
+      templateId: "professional-liability-insurance",
+      periodLabel: null,
+      periodKey: null,
+      daysUntil: -95,
+    });
+
+  it("says outright that no interest is accruing", () => {
+    render(<LapsedSection lapsed={[policy()]} />);
+    expect(screen.getByText(/אין כאן קנס וריבית/)).toBeDefined();
+  });
+
+  it("states the consequence that IS real — no cover", () => {
+    render(<LapsedSection lapsed={[policy()]} />);
+    expect(screen.getByText(/לא תוכלו להציג אישור בתוקף/)).toBeDefined();
+  });
+
+  it("never borrows the statutory section's interest claim", () => {
+    render(<LapsedSection lapsed={[policy()]} />);
+    expect(screen.queryByText(/צובר ריבית והצמדה מהיום הראשון/)).toBeNull();
+  });
+
+  it("does not call it a חובה חוקית", () => {
+    // The heading counts expiries, not legal duties.
+    render(<LapsedSection lapsed={[policy()]} />);
+    expect(screen.getByRole("heading", { name: /תוקף אחד פג/ })).toBeDefined();
+  });
+
+  it("uses the plural for more than one", () => {
+    render(<LapsedSection lapsed={[policy(), { ...policy(), id: "p2" }]} />);
+    expect(screen.getByRole("heading", { name: /2 תוקפים פגו/ })).toBeDefined();
+  });
+
+  it("renders nothing when nothing has lapsed", () => {
+    const { container } = render(<LapsedSection lapsed={[]} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("offers no 'כבר הגשתי' — there is no period to file", () => {
+    // The off switch for a renewal is a new date on the task, not a filing.
+    render(<LapsedSection lapsed={[policy()]} />);
+    expect(screen.queryByRole("button", { name: /כבר הגשתי/ })).toBeNull();
+  });
+});
+
+describe("a past-due row is worded and coloured by what it actually is", () => {
+  const policy = (over = {}) =>
+    ob({
+      kind: "renewal",
+      basis: "renewal",
+      title: "חידוש: ביטוח אחריות מקצועית",
+      templateId: "professional-liability-insurance",
+      periodLabel: null,
+      periodKey: null,
+      daysUntil: -95,
+      ...over,
+    });
+
+  it("does not say 'באיחור' about a cover that lapsed", () => {
+    // "באיחור" is a claim that a deadline was missed. An expired policy missed
+    // no deadline — there is simply no cover.
+    render(<ObligationRow ob={policy()} />);
+    expect(screen.queryByText(/באיחור/)).toBeNull();
+    expect(screen.getByText(/פג לפני כ-3 חודשים/)).toBeDefined();
+  });
+
+  it("still says 'באיחור' about a statutory filing", () => {
+    render(<ObligationRow ob={ob({ daysUntil: -95 })} />);
+    expect(screen.getByText("באיחור כ-3 חודשים")).toBeDefined();
+  });
+
+  it("shares one duration vocabulary between the two", () => {
+    // Same underlying fact, same words for "how long" — only the claim differs.
+    const { unmount } = render(<ObligationRow ob={ob({ daysUntil: -66 })} />);
+    expect(screen.getByText("באיחור כחודשיים")).toBeDefined();
+    unmount();
+    render(<ObligationRow ob={policy({ daysUntil: -66 })} />);
+    expect(screen.getByText("פג לפני כחודשיים")).toBeDefined();
   });
 });

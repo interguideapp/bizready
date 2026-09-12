@@ -1,4 +1,4 @@
-import { aheadLabel, lateLabel } from "@/lib/he-distance";
+import { aheadLabel, lapsedLabel, lateLabel } from "@/lib/he-distance";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   Hourglass,
   Landmark,
   Receipt,
+  ShieldAlert,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -47,7 +48,15 @@ export function ObligationRow({
   canEdit?: boolean;
 }) {
   const meta = KIND_META[ob.kind];
-  const overdue = ob.daysUntil < 0;
+  // STYLED BY BASIS, NOT ONLY BY BEING PAST DUE.
+  //
+  // A row went red the moment its date passed, whatever kind of date it was —
+  // so an expired insurance policy wore the same alarm as a missed VAT period,
+  // right underneath copy explaining that no interest is accruing on it. The
+  // consequence differs, so the colour and the wording do too.
+  const pastDue = ob.daysUntil < 0;
+  const overdue = pastDue && ob.basis === "statutory";
+  const lapsed = pastDue && ob.basis !== "statutory";
   const soon = ob.daysUntil >= 0 && ob.daysUntil <= 7;
 
   return (
@@ -55,13 +64,34 @@ export function ObligationRow({
       <div className="flex items-center gap-3">
         <div
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-            overdue ? "bg-status-overdue-bg text-status-overdue" : "bg-brand-tint text-brand-strong"
+            overdue
+              ? "bg-status-overdue-bg text-status-overdue"
+              : lapsed
+                ? "bg-status-progress-bg text-status-progress"
+                : "bg-brand-tint text-brand-strong"
           }`}
         >
           {meta.icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-snug text-ink">{ob.title}</p>
+          {/* THE ROW LEADS SOMEWHERE.
+              This page lists everything the business owes and not one row was
+              clickable: the title was a <p>. So the screen that tells you what
+              is late offered no way to go and do it — you had to find the task
+              yourself in a different list. /insights already linked its rows
+              this way; the board, which is the page that matters most, did not.
+              An expiry has no task, so that row stays plain rather than
+              pretending to be a link. */}
+          {ob.templateId ? (
+            <Link
+              href={`/tasks/${ob.templateId}?from=calendar`}
+              className="text-sm font-medium leading-snug text-ink hover:text-brand-strong hover:underline"
+            >
+              {ob.title}
+            </Link>
+          ) : (
+            <p className="text-sm font-medium leading-snug text-ink">{ob.title}</p>
+          )}
           <p className="text-xs text-ink-muted">
             {meta.label}
             {ob.periodLabel && (
@@ -78,13 +108,22 @@ export function ObligationRow({
           </p>
           <p
             className={`text-xs font-medium ${
-              overdue ? "text-status-overdue" : soon ? "text-status-progress" : "text-ink-muted"
+              overdue
+                ? "text-status-overdue"
+                : lapsed || soon
+                  ? "text-status-progress"
+                  : "text-ink-muted"
             }`}
           >
             {overdue ? (
               <span className="inline-flex items-center gap-0.5">
                 <AlertTriangle className="h-3 w-3" aria-hidden />
                 {lateLabel(-ob.daysUntil)}
+              </span>
+            ) : lapsed ? (
+              <span className="inline-flex items-center gap-0.5">
+                <ShieldAlert className="h-3 w-3" aria-hidden />
+                {lapsedLabel(-ob.daysUntil)}
               </span>
             ) : (
               aheadLabel(ob.daysUntil)
@@ -164,6 +203,40 @@ export function OverdueSection({
       <Card className="divide-y divide-edge-soft">
         {overdue.map((ob) => (
           <ObligationRow key={ob.id} ob={ob} canEdit={canEdit} />
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+/**
+ * Cover that has run out.
+ *
+ * Split out of OverdueSection, which says "איחור בדיווח או בתשלום צובר ריבית
+ * והצמדה מהיום הראשון". That is true of a VAT period and false of an expired
+ * professional-liability policy: no authority charges interest on it, and for
+ * most professions it is not a legal duty at all. Overclaiming legal
+ * consequence is the one thing this product must never do.
+ *
+ * The real consequence is stated instead — there is no cover, and a client or
+ * an authority asking for a valid certificate cannot be given one — and it is
+ * still placed high, because an uninsured day is not a small thing either.
+ */
+export function LapsedSection({ lapsed }: { lapsed: Obligation[] }) {
+  if (lapsed.length === 0) return null;
+  return (
+    <div className="mb-5 rounded-2xl border border-status-progress/40 bg-status-progress/5 p-4">
+      <h2 className="mb-1 flex items-start gap-2 text-section text-status-progress">
+        <ShieldAlert className="mt-0.5 h-4.5 w-4.5 shrink-0" aria-hidden />
+        {lapsed.length === 1 ? "תוקף אחד פג" : `${lapsed.length} תוקפים פגו`}
+      </h2>
+      <p className="mb-3 text-xs leading-relaxed text-ink-soft">
+        אין כאן קנס וריבית — אבל גם אין כיסוי. כל יום עד החידוש הוא יום שבו לא
+        תוכלו להציג אישור בתוקף, ואם יקרה משהו, אין מי שיכסה אותו.
+      </p>
+      <Card className="divide-y divide-edge-soft">
+        {lapsed.map((ob) => (
+          <ObligationRow key={ob.id} ob={ob} />
         ))}
       </Card>
     </div>

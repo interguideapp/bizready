@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { beginCronRun, endCronRun } from "@/lib/cron-run";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /** Nightly pull for all api-mode connections. Wired in vercel.json. */
 export async function GET(request: Request) {

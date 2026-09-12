@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, Flame, Gauge, Info } from "lucide-react";
+import { CalendarClock, Gauge, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
 import { TrophyWall } from "@/components/insights/trophy-wall";
@@ -21,7 +21,8 @@ import {
 import { computeScore } from "@/lib/rules-engine";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeUpcomingObligations } from "@/lib/compliance";
-import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
+import { rankByExposure } from "@/lib/exposure";
+import { OverdueBanner, TopExposures } from "@/components/insights/lead";
 import {
   computeBadges,
   computeStreak,
@@ -159,70 +160,20 @@ export default async function InsightsPage() {
       <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
 
       {/* Consequence before progress. */}
-      {overdueStatutory.length > 0 && (
-        <div className="mb-5 rounded-2xl border border-status-overdue/40 bg-status-overdue/5 p-4">
-          <h2 className="mb-1 flex items-center gap-2 text-section text-status-overdue">
-            <AlertTriangle className="h-4.5 w-4.5" aria-hidden />
-            {overdueStatutory.length === 1
-              ? "חובה חוקית אחת עברה את המועד"
-              : `${overdueStatutory.length} חובות חוקיות עברו את המועד`}
-          </h2>
-          <p className="text-xs leading-relaxed text-ink-soft">
-            כל עוד זה המצב, הציון למטה לא מספר את כל הסיפור — איחור צובר ריבית
-            והצמדה מהיום הראשון, בלי קשר לכמה משימות אחרות הושלמו.
-          </p>
-          <Link
-            href="/calendar"
-            className="mt-2 inline-block text-xs font-semibold text-status-overdue hover:underline"
-          >
-            ללוח החובות ←
-          </Link>
-        </div>
-      )}
+      <OverdueBanner count={overdueStatutory.length} />
 
-      {topExposures.length > 0 && (
-        <FadeIn>
-          <Card className="mb-5 p-5">
-            <h2 className="mb-1 flex items-center gap-2 text-section text-ink">
-              <Flame className="h-4.5 w-4.5 text-brand-400" aria-hidden />
-              מה הכי כדאי לטפל בו
-            </h2>
-            <p className="mb-3 text-xs leading-relaxed text-ink-muted">
-              מדורג לפי מה שקורה אם מתעלמים — לא לפי מה שהתאריך שלו הקרוב ביותר.
-            </p>
-            <ul className="flex flex-col divide-y divide-edge-soft">
-              {topExposures.map((e) => (
-                <li key={e.obligationId} className="py-2.5">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <Link
-                      href={e.templateId ? `/tasks/${e.templateId}?from=insights` : "/calendar"}
-                      className="truncate text-sm font-semibold text-ink hover:text-brand-strong"
-                    >
-                      {e.title}
-                    </Link>
-                    <span
-                      className={`tnum shrink-0 text-xs font-medium ${
-                        e.daysUntil < 0 ? "text-status-overdue" : "text-ink-muted"
-                      }`}
-                    >
-                      {e.daysUntil < 0
-                        ? `באיחור ${-e.daysUntil} ימים`
-                        : e.daysUntil === 0
-                          ? "היום"
-                          : `בעוד ${e.daysUntil} ימים`}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-                    <span className="font-medium text-ink-soft">{SEVERITY_LABEL[e.severity]}</span>
-                    {" · "}
-                    {e.consequence}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </FadeIn>
-      )}
+      <FadeIn>
+        <TopExposures
+          exposures={topExposures.map((e) => ({
+            obligationId: e.obligationId,
+            templateId: e.templateId,
+            title: e.title,
+            daysUntil: e.daysUntil,
+            severity: e.severity,
+            consequence: e.consequence,
+          }))}
+        />
+      </FadeIn>
 
       {/* Say where the numbers come from instead of showing empty bars and ₪0.
           The finance half needs revenue, and revenue arrives either from an

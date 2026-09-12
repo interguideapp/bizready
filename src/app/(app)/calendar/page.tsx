@@ -1,4 +1,6 @@
 import { CalendarClock, ShieldCheck } from "lucide-react";
+import { DeliveryNotice } from "@/components/delivery-notice";
+import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import {
@@ -43,10 +45,11 @@ export default async function CalendarPage() {
   // control would be offering a button guaranteed to fail.
   const canEdit = capabilitiesFor(role).completeTasks;
 
-  const [tasks, filedPeriods, documents] = await Promise.all([
+  const [tasks, filedPeriods, documents, delivery] = await Promise.all([
     loadLiveTasks(business),
     getFiledPeriods(business.id),
     getDocuments(business.id),
+    loadDeliveryHealth(),
   ]);
 
   const answers = business.onboarding_answers as OnboardingAnswers;
@@ -158,6 +161,10 @@ export default async function CalendarPage() {
           <UpgradeCta />
         </div>
       )}
+
+      {/* A user who lives on this page and never opens /notifications would
+          otherwise keep waiting for an email that is not coming. */}
+      {deliveryIsDown(delivery) && delivery && <DeliveryNotice health={delivery} compact />}
 
       {/* Late first, never behind the paywall: being late is not a premium
           feature, and this is the section the whole page exists for. */}

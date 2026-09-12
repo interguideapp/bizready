@@ -23,6 +23,8 @@ import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeUpcomingObligations } from "@/lib/compliance";
 import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
+import { DeliveryNotice } from "@/components/delivery-notice";
+import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
 import {
   computeBadges,
   computeStreak,
@@ -35,13 +37,14 @@ const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
 export default async function InsightsPage() {
   const business = await requireBusiness();
-  const [tasks, filedPeriods, documents, costs, products, events] = await Promise.all([
+  const [tasks, filedPeriods, documents, costs, products, events, delivery] = await Promise.all([
     loadLiveTasks(business),
     getFiledPeriods(business.id),
     getDocuments(business.id),
     getCosts(business.id),
     getProducts(business.id),
     getTaskEvents(business.id, 200),
+    loadDeliveryHealth(),
   ]);
 
   const answers = business.onboarding_answers as OnboardingAnswers;
@@ -160,6 +163,10 @@ export default async function InsightsPage() {
       <PageTitle eyebrow="מודיעין עסקי" title="תובנות" subtitle="ההתקדמות, ההישגים, העלויות והמועדים — במבט אחד" />
 
       {/* Consequence before progress. */}
+      {/* A user who lives on this page would otherwise keep waiting for an
+          email that is not coming. */}
+      {deliveryIsDown(delivery) && delivery && <DeliveryNotice health={delivery} compact />}
+
       <OverdueBanner count={overdueStatutory.length} />
 
       <FadeIn>

@@ -5,6 +5,8 @@ import { loadAttention } from "@/lib/attention";
 import { derivedCount, isGenuinelyCalm } from "@/lib/live-attention";
 import { NotificationList } from "./notification-list";
 import { SweepNotice } from "./sweep-notice";
+import { DeliveryNotice } from "@/components/delivery-notice";
+import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
 
 /**
  * התראות — derived live, not just read back.
@@ -24,8 +26,12 @@ import { SweepNotice } from "./sweep-notice";
  */
 export default async function NotificationsPage() {
   const business = await requireBusiness();
-  const items = await loadAttention(business);
+  const [items, delivery] = await Promise.all([
+    loadAttention(business),
+    loadDeliveryHealth(),
+  ]);
   const unsent = derivedCount(items);
+  const down = deliveryIsDown(delivery);
 
   return (
     <div>
@@ -34,10 +40,17 @@ export default async function NotificationsPage() {
         subtitle="דדליינים, משימות מחזוריות ומה שדורש תשומת לב"
       />
 
-      {/* Only shown when something is on screen that was never sent. Saying
-          "we may not have contacted you" when everything went out would train
-          the user to ignore it. */}
-      {unsent > 0 && <SweepNotice count={unsent} />}
+      {/* The heartbeat decides, not the presence of derived items.
+          SweepNotice inferred the outage from "some of these were computed
+          rather than stored", which could not appear when nothing happened to
+          be outstanding and had to hedge about whether sending worked. When the
+          heartbeat says nothing is wrong, the derived-items line still has a
+          job: those specific items were never sent. */}
+      {down && delivery ? (
+        <DeliveryNotice health={delivery} />
+      ) : (
+        unsent > 0 && <SweepNotice count={unsent} />
+      )}
 
       {isGenuinelyCalm(items) ? (
         <Card>

@@ -41,6 +41,8 @@ export interface AttentionItem {
   title: string;
   body: string | null;
   templateId: string | null;
+  /** What the sweep would key this on. Decides where an item leads. */
+  dedupeKey: string | null;
   /** Null for a derived item — it has never been stored, so it is unread. */
   storedId: string | null;
   readAt: string | null;
@@ -52,6 +54,29 @@ export interface AttentionItem {
    * item is on screen, but nothing has been emailed or pushed for it.
    */
   derived: boolean;
+}
+
+/**
+ * Where an item leads.
+ *
+ * Most attention items are about a task, and the task id is the destination.
+ * A document expiry is not: it has no task, so it used to render as inert
+ * markup — the product told a user their אישור ניהול ספרים had expired and
+ * gave them nowhere to go. An item that names a problem and offers no way to
+ * act on it is half a notification.
+ */
+export function attentionHref(item: {
+  templateId: string | null;
+  dedupeKey: string | null;
+}): string | null {
+  if (item.templateId) return `/tasks/${item.templateId}?from=notifications`;
+  // Matched on the dedupe key, not on `key`: a stored row is keyed by its
+  // database id, so only a derived item would ever have matched otherwise —
+  // and the stored ones are exactly the notifications the cron emailed.
+  if (item.dedupeKey?.startsWith("doc-expiry:") || item.dedupeKey?.startsWith("doc-expired:")) {
+    return "/documents";
+  }
+  return null;
 }
 
 /** Urgency first, then recency. Overdue outranks everything. */
@@ -87,6 +112,7 @@ export function mergeAttention(
     title: s.title,
     body: s.body,
     templateId: s.template_id,
+    dedupeKey: s.dedupe_key,
     storedId: s.id,
     readAt: s.read_at,
     createdAt: s.created_at,
@@ -101,6 +127,7 @@ export function mergeAttention(
       title: d.title,
       body: d.body,
       templateId: d.template_id,
+      dedupeKey: d.dedupe_key,
       storedId: null,
       readAt: null,
       createdAt: null,

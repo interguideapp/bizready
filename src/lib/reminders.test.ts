@@ -441,3 +441,238 @@ describe("an overdue notification says which period", () => {
     );
   });
 });
+
+/**
+ * The reminder the product PROMISED and did not send.
+ *
+ * professional-liability-insurance's own after_submit says
+ * "המערכת תזכיר לכם לפני שהוא פג, כדי שלא יהיה אף יום בלי כיסוי", and
+ * buy-domain's says "המערכת תזכיר לפני תאריך החידוש כדי שהדומיין לא ייחטף".
+ * The task screen says "נזכיר לכם לפני" as well.
+ *
+ * Nothing sent it. The escalating windows read task.due_date, and a renewal
+ * date lives in completion_data — so the earliest word a user ever got was on
+ * the expiry day itself, which is the one day the copy exists to pre-empt.
+ */
+describe("a renewal is announced before it expires, not after", () => {
+  const renewalTask = (renewal: string) =>
+    task({
+      template_id: "professional-liability-insurance",
+      status: "done",
+      completed_at: "2026-03-01T00:00:00Z",
+      completion_data: { insurer: "X", renewal },
+    });
+
+  const fire = (renewal: string, today: Date, isPro = true) =>
+    computeReminders([renewalTask(renewal)], TEMPLATES_BY_ID, today, isPro);
+
+  it("warns a month out, which is the point of the promise", () => {
+    const { notifications } = fire("2026-10-13", new Date("2026-09-13T09:00:00Z"));
+    expect(notifications.map((n) => n.title)).toEqual([
+      "תוקף נגמר בעוד 30 ימים: ביטוח אחריות מקצועית",
+    ]);
+  });
+
+  it("says nothing at all while the renewal is far away", () => {
+    // 90 days out is not news, and a product that speaks when it has nothing to
+    // say is a product people stop reading.
+    const { notifications } = fire("2026-12-13", new Date("2026-09-13T09:00:00Z"));
+    expect(notifications).toEqual([]);
+  });
+
+  it("escalates through all four windows instead of speaking once", () => {
+    // The whole run-up, day by day. Each window must produce exactly one
+    // distinct key: this is the "escalating runway" the paid plan advertises,
+    // and picking the widest crossed window instead of the tightest collapsed
+    // it to a single message thirty days out.
+    const keys = new Set<string>();
+    for (let d = 45; d >= 1; d--) {
+      const today = new Date(Date.UTC(2026, 9, 13 - d, 9, 0, 0));
+      for (const n of fire("2026-10-13", today).notifications) keys.add(n.dedupe_key);
+    }
+    expect([...keys].sort()).toEqual([
+      "renewal:professional-liability-insurance:2026-10-13:1",
+      "renewal:professional-liability-insurance:2026-10-13:14",
+      "renewal:professional-liability-insurance:2026-10-13:30",
+      "renewal:professional-liability-insurance:2026-10-13:7",
+    ]);
+  });
+
+  it("hands a free account its single 7-day nudge and no more", () => {
+    const free = (d: number) =>
+      fire("2026-10-13", new Date(Date.UTC(2026, 9, 13 - d, 9, 0, 0)), false).notifications;
+    expect(free(30)).toEqual([]);
+    expect(free(7)).toHaveLength(1);
+  });
+
+  it("hands over to the reopening on the day itself", () => {
+    // Two surfaces must not both announce the same expiry. On the day, the
+    // cycle has opened and that is the message.
+    const { notifications, recurringResets } = fire(
+      "2026-09-13",
+      new Date("2026-09-13T09:00:00Z")
+    );
+    expect(recurringResets).toHaveLength(1);
+    expect(notifications.map((n) => n.type)).toEqual(["recurring"]);
+  });
+
+  it("does not invent a renewal warning for a task with no renewal date", () => {
+    const { notifications } = computeReminders(
+      [
+        task({
+          template_id: "professional-liability-insurance",
+          status: "done",
+          completed_at: "2026-09-01T00:00:00Z",
+          completion_data: { insurer: "X" },
+        }),
+      ],
+      TEMPLATES_BY_ID,
+      new Date("2026-09-13T09:00:00Z"),
+      true
+    );
+    // The yearly habit has not come round yet, and nothing else is knowable.
+    expect(notifications).toEqual([]);
+  });
+});
+
+/**
+ * The escalating runway, which did not escalate.
+ *
+ * REMINDER_WINDOWS_PRO is declared descending — [30, 14, 7, 1] — and the sweep
+ * chose its milestone with `windows.find((w) => daysLeft <= w)`, which returns
+ * the FIRST match. So the window was 30 for every distance from a month out to
+ * the deadline itself, the dedupe key embeds the window, and a Pro user
+ * received exactly ONE reminder in the entire run-up to a statutory filing:
+ * nothing at fourteen days, nothing at seven, nothing the day before.
+ *
+ * The sweep's own comment said "fire once per crossed window (30/14/7/1 for
+ * Pro) ... so the same milestone never repeats". It did the opposite of both
+ * halves, on the alert path that exists so a deadline cannot be missed.
+ */
+describe("a statutory deadline escalates through every window", () => {
+  const open = (due: string) =>
+    [
+      task({ template_id: "open-vat-file", status: "done", completed_at: "2026-01-01" }),
+      task({ template_id: "vat-reporting", status: "todo", due_date: due }),
+    ];
+
+  it("speaks four times on the way to the deadline, not once", () => {
+    const keys = new Set<string>();
+    for (let d = 40; d >= 1; d--) {
+      const today = new Date(Date.UTC(2026, 10, 15 - d, 9, 0, 0));
+      for (const n of computeReminders(open("2026-11-15"), TEMPLATES_BY_ID, today, true, {
+        vatFrequency: "bimonthly",
+      }).notifications) {
+        if (n.type === "deadline") keys.add(n.dedupe_key);
+      }
+    }
+    expect(keys.size).toBe(4);
+    expect([...keys].every((k) => k.startsWith("deadline:vat-reporting:2026-11-15:"))).toBe(true);
+  });
+
+  it("names the tightest milestone reached, not the widest", () => {
+    // Seven days out is a seven-day warning. Filing it under the 30-day key is
+    // what made the later windows unreachable.
+    const { notifications } = computeReminders(
+      open("2026-11-15"),
+      TEMPLATES_BY_ID,
+      new Date("2026-11-08T09:00:00Z"),
+      true,
+      { vatFrequency: "bimonthly" }
+    );
+    const deadline = notifications.find((n) => n.type === "deadline");
+    expect(deadline?.dedupe_key).toBe("deadline:vat-reporting:2026-11-15:7");
+  });
+
+  it("still gives a free account its single seven-day nudge", () => {
+    const keys = new Set<string>();
+    for (let d = 40; d >= 1; d--) {
+      const today = new Date(Date.UTC(2026, 10, 15 - d, 9, 0, 0));
+      for (const n of computeReminders(open("2026-11-15"), TEMPLATES_BY_ID, today, false, {
+        vatFrequency: "bimonthly",
+      }).notifications) {
+        if (n.type === "deadline") keys.add(n.dedupe_key);
+      }
+    }
+    expect([...keys]).toEqual(["deadline:vat-reporting:2026-11-15:7"]);
+  });
+});
+
+/**
+ * A document that is about to expire.
+ *
+ * The obligations board has built a document_expiry obligation from
+ * documents.expires_at since the engine was written, and this sweep never
+ * looked at a document at all — so an אישור ניהול ספרים could lapse with the
+ * board showing it and not one email, push or WhatsApp going out. The archive
+ * row is even labelled "בתוקף עד", which implies the product is watching.
+ *
+ * Worse, until this session `expires_at` could not be SET from anywhere in the
+ * product: the column was rendered, exported in the evidence pack and turned
+ * into an obligation, with no input writing it.
+ */
+describe("an expiring document is announced", () => {
+  const sept13 = new Date("2026-09-13T09:00:00Z");
+  const doc = (expires_at: string | null) => [{ name: "אישור ניהול ספרים", expires_at }];
+
+  it("warns ahead of the expiry, on the same escalating windows as everything else", () => {
+    const { notifications } = computeReminders(
+      [],
+      TEMPLATES_BY_ID,
+      sept13,
+      true,
+      {},
+      doc("2026-09-20")
+    );
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].title).toBe("תוקף נגמר בעוד 7 ימים: אישור ניהול ספרים");
+    expect(notifications[0].dedupe_key).toBe("doc-expiry:אישור ניהול ספרים:2026-09-20:7");
+  });
+
+  it("escalates through every window instead of speaking once", () => {
+    const keys = new Set<string>();
+    for (let d = 40; d >= 1; d--) {
+      const today = new Date(Date.UTC(2026, 8, 20 - d, 9, 0, 0));
+      for (const n of computeReminders([], TEMPLATES_BY_ID, today, true, {}, doc("2026-09-20"))
+        .notifications) {
+        keys.add(n.dedupe_key);
+      }
+    }
+    expect(keys.size).toBe(4);
+  });
+
+  it("reports an expired document as expired, and keeps reporting it", () => {
+    // Not a one-off: a document out of date stays out of date, and the row is
+    // keyed on the expiry so it is announced once rather than daily.
+    const { notifications } = computeReminders(
+      [],
+      TEMPLATES_BY_ID,
+      sept13,
+      true,
+      {},
+      doc("2026-06-01")
+    );
+    expect(notifications[0].type).toBe("overdue");
+    expect(notifications[0].title).toBe("פג תוקף: אישור ניהול ספרים");
+  });
+
+  it("says nothing about a document with no expiry recorded", () => {
+    // Most documents are receipts and confirmations that never expire. Asking
+    // about them, or warning about them, would be noise.
+    expect(
+      computeReminders([], TEMPLATES_BY_ID, sept13, true, {}, doc(null)).notifications
+    ).toEqual([]);
+  });
+
+  it("says nothing about one that expires next year", () => {
+    expect(
+      computeReminders([], TEMPLATES_BY_ID, sept13, true, {}, doc("2027-09-20")).notifications
+    ).toEqual([]);
+  });
+
+  it("is silent for a caller that does not pass the archive", () => {
+    // The parameter is optional so existing callers keep working; the cron and
+    // loadAttention both pass it, which is what makes the promise true.
+    expect(computeReminders([], TEMPLATES_BY_ID, sept13, true, {}).notifications).toEqual([]);
+  });
+});

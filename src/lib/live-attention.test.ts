@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  attentionHref,
   derivedCount,
   isGenuinelyCalm,
   mergeAttention,
@@ -147,5 +148,58 @@ describe("knowing what was actually sent", () => {
 
   it("reports none when the sweep stored everything", () => {
     expect(derivedCount(mergeAttention([stored()], [draft()]))).toBe(0);
+  });
+});
+
+/**
+ * Where an attention item leads.
+ *
+ * A document expiry has no task, and the list rendered it as inert markup: the
+ * product said "פג תוקף: אישור ניהול ספרים" and gave the reader nowhere to go.
+ * An item that names a problem and offers no way to act on it is half a
+ * notification.
+ */
+describe("attentionHref", () => {
+  it("sends a task item to its task", () => {
+    expect(attentionHref({ templateId: "vat-reporting", dedupeKey: "overdue:vat-reporting:x" })).toBe(
+      "/tasks/vat-reporting?from=notifications"
+    );
+  });
+
+  it("sends a document expiry to the archive", () => {
+    expect(attentionHref({ templateId: "", dedupeKey: "doc-expiry:אישור:2026-09-20:7" })).toBe(
+      "/documents"
+    );
+    expect(attentionHref({ templateId: null, dedupeKey: "doc-expired:אישור:2026-06-01" })).toBe(
+      "/documents"
+    );
+  });
+
+  it("works for a STORED document notification, not just a derived one", () => {
+    // The stored rows are keyed by database id, so matching on the item key
+    // would have covered only derived items — and the stored ones are exactly
+    // the notifications the cron already emailed.
+    const [item] = mergeAttention(
+      [
+        {
+          id: "row-1",
+          type: "overdue",
+          title: "פג תוקף: אישור ניהול ספרים",
+          body: null,
+          template_id: "",
+          dedupe_key: "doc-expired:אישור ניהול ספרים:2026-06-01",
+          read_at: null,
+          created_at: "2026-09-13T00:00:00Z",
+        },
+      ],
+      []
+    );
+    expect(attentionHref(item)).toBe("/documents");
+  });
+
+  it("returns nothing for an item with no destination, rather than /tasks/", () => {
+    // An empty template id used to build the href anyway in earlier versions of
+    // this list; "/tasks/" is not a page.
+    expect(attentionHref({ templateId: "", dedupeKey: "sync:icount:2026-09-13" })).toBeNull();
   });
 });

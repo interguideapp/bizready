@@ -1,5 +1,5 @@
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { getBusinessTasks, getFiledPeriods, getNotifications } from "@/lib/data";
+import { getBusinessTasks, getDocuments, getFiledPeriods, getNotifications } from "@/lib/data";
 import { computeReminders } from "@/lib/reminders";
 import { mergeAttention, unreadCount, type AttentionItem } from "@/lib/live-attention";
 import { isPro } from "@/lib/subscription";
@@ -19,10 +19,11 @@ import type { BusinessRow } from "@/lib/data";
  * query, not two.
  */
 export async function loadAttention(business: BusinessRow): Promise<AttentionItem[]> {
-  const [stored, tasks, filedPeriods] = await Promise.all([
+  const [stored, tasks, filedPeriods, documents] = await Promise.all([
     getNotifications(business.id),
     getBusinessTasks(business.id),
     getFiledPeriods(business.id),
+    getDocuments(business.id),
   ]);
 
   // Deliberately the STORED rows, not the cycle-projected ones from
@@ -48,7 +49,8 @@ export async function loadAttention(business: BusinessRow): Promise<AttentionIte
     TEMPLATES_BY_ID,
     new Date(),
     isPro(business),
-    profileOf(business)
+    profileOf(business),
+    documents.map((d) => ({ name: d.name, expires_at: d.expires_at }))
   );
 
   return mergeAttention(stored, drafts);

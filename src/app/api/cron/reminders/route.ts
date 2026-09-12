@@ -74,6 +74,12 @@ export async function GET(request: Request) {
       else filedByTemplate.set(row.template_id, [row.period_key]);
     }
 
+    const { data: docs } = await supabase
+      .from("documents")
+      .select("name, expires_at")
+      .eq("business_id", biz.id)
+      .not("expires_at", "is", null);
+
     const isPro =
       biz.subscription_tier === "pro" &&
       (!biz.subscription_until || new Date(biz.subscription_until) > today);
@@ -88,7 +94,11 @@ export async function GET(request: Request) {
       TEMPLATES_BY_ID,
       today,
       isPro,
-      { entityType: biz.entity_type, vatFrequency: answers.vat_frequency }
+      { entityType: biz.entity_type, vatFrequency: answers.vat_frequency },
+      // The archive, for the expiry watch. Omitting it here would leave the
+      // screens announcing an expiry the email never mentions — the same split
+      // this whole pass exists to close.
+      (docs ?? []).map((d) => ({ name: d.name, expires_at: d.expires_at }))
     );
 
     // reset recurring tasks that came due again

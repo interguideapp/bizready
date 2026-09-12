@@ -419,13 +419,27 @@ export function computeUpcomingObligations(
 ): Obligation[] {
   const out: Obligation[] = [];
   const freq = reportingFrequency(profile);
-  // The window for things that are COMING. Sixty days of history keeps a
-  // recently-passed renewal or document expiry visible without turning the
-  // board into an archive.
+  // The window for things that are COMING, plus sixty days of history so a
+  // just-passed date does not vanish the moment it passes.
   const withinHorizon = (dueIso: string) => {
     const d = daysBetween(dueIso, today);
     return d >= -60 && d <= horizonDays;
   };
+
+  /**
+   * A LAPSED cover does not age out either.
+   *
+   * The sixty-day window was written for things that recur on a calendar, where
+   * the passed one stops mattering once the next arrives. A licence, a
+   * certificate or an insurance policy is not like that: once it expires there
+   * is no cover, and the exposure GROWS every further day. Under the plain
+   * window a policy that lapsed ten weeks ago disappeared from the board
+   * entirely — so the longer someone had been uninsured, the less the product
+   * said about it. Exactly backwards, and exactly the reasoning that exempted
+   * unfiled statutory periods above.
+   */
+  const stillLapsed = (dueIso: string) => daysBetween(dueIso, today) < 0;
+  const visibleExpiry = (dueIso: string) => withinHorizon(dueIso) || stillLapsed(dueIso);
 
   // A statutory filing that was never filed does NOT age out.
   //
@@ -565,7 +579,7 @@ export function computeUpcomingObligations(
 
     // --- renewals captured at completion (insurance / licence) ---
     const renewal = renewalDate(task);
-    if (renewal && withinHorizon(renewal)) {
+    if (renewal && visibleExpiry(renewal)) {
       out.push({
         id: `renewal:${template.id}:${renewal}`,
         kind: "renewal",
@@ -584,7 +598,7 @@ export function computeUpcomingObligations(
   // --- document expiries ---
   for (const doc of documents) {
     if (!doc.expires_at) continue;
-    if (!withinHorizon(doc.expires_at)) continue;
+    if (!visibleExpiry(doc.expires_at)) continue;
     out.push({
       id: `doc:${doc.name}:${doc.expires_at}`,
       kind: "document_expiry",
@@ -616,6 +630,28 @@ export function crossedWindows(
 ): number[] {
   if (daysUntil < 0) return []; // overdue handled separately
   return windows.filter((w) => daysUntil <= w);
+}
+
+/**
+ * The TIGHTEST window crossed — which milestone the user is at right now.
+ *
+ * This exists because the reminder sweep did not use it, and computed the
+ * milestone as `windows.find((w) => daysLeft <= w)` instead. REMINDER_WINDOWS_PRO
+ * is declared descending, so `find` returns the FIRST match — 30 — for every
+ * distance from thirty days out to the deadline itself. The dedupe key embeds
+ * the window, so a Pro user received ONE reminder in the entire run-up to a
+ * statutory filing and nothing at 14, 7 or 1 day.
+ *
+ * The sweep's own comment said "fire once per crossed window (30/14/7/1 for
+ * Pro) ... so the same milestone never repeats", and the escalating runway is
+ * what the paid plan advertises. It did the opposite of both.
+ */
+export function tightestWindow(
+  daysUntil: number,
+  windows: readonly number[]
+): number | undefined {
+  const crossed = crossedWindows(daysUntil, windows);
+  return crossed.length > 0 ? Math.min(...crossed) : undefined;
 }
 
 /**

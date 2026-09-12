@@ -664,3 +664,71 @@ describe("more than one missed period, once the ledger knows", () => {
     expect(obs.filter((o) => o.templateId === "vat-reporting")).toEqual([]);
   });
 });
+
+/**
+ * A lapsed cover does not age out.
+ *
+ * The board keeps sixty days of history, which is right for something that
+ * recurs on a calendar: last month's VAT period stops mattering once it is
+ * filed and the next one opens. A licence, a certificate or an insurance policy
+ * is not like that. Once it expires there is no cover at all, and the exposure
+ * GROWS with every further day — so under the plain sixty-day window a policy
+ * that lapsed ten weeks ago vanished from the board entirely, and the longer
+ * someone had been uninsured the less the product said about it.
+ *
+ * Exactly the reasoning that already exempted unfiled statutory periods.
+ */
+describe("an expiry that has passed stays visible", () => {
+  const lapsedPolicy = (renewal: string) => [
+    {
+      template_id: "professional-liability-insurance",
+      status: "done",
+      is_relevant: true,
+      completion_data: { insurer: "X", renewal },
+    },
+  ];
+
+  it("keeps a policy that lapsed six months ago on the board", () => {
+    const obs = computeUpcomingObligations(
+      lapsedPolicy("2026-03-10"),
+      TEMPLATES_BY_ID,
+      [],
+      new Date("2026-09-13T09:00:00Z")
+    );
+    const renewal = obs.find((o) => o.kind === "renewal");
+    expect(renewal).toBeDefined();
+    expect(renewal!.daysUntil).toBeLessThan(-180);
+  });
+
+  it("keeps one that lapsed over a year ago, where the exposure is largest", () => {
+    const obs = computeUpcomingObligations(
+      lapsedPolicy("2025-06-01"),
+      TEMPLATES_BY_ID,
+      [],
+      new Date("2026-09-13T09:00:00Z")
+    );
+    expect(obs.some((o) => o.kind === "renewal")).toBe(true);
+  });
+
+  it("does the same for an expired document", () => {
+    const obs = computeUpcomingObligations(
+      [],
+      TEMPLATES_BY_ID,
+      [{ name: "אישור ניהול ספרים", expires_at: "2026-01-31" }],
+      new Date("2026-09-13T09:00:00Z")
+    );
+    expect(obs.some((o) => o.kind === "document_expiry")).toBe(true);
+  });
+
+  it("still drops a FUTURE date beyond the horizon", () => {
+    // The exemption is for lapsed cover only. A renewal four years out is not
+    // something to put on a board today.
+    const obs = computeUpcomingObligations(
+      lapsedPolicy("2030-01-01"),
+      TEMPLATES_BY_ID,
+      [],
+      new Date("2026-09-13T09:00:00Z")
+    );
+    expect(obs.some((o) => o.kind === "renewal")).toBe(false);
+  });
+});

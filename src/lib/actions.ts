@@ -798,12 +798,24 @@ export async function addDocument(doc: {
 
 export async function updateDocument(
   documentId: string,
-  patch: { taskId?: string | null; category?: string }
+  patch: { taskId?: string | null; category?: string; expiresAt?: string | null }
 ) {
   const { supabase } = await requireUser();
   const update: Record<string, unknown> = {};
   if ("taskId" in patch) update.task_id = patch.taskId;
   if (patch.category) update.category = patch.category;
+  // The expiry the board's document_expiry obligation is built from. It was
+  // rendered on the row, exported in the evidence pack and turned into an
+  // obligation by compliance.ts — and no input in the product could set it, so
+  // the whole branch was unreachable from shipped UI. Same defect the audit
+  // found for renewal dates.
+  if ("expiresAt" in patch) {
+    const raw = patch.expiresAt;
+    if (raw !== null && !/^\d{4}-\d{2}-\d{2}$/.test(raw ?? "")) {
+      throw new Error("תאריך לא תקין");
+    }
+    update.expires_at = raw;
+  }
   if (Object.keys(update).length === 0) return;
   const { error } = await supabase
     .from("documents")

@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { AlertTriangle, CalendarClock, Check, RefreshCw } from "lucide-react";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/actions";
 import { Card } from "@/components/ui";
-import type { AttentionItem } from "@/lib/live-attention";
+import { attentionHref, type AttentionItem } from "@/lib/live-attention";
 
 const ICONS: Record<string, React.ReactNode> = {
   overdue: <AlertTriangle className="h-5 w-5 text-status-overdue" aria-hidden />,
@@ -89,13 +89,13 @@ function Row({
     if (item.storedId && !item.readAt) onRead(item.storedId);
   };
 
-  if (item.templateId) {
+  // attentionHref, not a template id: a document expiry has no task, so it used
+  // to render as inert markup — the product told a user their אישור ניהול ספרים
+  // had expired and gave them nowhere to go.
+  const href = attentionHref(item);
+  if (href) {
     return (
-      <Link
-        href={`/tasks/${item.templateId}?from=notifications`}
-        onClick={handleRead}
-        className="block hover:bg-surface"
-      >
+      <Link href={href} onClick={handleRead} className="block hover:bg-surface">
         {inner}
       </Link>
     );

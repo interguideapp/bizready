@@ -4,11 +4,12 @@ import {
   nextStatutoryDueDate,
   REMINDER_WINDOWS_FREE,
   REMINDER_WINDOWS_PRO,
+  tightestWindow,
   type ComplianceProfile,
 } from "@/lib/compliance";
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { periodForDue } from "@/lib/filings";
-import { reopenedCycle } from "@/lib/cycles";
+import { nextCycleFor, reopenedCycle } from "@/lib/cycles";
 import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
@@ -42,6 +43,12 @@ export interface NotificationDraft {
   body: string | null;
   template_id: string;
   dedupe_key: string;
+}
+
+/** A document in the archive, for the expiry watch. */
+export interface ReminderDocument {
+  name: string;
+  expires_at: string | null;
 }
 
 export interface RecurringReset {
@@ -92,7 +99,13 @@ export function computeReminders(
   templates: Map<string, TaskTemplate>,
   today: Date = new Date(),
   isPro = false,
-  profile: ComplianceProfile = {}
+  profile: ComplianceProfile = {},
+  /**
+   * The archive, for the expiry watch. Optional so every existing caller keeps
+   * working — but a caller that omits it gets no expiry reminders, which is why
+   * the cron and loadAttention both pass it.
+   */
+  documents: ReminderDocument[] = []
 ): { notifications: NotificationDraft[]; recurringResets: RecurringReset[] } {
   // Pro gets the full escalating runway; free gets a single 7-day nudge.
   const windows = isPro ? REMINDER_WINDOWS_PRO : REMINDER_WINDOWS_FREE;
@@ -170,6 +183,40 @@ export function computeReminders(
           template_id: task.template_id,
           dedupe_key: `recurring:${task.template_id}:${cycle.dueIso}`,
         });
+        continue;
+      }
+
+      // ---------- a renewal that has NOT arrived yet ----------
+      //
+      // THE PRODUCT PROMISED THIS AND DID NOT DO IT. In its own words, on
+      // professional-liability-insurance: "המערכת תזכיר לכם לפני שהוא פג, כדי
+      // שלא יהיה אף יום בלי כיסוי" — and on buy-domain: "המערכת תזכיר לפני
+      // תאריך החידוש כדי שהדומיין לא ייחטף". The task screen says
+      // "נזכיר לכם לפני" too.
+      //
+      // Nothing sent it. The escalating windows below read task.due_date, and a
+      // renewal date lives in completion_data, so the earliest word the user
+      // ever got was on the expiry day itself — the one day the copy exists to
+      // pre-empt. A policy or a domain is exactly the case where being told
+      // afterwards is worth nothing.
+      const ahead = nextCycleFor({ task, template, today, profile });
+      if (ahead?.reason === "renewal" && !ahead.open) {
+        const daysLeft = daysBetween(ahead.dueIso, today);
+        const window = tightestWindow(daysLeft, windows);
+        if (window !== undefined) {
+          notifications.push({
+            type: "deadline",
+            title:
+              daysLeft === 0
+                ? `התוקף נגמר היום: ${template.title}`
+                : `תוקף נגמר בעוד ${daysLeft} ימים: ${template.title}`,
+            body: "לפי תאריך החידוש שרשמתם. חידוש לפני המועד מונע יום בלי כיסוי.",
+            template_id: task.template_id,
+            // Keyed on the date AND the window, like every other escalating
+            // nudge, so each milestone fires once and never repeats.
+            dedupe_key: `renewal:${task.template_id}:${ahead.dueIso}:${window}`,
+          });
+        }
       }
       continue;
     }
@@ -274,9 +321,15 @@ export function computeReminders(
           });
         }
       } else {
-        // fire once per crossed window (30/14/7/1 for Pro; just 7 for free),
+        // Fire once per crossed window (30/14/7/1 for Pro; just 7 for free),
         // deduped per window so the same milestone never repeats.
-        const window = windows.find((w) => daysLeft <= w);
+        //
+        // tightestWindow, not windows.find: the array is declared descending,
+        // so `find` returned 30 for EVERY distance inside thirty days. The key
+        // embeds the window, so a Pro user got one reminder in the whole run-up
+        // and nothing at 14, 7 or 1 day — the comment above described the
+        // intended behaviour and the code did the opposite of it.
+        const window = tightestWindow(daysLeft, windows);
         if (window !== undefined) {
           notifications.push({
             type: "deadline",
@@ -293,6 +346,46 @@ export function computeReminders(
           });
         }
       }
+    }
+  }
+
+  // ---------- documents that are about to expire ----------
+  //
+  // The obligations board has built a document_expiry obligation from
+  // documents.expires_at all along, and this sweep never looked at a document
+  // at all. So an אישור ניהול ספרים or a licence could expire with the board
+  // showing it and not one email, push or WhatsApp going out — and the archive
+  // row's own label, "בתוקף עד", implies the product is watching.
+  //
+  // Same windows as everything else, so the escalation a user learns from
+  // deadlines is the escalation they get here.
+  for (const doc of documents) {
+    if (!doc.expires_at) continue;
+    const daysLeft = daysBetween(doc.expires_at, today);
+    if (daysLeft < 0) {
+      notifications.push({
+        type: "overdue",
+        title: `פג תוקף: ${doc.name}`,
+        body: "המסמך אינו בתוקף לפי התאריך שרשמתם. כדאי לחדש ולהעלות גרסה מעודכנת.",
+        // Not a task, so there is no template to link to. The notifications
+        // list falls back to the archive for these.
+        template_id: "",
+        dedupe_key: `doc-expired:${doc.name}:${doc.expires_at}`,
+      });
+      continue;
+    }
+    const window = tightestWindow(daysLeft, windows);
+    if (window !== undefined) {
+      notifications.push({
+        type: "deadline",
+        title:
+          daysLeft === 0
+            ? `תוקף נגמר היום: ${doc.name}`
+            : `תוקף נגמר בעוד ${daysLeft} ימים: ${doc.name}`,
+        body: "לפי תאריך התפוגה שרשמתם על המסמך בארכיון.",
+        template_id: "",
+        dedupe_key: `doc-expiry:${doc.name}:${doc.expires_at}:${window}`,
+      });
     }
   }
 

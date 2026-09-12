@@ -1,10 +1,10 @@
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { getBusinessTasks, getNotifications } from "@/lib/data";
+import { getBusinessTasks, getFiledPeriods, getNotifications } from "@/lib/data";
 import { computeReminders } from "@/lib/reminders";
 import { mergeAttention, unreadCount, type AttentionItem } from "@/lib/live-attention";
 import { isPro } from "@/lib/subscription";
+import { profileOf } from "@/lib/tasks-live";
 import type { BusinessRow } from "@/lib/data";
-import type { OnboardingAnswers } from "@/lib/types";
 
 /**
  * Everything that needs attention, for a business, right now.
@@ -19,12 +19,17 @@ import type { OnboardingAnswers } from "@/lib/types";
  * query, not two.
  */
 export async function loadAttention(business: BusinessRow): Promise<AttentionItem[]> {
-  const [stored, tasks] = await Promise.all([
+  const [stored, tasks, filedPeriods] = await Promise.all([
     getNotifications(business.id),
     getBusinessTasks(business.id),
+    getFiledPeriods(business.id),
   ]);
 
-  const answers = business.onboarding_answers as OnboardingAnswers;
+  // Deliberately the STORED rows, not the cycle-projected ones from
+  // loadLiveTasks. This list is "what the sweep would have sent", so it has to
+  // be fed exactly what the sweep is fed — otherwise a newly opened reporting
+  // period, which the projection has already turned into an open task, would
+  // never produce its "תקופת דיווח חדשה" item here.
   const { notifications: drafts } = computeReminders(
     tasks.map((t) => ({
       id: t.id,
@@ -35,17 +40,15 @@ export async function loadAttention(business: BusinessRow): Promise<AttentionIte
       due_date: t.due_date,
       personal_due_date: t.personal_due_date ?? null,
       completed_at: t.completed_at,
+      completion_data: t.completion_data ?? null,
+      filed_periods: filedPeriods.get(t.template_id),
       follow_up_date: t.follow_up_date ?? null,
       waiting_for: t.waiting_for ?? null,
     })),
     TEMPLATES_BY_ID,
     new Date(),
     isPro(business),
-    {
-      entityType: business.entity_type,
-      vatFrequency: answers?.vat_frequency,
-      hasAccountant: Boolean(business.accountant_name),
-    }
+    profileOf(business)
   );
 
   return mergeAttention(stored, drafts);

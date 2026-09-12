@@ -212,6 +212,17 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
     docs_needed: ["מספר עובדים צפוי", "תיאור הפעילות"],
     est_cost: "מאות עד אלפי ₪ בשנה",
     est_time: "כמה ימים",
+    // The steps say "file the policy with its renewal date" and there was
+    // nowhere to put it, so the cycle fell back to a year after the task was
+    // ticked. A policy bought in March that expires in January then reopened
+    // in March — two months without cover, silently.
+    completion: {
+      confirm: "יש לי פוליסת חבות מעבידים בתוקף",
+      fields: [
+        { key: "insurer", label: "חברת הביטוח / הסוכן", required: true },
+        { key: "renewal", label: "תאריך חידוש הפוליסה", type: "date" },
+      ],
+    },
     recurrence: "yearly",
     applies_when: { plans_employees: true },
     depends_on: [],

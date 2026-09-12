@@ -195,6 +195,13 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     ],
     docs_needed: ["תעודות והסמכות קיימות"],
     est_time: "תלוי בתחום",
+    completion: {
+      confirm: "הרישיון או ההסמכה שלי בתוקף ומתויקים",
+      fields: [
+        { key: "authority", label: "הגוף המסמיך", placeholder: "למשל משרד הבריאות" },
+        { key: "renewal", label: "תוקף התעודה עד", type: "date" },
+      ],
+    },
     applies_when: { field: ["beauty_care", "food", "construction"] },
     depends_on: [],
     priority: "important",
@@ -472,6 +479,24 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     docs_needed: [],
     est_cost: "חינם",
     est_time: "רבע שעה",
+    // The certificate carries its own validity date, and the task had no
+    // completion spec at all — so the cycle anchored to whenever the task was
+    // ticked. Renew in November and the next reminder came the following
+    // November, eight months after the certificate lapsed at the end of March.
+    // filing-rules.ts deliberately declines to guess a calendar rule for this
+    // and points here instead.
+    completion: {
+      confirm: "הורדתי אישור בתוקף ושלחתי אותו ללקוחות העסקיים",
+      fields: [
+        { key: "rate", label: "שיעור הניכוי שנקבע לכם", placeholder: "למשל 0% / 5%" },
+        {
+          key: "renewal",
+          label: "תוקף האישור עד",
+          type: "date",
+          placeholder: "בדרך כלל סוף מרץ",
+        },
+      ],
+    },
     applies_when: { client_type: ["business", "both"] },
     depends_on: ["open-income-tax-file"],
     deadline_days: 30,

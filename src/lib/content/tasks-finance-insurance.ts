@@ -232,6 +232,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     docs_needed: [],
     est_cost: "מאות ₪ בשנה",
     est_time: "כמה ימים",
+    completion: {
+      confirm: "יש לי פוליסת צד ג׳ בתוקף",
+      fields: [
+        { key: "insurer", label: "חברת הביטוח / הסוכן", required: true },
+        { key: "renewal", label: "תאריך חידוש הפוליסה", type: "date" },
+      ],
+    },
     applies_when: { hosts_clients: true },
     depends_on: [],
     deadline_days: 30,
@@ -257,6 +264,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
     docs_needed: ["פירוט הכנסות"],
     est_cost: "לפי גיל, מקצוע והכנסה",
     est_time: "שבוע",
+    completion: {
+      confirm: "יש לי כיסוי אובדן כושר עבודה בתוקף",
+      fields: [
+        { key: "insurer", label: "חברת הביטוח / הסוכן", required: true },
+        { key: "renewal", label: "תאריך חידוש הפוליסה", type: "date" },
+      ],
+    },
     // shares mandatory-pension's scope: it is the self-employed safety net
     applies_when: { entity_type: ["osek_patur", "osek_murshe", "partnership"] },
     depends_on: ["mandatory-pension"],

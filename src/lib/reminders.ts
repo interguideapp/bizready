@@ -8,6 +8,7 @@ import {
 } from "@/lib/compliance";
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { periodForDue } from "@/lib/filings";
+import { reopenedCycle } from "@/lib/cycles";
 import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
@@ -25,6 +26,10 @@ export interface ReminderTask {
   /** The deadline the user set themselves (migration 028). */
   personal_due_date?: string | null;
   completed_at: string | null;
+  /** Evidence from the completion flow; carries the renewal date if one was given. */
+  completion_data?: Record<string, unknown> | null;
+  /** Period keys already in the filing ledger (030), for the cycle decision. */
+  filed_periods?: string[];
   follow_up_date?: string | null;
   waiting_for?: string | null;
 }
@@ -126,57 +131,44 @@ export function computeReminders(
     // No duty yet means nothing to remind about, and certainly nothing late.
     if (statutory && !prereqsMet(template)) continue;
 
-    // ---------- a completed recurring task: has the next cycle arrived? ----------
-    if (template.recurrence && task.status === "done" && task.completed_at) {
-      if (statutory) {
-        // The FILING CALENDAR decides, not "one cycle after you filed".
-        //
-        // Two defects lived here. (1) `template.recurrence` is a static string
-        // ("bimonthly" on vat-reporting and income-tax-advances) that ignores the
-        // business's actual vat_frequency — so a MONTHLY filer reopened every two
-        // months and silently skipped every other statutory deadline. (2) The
-        // trigger was completed_at + one cycle, which is structurally late for
-        // anyone who files early: filing on 20 Jan reopened on 20 Mar, five days
-        // AFTER the 15 Mar deadline.
-        //
-        // nextStatutoryDueDate is frequency-aware and always returns the next
-        // not-yet-passed deadline, so "the period I filed for is no longer the
-        // current one" is exactly the condition to reopen on.
-        const periodDue = nextStatutoryDueDate(task.template_id, today, profile);
-        // null means the obligation is demand-triggered (הצהרת הון): there is no
-        // period to roll over to, so there is nothing to reopen.
-        if (periodDue !== null && task.due_date !== periodDue) {
-          recurringResets.push({
-            taskId: task.id,
-            templateId: task.template_id,
-            newDueDate: periodDue,
-          });
-          notifications.push({
-            type: "recurring",
-            title: `תקופת דיווח חדשה: ${template.title}`,
-            body: "נפתחה תקופת דיווח חדשה. הדיווח הקודם נשמר בהיסטוריה.",
-            template_id: task.template_id,
-            dedupe_key: `recurring:${task.template_id}:${periodDue}`,
-          });
-        }
-        continue;
-      }
-
-      // A habit (bookkeeping, a yearly renewal): one cycle after it was last
-      // done is the right semantics here.
-      const trigger = addRecurrence(task.completed_at, template.recurrence);
-      if (daysBetween(trigger, today) <= 0) {
+    // ---------- a completed recurring duty: has the next cycle opened? ----------
+    //
+    // The decision used to be made here, and here only. That was the defect:
+    // this sweep was the ONLY thing in the product that could conclude a new
+    // period had opened, so with the sweep not running a filed VAT task read
+    // "בוצע" while the next deadline came and went — and the obligations board,
+    // which computes its dates independently, said the opposite about the same
+    // penalty-bearing duty.
+    //
+    // It now lives in cycles.ts, which the screens call too. One function, two
+    // callers, nothing left to disagree about. The sweep's job here is narrowed
+    // to what only it can do: persist the conclusion and send the message.
+    if (task.status === "done") {
+      const cycle = reopenedCycle({ task, template, today, profile });
+      if (cycle) {
         recurringResets.push({
           taskId: task.id,
           templateId: task.template_id,
-          newDueDate: trigger,
+          newDueDate: cycle.dueIso,
         });
         notifications.push({
           type: "recurring",
-          title: `הגיע הזמן שוב: ${template.title}`,
-          body: "משימה מחזורית חזרה — כדאי לטפל בה.",
+          title:
+            cycle.reason === "renewal"
+              ? `מועד חידוש: ${template.title}`
+              : cycle.reason === "period"
+                ? `תקופת דיווח חדשה: ${template.title}`
+                : `הגיע הזמן שוב: ${template.title}`,
+          body:
+            cycle.reason === "renewal"
+              ? "לפי תאריך החידוש שרשמתם. כדאי לחדש לפני המועד כדי לא להישאר ללא כיסוי."
+              : cycle.reason === "period"
+                ? (cycle.periodLabel
+                    ? `נפתחה תקופת הדיווח ${cycle.periodLabel}. הדיווח הקודם נשמר בהיסטוריה.`
+                    : "נפתחה תקופת דיווח חדשה. הדיווח הקודם נשמר בהיסטוריה.")
+                : "משימה מחזורית חזרה — כדאי לטפל בה.",
           template_id: task.template_id,
-          dedupe_key: `recurring:${task.template_id}:${trigger}`,
+          dedupe_key: `recurring:${task.template_id}:${cycle.dueIso}`,
         });
       }
       continue;

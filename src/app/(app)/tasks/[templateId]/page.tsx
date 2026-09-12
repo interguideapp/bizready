@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
 import { resolveArchetype } from "@/lib/content/archetypes";
 import { interpolateFigures } from "@/lib/content/figures";
@@ -11,7 +12,6 @@ import { isPro } from "@/lib/subscription";
 import { capabilitiesFor } from "@/lib/members";
 import {
   requireBusinessContext,
-  getBusinessTasks,
   getChecklistItems,
   getDocuments,
   getOffersForTemplate,
@@ -47,7 +47,7 @@ export default async function TaskDetailPage({
 
   const { business, role } = await requireBusinessContext();
   const caps = capabilitiesFor(role);
-  const tasks = await getBusinessTasks(business.id);
+  const tasks = await loadLiveTasks(business);
   const task = tasks.find((t) => t.template_id === templateId);
   if (!task) notFound();
 

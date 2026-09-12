@@ -1,4 +1,5 @@
 import { CalendarClock, ShieldCheck } from "lucide-react";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import {
   ObligationRow,
@@ -8,7 +9,7 @@ import {
 } from "@/components/calendar/sections";
 import { Card, EmptyState, FadeIn, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { requireBusinessContext, getBusinessTasks, getDocuments, getFiledPeriods } from "@/lib/data";
+import { requireBusinessContext, getDocuments, getFiledPeriods } from "@/lib/data";
 import { capabilitiesFor } from "@/lib/members";
 import {
   computeUpcomingObligations,
@@ -42,7 +43,7 @@ export default async function CalendarPage() {
   const canEdit = capabilitiesFor(role).completeTasks;
 
   const [tasks, filedPeriods, documents] = await Promise.all([
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
     getFiledPeriods(business.id),
     getDocuments(business.id),
   ]);

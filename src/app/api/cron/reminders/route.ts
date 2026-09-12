@@ -53,9 +53,26 @@ export async function GET(request: Request) {
     const { data: tasks } = await supabase
       .from("business_tasks")
       .select(
-        "id, template_id, status, is_relevant, dismissal, due_date, personal_due_date, completed_at, follow_up_date, waiting_for"
+        "id, template_id, status, is_relevant, dismissal, due_date, personal_due_date, completed_at, completion_data, follow_up_date, waiting_for"
       )
       .eq("business_id", biz.id);
+
+    // The filing ledger (030), which decides whether a reporting period has
+    // actually been filed. Without it the cycle decision falls back to the
+    // stored deadline and can only ever see one period — and worse, the sweep
+    // would then reach a different conclusion from the screens, which read the
+    // ledger. Selected here for the same reason `dismissal` is: the gate is
+    // only as good as the data handed to it.
+    const { data: filings } = await supabase
+      .from("task_filings")
+      .select("template_id, period_key")
+      .eq("business_id", biz.id);
+    const filedByTemplate = new Map<string, string[]>();
+    for (const row of filings ?? []) {
+      const list = filedByTemplate.get(row.template_id);
+      if (list) list.push(row.period_key);
+      else filedByTemplate.set(row.template_id, [row.period_key]);
+    }
 
     const isPro =
       biz.subscription_tier === "pro" &&
@@ -64,7 +81,10 @@ export async function GET(request: Request) {
       vat_frequency?: "monthly" | "bimonthly";
     };
     const { notifications, recurringResets } = computeReminders(
-      (tasks ?? []) as ReminderTask[],
+      ((tasks ?? []) as ReminderTask[]).map((t) => ({
+        ...t,
+        filed_periods: filedByTemplate.get(t.template_id),
+      })),
       TEMPLATES_BY_ID,
       today,
       isPro,

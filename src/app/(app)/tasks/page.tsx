@@ -1,4 +1,5 @@
 import { todayInIsrael } from "@/lib/dates";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { effectiveDeadline } from "@/lib/deadline-options";
 import { isStatutoryFiling } from "@/lib/compliance";
 import Link from "next/link";
@@ -8,7 +9,7 @@ import { PriorityBadge } from "@/components/badges";
 import { TaskRow } from "@/components/task-row";
 import { Card, Disclaimer, EmptyState, FadeIn, PageTitle } from "@/components/ui";
 import { CATEGORIES, CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
-import { requireBusiness, getBusinessTasks } from "@/lib/data";
+import { requireBusiness } from "@/lib/data";
 import { buildJourney, type Journey, type JourneyNode } from "@/lib/journey";
 import { taskImportance, type Stage } from "@/lib/priority";
 import { LIFE_STAGES, type BusinessTask, type Category } from "@/lib/types";
@@ -20,7 +21,7 @@ export default async function TasksPage({
 }) {
   const { category: activeCategory } = await searchParams;
   const business = await requireBusiness();
-  const tasks = await getBusinessTasks(business.id);
+  const tasks = await loadLiveTasks(business);
 
   const relevant = tasks.filter((t) => t.is_relevant);
   const byCategory = new Map<string, typeof relevant>();

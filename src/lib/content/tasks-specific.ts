@@ -169,6 +169,13 @@ export const SPECIFIC_TASKS: TaskTemplate[] = [
     docs_needed: ["פירוט סוגי העבודות"],
     est_cost: "לפי היקף הפרויקטים",
     est_time: "כמה ימים",
+    completion: {
+      confirm: "יש לי ביטוח עבודות קבלניות בתוקף והבטיחות מוסדרת",
+      fields: [
+        { key: "insurer", label: "חברת הביטוח / הסוכן", required: true },
+        { key: "renewal", label: "תאריך חידוש הפוליסה", type: "date" },
+      ],
+    },
     recurrence: "yearly",
     applies_when: { field: ["construction"] },
     depends_on: [],

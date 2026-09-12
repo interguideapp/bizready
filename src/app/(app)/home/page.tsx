@@ -1,10 +1,10 @@
 import { todayInIsrael } from "@/lib/dates";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { positionOf } from "@/lib/content/milestones";
 import {
   getContentChanges,
   requireBusiness,
-  getBusinessTasks,
   getDocuments,
   getMetrics,
   getProducts,
@@ -62,7 +62,7 @@ export default async function HomePage() {
   const business = await requireBusiness();
   const today = new Date();
   const [tasks, filedPeriods, documents, products, events, metrics, contentChanges] = await Promise.all([
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
     getFiledPeriods(business.id),
     getDocuments(business.id),
     getProducts(business.id),

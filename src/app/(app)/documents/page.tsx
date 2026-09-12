@@ -1,11 +1,11 @@
 import Link from "next/link";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { FolderOpen, Sparkles } from "lucide-react";
 import { DocumentUpload } from "@/components/document-upload";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import {
   DOCUMENTS_PAGE_SIZE,
   requireBusiness,
-  getBusinessTasks,
   getDocuments,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +27,7 @@ export default async function DocumentsPage() {
   const business = await requireBusiness();
   const [fetched, tasks] = await Promise.all([
     getDocuments(business.id),
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
   ]);
   // getDocuments fetches one past the cap so we can tell "exactly the cap" from
   // "more than the cap" and say which, rather than truncating in silence.

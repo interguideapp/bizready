@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TASK_TEMPLATES, TEMPLATES_BY_ID, CATEGORIES_BY_ID } from "@/lib/content";
 import { ARCHETYPE_BY_ID } from "@/lib/content/archetypes";
+import { filingRuleFor } from "@/lib/content/filing-rules";
 import { LEGAL_BASIS } from "@/lib/content/legal-basis";
 import { buildPlan } from "@/lib/rules-engine";
 import { ANSWER_ORDER } from "@/lib/types";
@@ -203,6 +204,26 @@ describe("content invariants", () => {
     expect(bad).toEqual([]);
   });
 
+  it("a task that tells the user it expires gives them somewhere to say when", () => {
+    // The renewal cycle is anchored to the date on the document (cycles.ts).
+    // Without a place to record it, the cycle falls back to a year after the
+    // task was ticked — so אישור ניכוי מס במקור, which the content itself says
+    // lapses at the end of March, was renewed in November and next reminded the
+    // following November: eight months uncovered, with no error anywhere.
+    //
+    // Insurance, licences and certificates are the shapes this applies to. A
+    // statutory filing is excluded: its date comes from filing-rules.ts, which
+    // is the authority, and a user-entered date must never override statute.
+    const EXPIRY_TALK = /חידוש|לפוג|פג תוקף|תוקף האישור|תוקף התעודה|מתחדש/;
+    const bad = TASK_TEMPLATES.filter((t) => {
+      if (filingRuleFor(t.id)) return false;
+      const prose = [t.after_submit ?? "", t.steps, ...(t.pitfalls ?? [])].join(" ");
+      if (!EXPIRY_TALK.test(prose)) return false;
+      return !t.completion?.fields?.some((f) => f.key === "renewal");
+    }).map((t) => t.id);
+    expect(bad).toEqual([]);
+
+  });
   it("every statute task records when it was last reviewed", () => {
     const bad = TASK_TEMPLATES
       .filter((t) => LEGAL_BASIS[t.id] === "statute")

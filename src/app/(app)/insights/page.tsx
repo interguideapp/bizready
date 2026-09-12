@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { CalendarClock, Gauge, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
@@ -10,7 +11,6 @@ import type { MonthPoint } from "@/components/revenue-chart";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
   requireBusiness,
-  getBusinessTasks,
   getCosts,
   getDocuments,
   getMetrics,
@@ -36,7 +36,7 @@ const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 export default async function InsightsPage() {
   const business = await requireBusiness();
   const [tasks, filedPeriods, documents, costs, products, events] = await Promise.all([
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
     getFiledPeriods(business.id),
     getDocuments(business.id),
     getCosts(business.id),

@@ -1,7 +1,7 @@
 import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import {
   getBusiness,
-  getBusinessTasks,
   getCosts,
   getDocuments,
   getProducts,
@@ -55,7 +55,7 @@ export async function loadPassport(): Promise<PassportData | null> {
   if (!business) return null;
 
   const [tasks, documents, costs, products, events] = await Promise.all([
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
     getDocuments(business.id),
     getCosts(business.id),
     getProducts(business.id),

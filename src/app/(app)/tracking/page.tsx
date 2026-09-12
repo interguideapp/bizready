@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import {
   CalendarClock,
   Check,
@@ -10,7 +11,7 @@ import {
 import { STATUS_LABELS } from "@/components/badges";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { requireBusiness, getBusinessTasks, getTaskEvents } from "@/lib/data";
+import { requireBusiness, getTaskEvents } from "@/lib/data";
 import type { BusinessTask, TaskStatus } from "@/lib/types";
 
 /** Board columns — everything the user is tracking, grouped by state. */
@@ -35,7 +36,7 @@ const COLUMNS: { status: TaskStatus; icon: React.ReactNode; tone: string }[] = [
 export default async function TrackingPage() {
   const business = await requireBusiness();
   const [tasks, events] = await Promise.all([
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
     getTaskEvents(business.id),
   ]);
 

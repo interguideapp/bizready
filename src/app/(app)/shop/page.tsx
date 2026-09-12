@@ -1,16 +1,17 @@
 import { Store } from "lucide-react";
+import { loadLiveTasks } from "@/lib/tasks-live";
 import { AdvertiseCard } from "@/components/advertise-card";
 import { CategoryIcon } from "@/components/category-icon";
 import { OfferCard } from "@/components/offer-card";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
-import { getActiveOffers, requireBusiness, getBusinessTasks } from "@/lib/data";
+import { getActiveOffers, requireBusiness } from "@/lib/data";
 
 export default async function ShopPage() {
   const business = await requireBusiness();
   const [offers, tasks] = await Promise.all([
     getActiveOffers(),
-    getBusinessTasks(business.id),
+    loadLiveTasks(business),
   ]);
 
   // profile filter: an offer tied to a task only shows if that task is relevant

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { outboundChannels } from "@/lib/notify/configured";
 import { redirect } from "next/navigation";
 import { Activity, Command, Inbox, PhoneCall } from "lucide-react";
 import { CATEGORIES, TASK_TEMPLATES } from "@/lib/content";
@@ -89,7 +90,11 @@ export default async function AdminPage() {
           <Activity className="h-4.5 w-4.5 text-brand-400" aria-hidden />
           עבודות מתוזמנות
         </h2>
-        <SweepHealthPanel health={sweepHealthRows} secretConfigured={cronSecretConfigured()} />
+        <SweepHealthPanel
+          health={sweepHealthRows}
+          secretConfigured={cronSecretConfigured()}
+          channels={outboundChannels()}
+        />
       </section>
 
       <section className="mb-8">

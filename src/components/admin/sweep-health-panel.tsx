@@ -1,5 +1,6 @@
 import { AlertOctagon, CheckCircle2, Clock, HelpCircle } from "lucide-react";
 import { SWEEP_SCHEDULE, sweepDetail, type SweepHealth } from "@/lib/heartbeat";
+import { anyOutboundChannel, type OutboundChannels } from "@/lib/notify/configured";
 import { RunJobButton } from "@/components/admin/run-job-button";
 
 /**
@@ -25,14 +26,26 @@ const ICON = {
 export function SweepHealthPanel({
   health,
   secretConfigured,
+  channels,
 }: {
   health: SweepHealth[];
   /** Whether CRON_SECRET exists. The value is never sent here. */
   secretConfigured: boolean;
+  /**
+   * Which outbound channels are configured. Presence only, never a key.
+   *
+   * Delivery needs TWO things and this panel reported one. An operator could
+   * set CRON_SECRET, watch the runs below start accumulating, and still send
+   * zero messages with nothing here explaining it — which is what the live
+   * database showed: a successful sweep, thirteen in-app notifications, and
+   * reminder_log completely empty.
+   */
+  channels: OutboundChannels;
 }) {
   const broken = health.filter(
     (h) => h.critical && (h.state === "stale" || h.state === "never")
   );
+  const canSend = anyOutboundChannel(channels);
 
   return (
     <div className="rounded-2xl border border-edge bg-card p-4">
@@ -49,6 +62,33 @@ export function SweepHealthPanel({
           התזמון פעיל. Vercel שולח את כותרת ההרשאה רק כשהמשתנה קיים. אחרי
           שמגדירים אותו ב-Project → Settings → Environment Variables ומפרסמים
           מחדש, השורה הזו תיעלם והעבודות למטה יתחילו להצטבר.
+        </p>
+      )}
+      {/* THE SECOND PIECE OF CONFIGURATION.
+          A schedule that fires has nowhere to send without a provider, and
+          sendEmailDigest returns "email not configured" before it attempts
+          anything — so reminder_log stays EMPTY rather than filling with
+          failures, which is the hardest possible shape to notice. Naming the
+          exact variables makes it one step instead of a hunt. */}
+      {!canSend && (
+        <p className="mb-3 rounded-xl bg-status-overdue/10 p-3 text-sm leading-relaxed text-status-overdue">
+          <b>אין ערוץ שליחה מוגדר</b>
+          {" — "}
+          גם כשהסריקה רצה בהצלחה, לא יוצאת שום הודעה: היא מסתיימת לפני הניסיון
+          ולכן <span dir="ltr">reminder_log</span> נשאר ריק ולא נרשם כישלון.
+          למייל דרושים <span dir="ltr">RESEND_API_KEY</span> ו
+          <span dir="ltr">REMINDER_FROM_EMAIL</span>; לפוש{" "}
+          <span dir="ltr">VAPID_PUBLIC_KEY</span> ו
+          <span dir="ltr">VAPID_PRIVATE_KEY</span>. עד אז ההתראות קיימות
+          באפליקציה בלבד, והמשתמשים רואים על כך הודעה מפורשת.
+        </p>
+      )}
+      {canSend && (
+        <p className="mb-3 text-xs text-ink-muted">
+          ערוצים מוגדרים:{" "}
+          {[channels.email && "מייל", channels.whatsapp && "וואטסאפ", channels.push && "פוש"]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       )}
       {secretConfigured && broken.length > 0 && (

@@ -100,7 +100,19 @@ export default async function IntegrationsPage() {
           <SafetyRow icon={<Eye className="h-4 w-4" aria-hidden />} text="קריאה בלבד — אף חיבור לא יכול להזיז כסף או לשנות נתונים" />
           <SafetyRow icon={<Lock className="h-4 w-4" aria-hidden />} text="המפתחות נשמרים מוצפנים (AES-256) ולעולם לא נחשפים בדפדפן. לא מבקשים סיסמת בנק." />
           <SafetyRow icon={<Unplug className="h-4 w-4" aria-hidden />} text="אפשר לנתק כל חיבור בלחיצה, בכל רגע" />
-          <SafetyRow icon={<BadgeCheck className="h-4 w-4" aria-hidden />} text="שקוף — תמיד רואים מה נמשך, מתי, ולמה" />
+          {/*
+            Said "תמיד רואים מה נמשך, מתי, ולמה", which promised an audit trail
+            this screen does not have: there is no view of the documents a sync
+            actually brought in, and no per-pull reason. What it really shows is
+            three other things, each of them checkable right here — the field
+            picker below, last_sync_at on every connection row, and ErrorsList.
+            Under a heading about safety, an unearned transparency claim is the
+            worst kind: it is the reason someone stops looking.
+          */}
+          <SafetyRow
+            icon={<BadgeCheck className="h-4 w-4" aria-hidden />}
+            text="שקוף — אתם בוחרים אילו שדות נמשכים, ורואים מתי סונכרן לאחרונה ומה נכשל"
+          />
         </div>
       </section>
 

@@ -26,6 +26,7 @@ import {
 } from "@/lib/content/milestones";
 import { ledgerPeriodFor } from "@/lib/filings";
 import { acceptableMarks, type CatchUpMark } from "@/lib/catch-up";
+import type { BusinessStage } from "@/lib/types";
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
@@ -1788,4 +1789,45 @@ export async function applyCatchUp(
     refused: accepted.length - done - handled,
     attempted: accepted.length,
   };
+}
+
+/**
+ * Correct just the stage answer, from a place that noticed it looks wrong.
+ *
+ * The home card asks "כבר טיפלתם בחלק מזה?" when the business is marked ACTIVE
+ * and not one task has ever been closed. That question had no "no" — so an
+ * owner who really has just started, and described themselves as active, would
+ * have been asked again on every single visit to the home screen, forever. An
+ * unanswerable question is the same defect as an alarm with no off switch, and
+ * this session removed two of those.
+ *
+ * Answering "no" is not a dismissal, it is the correction the contradiction
+ * implies: if nothing has been done, the business is not yet active. So it goes
+ * through updateAnswers rather than hiding a card — which means the plan is
+ * reconciled and, because of the re-dating rule, the recommended dates this
+ * business should have had are filled in at the same time.
+ *
+ * Delegating rather than writing the column directly: updateAnswers sanitizes,
+ * reconciles, re-dates and re-anchors the statutory deadlines. A second writer
+ * of the stage answer would drift from all four.
+ */
+export async function setBusinessStage(stage: BusinessStage): Promise<ReconcileSummary> {
+  const { supabase, user } = await requireUser();
+  // Never trust the payload: this answer gates which templates apply and
+  // whether recommended dates exist at all.
+  if (stage !== "idea" && stage !== "setting_up" && stage !== "active") {
+    throw new Error("stage לא מוכר");
+  }
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("onboarding_answers")
+    .eq("owner_id", user.id)
+    .single();
+  if (!business) redirect("/onboarding");
+
+  // Read the rest of the answers on the SERVER, so a client can change this
+  // one field and nothing else.
+  const current = (business.onboarding_answers ?? {}) as OnboardingAnswers;
+  return updateAnswers({ ...current, stage });
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CatchUpNudge } from "@/app/(app)/home/catch-up-nudge";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
   AlertTriangle,
   ArrowLeft,
-  ClipboardCheck,
   BadgeCheck,
   BatteryFull,
   CalendarClock,
@@ -392,31 +392,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
         {/* ===== statutory dates we deliberately stopped computing ===== */}
         {data.suggestCatchUp && (
           <FadeUp delay={0.1}>
-            <div className="os-card rounded-3xl border border-brand-edge p-5">
-              <div className="mb-2 flex items-center gap-2">
-                <ClipboardCheck className="h-4.5 w-4.5 text-brand-400" aria-hidden />
-                <h2 className="text-section text-ink">כבר טיפלתם בחלק מזה?</h2>
-              </div>
-              <p className="mb-3 text-sm leading-relaxed text-ink-muted">
-                {/*
-                  A question, not a statement. The product knows the business is
-                  marked active with nothing ever closed, which usually means
-                  the work happened and was never recorded — but "usually" is
-                  not "certainly", and asserting stale records to someone who
-                  genuinely just started would be false.
-                */}
-                העסק מוגדר כפעיל, ועדיין לא סומנה אף משימה כבוצעה. אם חלק מזה
-                כבר מסודר — סמנו והציון, הדדליינים וההתראות יחושבו מחדש לפי
-                המצב האמיתי.
-              </p>
-              <Link
-                href="/catch-up"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                מה כבר קיים בעסק
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-              </Link>
-            </div>
+            <CatchUpNudge />
           </FadeUp>
         )}
 

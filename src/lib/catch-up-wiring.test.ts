@@ -143,6 +143,9 @@ describe("a refused write is reported as refused", () => {
   });
 });
 
+/** Reuses the read() helper above rather than repeating the stripper. */
+const nudge = read("src/app/(app)/home/catch-up-nudge.tsx");
+
 describe("the product offers the pass instead of waiting to be found", () => {
   /**
    * Settings and /plan-ready are both places nobody returns to, so an owner who
@@ -162,9 +165,10 @@ describe("the product offers the pass instead of waiting to be found", () => {
   });
 
   it("and the card links to the questionnaire", () => {
-    const os = read("src/components/home/home-os.tsx");
-    expect(os).toContain("data.suggestCatchUp &&");
-    expect(os).toContain('href="/catch-up"');
+    // The copy lives in its own component now, and these three assertions
+    // caught that extraction — which is what they are for.
+    expect(read("src/components/home/home-os.tsx")).toContain("data.suggestCatchUp &&");
+    expect(nudge).toContain('href="/catch-up"');
   });
 
   it("phrases it as a question, not as an assertion about their records", () => {
@@ -174,16 +178,52 @@ describe("the product offers the pass instead of waiting to be found", () => {
      * records are stale would be false. Every other notice in this codebase
      * earned its wording the same way.
      */
-    const os = read("src/components/home/home-os.tsx");
-    expect(os).toContain("כבר טיפלתם בחלק מזה?");
-    expect(os).toMatch(/אם חלק מזה/);
+    expect(nudge).toContain("כבר טיפלתם בחלק מזה?");
+    expect(nudge).toMatch(/אם חלק מזה/);
     // It must not claim they HAVE done things, only ask.
-    expect(os).not.toMatch(/הרשומות שלכם לא מעודכנות|כבר עשיתם/);
+    expect(nudge).not.toMatch(/הרשומות שלכם לא מעודכנות|כבר עשיתם/);
   });
 
   it("states the ground it stands on, so the ask is checkable", () => {
     // "marked active, nothing closed" is a fact the reader can verify, which
     // is what keeps a guess from reading like a guess.
-    expect(read("src/components/home/home-os.tsx")).toMatch(/מוגדר כפעיל/);
+    expect(nudge).toMatch(/מוגדר כפעיל/);
+  });
+
+  it("offers a way to answer NO", () => {
+    /**
+     * The first version had none, so an owner who really has just started
+     * would have been asked again on every visit to the home screen, forever.
+     * An unanswerable question is an alarm with no off switch, and this
+     * session removed two of those before noticing it had built a third.
+     */
+    expect(nudge).toMatch(/לא, העסק עוד בהקמה/);
+  });
+
+  it("treats NO as a correction, not as hiding the card", () => {
+    // If nothing has been done the business is not yet active, so the answer
+    // that resolves the contradiction is the stage itself — which also fills
+    // in the recommended dates it should have had.
+    expect(nudge).toContain('setBusinessStage("setting_up")');
+  });
+
+  it("the correction reuses the recalibration path", () => {
+    // A second writer of the stage answer would drift from the sanitising,
+    // the reconcile, the re-dating and the statutory re-anchor.
+    const actions = read("src/lib/actions.ts");
+    const at = actions.indexOf("export async function setBusinessStage");
+    expect(at).toBeGreaterThan(-1);
+    const fn = actions.slice(at, at + 1200);
+    expect(fn).toContain("return updateAnswers({ ...current, stage });");
+    // And it must not trust the client with the rest of the answers.
+    expect(fn).toContain('.select("onboarding_answers")');
+  });
+
+  it("validates the stage instead of writing whatever arrives", () => {
+    const actions = read("src/lib/actions.ts");
+    const at = actions.indexOf("export async function setBusinessStage");
+    expect(actions.slice(at, at + 700)).toContain(
+      'stage !== "idea" && stage !== "setting_up" && stage !== "active"'
+    );
   });
 });

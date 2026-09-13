@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchAllPages } from "@/lib/supabase/page-all";
 import { open } from "@/lib/crypto-box";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { executeBatch } from "@/lib/integrations/execute";
@@ -31,17 +32,24 @@ export async function GET(request: Request) {
 export async function runSyncSweep(): Promise<Response> {
   const supabase = createAdminClient();
   const run = await beginCronRun(supabase, "sync");
-  const { data: connections, error } = await supabase
-    .from("integration_connections")
-    .select("*")
-    .eq("mode", "api")
-    .neq("status", "disabled");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Paged and ordered, for the same reason as the reminders fan-out: this was
+  // an unbounded select whose completeness depended on a PostgREST setting the
+  // code never states.
+  const { rows: connections, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from("integration_connections")
+      .select("*")
+      .eq("mode", "api")
+      .neq("status", "disabled")
+      .order("id")
+      .range(from, to)
+  );
+  if (error) return NextResponse.json({ error }, { status: 500 });
 
   let synced = 0;
   let failed = 0;
 
-  for (const connection of connections ?? []) {
+  for (const connection of connections) {
     const adapter = PROVIDERS_BY_ID.get(connection.provider);
     if (!adapter?.pull) continue;
     try {

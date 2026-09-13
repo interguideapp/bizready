@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchAllPages } from "@/lib/supabase/page-all";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import {
@@ -46,15 +47,37 @@ export async function runRemindersSweep(): Promise<Response> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://bizready.app";
   const today = new Date();
 
-  const { data: businesses, error } = await supabase
-    .from("businesses")
-    .select(
-      "id, owner_id, name, entity_type, onboarding_answers, notify_email, notify_whatsapp, whatsapp_phone, notify_push, subscription_tier, subscription_until"
-    )
-    .not("onboarding_completed_at", "is", null);
-  if (error) {
-    await endCronRun(supabase, run, false, { error: error.message });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Paged, and ORDERED so the pages cannot overlap or skip.
+  //
+  // This was one unbounded select. PostgREST caps a response at its configured
+  // max-rows — a value that lives in a dashboard setting this code never
+  // states and cannot read — so past that cap the sweep processed a subset,
+  // reported it as the whole set, and without an ORDER BY would not even have
+  // processed the same subset twice. In the one job whose silence costs a user
+  // money. Two onboarded businesses today, so nothing was broken; this removes
+  // the dependency rather than waiting to discover the number.
+  const {
+    rows: businesses,
+    error: pageError,
+    pages,
+  } = await fetchAllPages((from, to) =>
+    supabase
+      .from("businesses")
+      .select(
+        "id, owner_id, name, entity_type, onboarding_answers, notify_email, notify_whatsapp, whatsapp_phone, notify_push, subscription_tier, subscription_until"
+      )
+      .not("onboarding_completed_at", "is", null)
+      .order("id")
+      .range(from, to)
+  );
+  if (pageError) {
+    // A partial read is not a success. Recorded as a failure so the heartbeat
+    // says so and jobsDue keeps the job due.
+    await endCronRun(supabase, run, false, {
+      error: pageError,
+      businessesRead: businesses.length,
+    });
+    return NextResponse.json({ error: pageError }, { status: 500 });
   }
 
   let notificationsCreated = 0;
@@ -63,7 +86,7 @@ export async function runRemindersSweep(): Promise<Response> {
   let whatsappSent = 0;
   let pushSent = 0;
 
-  for (const biz of businesses ?? []) {
+  for (const biz of businesses) {
     const { data: tasks } = await supabase
       .from("business_tasks")
       .select(
@@ -215,7 +238,10 @@ export async function runRemindersSweep(): Promise<Response> {
 
   const summary = {
     ok: true,
-    businesses: businesses?.length ?? 0,
+    businesses: businesses.length,
+    // In the summary so a future truncation is visible in cron_runs rather
+    // than only in its absence.
+    pages,
     notificationsCreated,
     recurringReset,
     emailsSent,

@@ -5,6 +5,7 @@ import { loadLiveTasks } from "@/lib/tasks-live";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import {
   ObligationRow,
+  hiddenObligationsText,
   LapsedSection,
   OverdueSection,
   PendingFilingsSection,
@@ -232,7 +233,7 @@ export default async function CalendarPage() {
           {hiddenCount > 0 && (
             <Card className="mt-4 p-5 text-center">
               <p className="text-sm font-semibold text-ink">
-                עוד {hiddenCount} חובות ב-{hiddenMonthCount} החודשים הבאים
+                {hiddenObligationsText(hiddenCount, hiddenMonthCount)}
               </p>
               <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-ink-muted">
                 התכנית החינמית מציגה את החודש הקרוב. עם Pro רואים את כל הלוח

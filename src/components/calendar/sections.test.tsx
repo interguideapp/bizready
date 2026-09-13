@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Obligation } from "@/lib/compliance";
 import {
+  hiddenObligationsText,
   LapsedSection,
   ObligationRow,
   OverdueSection,
@@ -295,5 +296,44 @@ describe("a past-due row is worded and coloured by what it actually is", () => {
     unmount();
     render(<ObligationRow ob={policy({ daysUntil: -66 })} />);
     expect(screen.getByText("פג לפני כחודשיים")).toBeDefined();
+  });
+});
+
+/**
+ * The paywall count, in Hebrew that survives one.
+ *
+ * The copy interpolated both numbers straight into plural nouns, so one hidden
+ * obligation in one hidden month read "עוד 1 חובות ב-1 החודשים הבאים". Both
+ * are reachable — a free plan sees the nearest month, so a business with two
+ * months of obligations hides exactly one. Same dual problem as the lateness
+ * vocabulary, in a different pair of nouns, which is why it survived that
+ * sweep.
+ */
+describe("what the free plan is not showing", () => {
+  it("uses the singular for one obligation", () => {
+    expect(hiddenObligationsText(1, 3)).toContain("עוד חובה אחת");
+    expect(hiddenObligationsText(1, 3)).not.toContain("1 חובות");
+  });
+
+  it("uses the singular month rather than 'ב-1 החודשים'", () => {
+    expect(hiddenObligationsText(4, 1)).toContain("בחודש הבא");
+    expect(hiddenObligationsText(4, 1)).not.toContain("ב-1");
+  });
+
+  it("uses the Hebrew dual for two months", () => {
+    expect(hiddenObligationsText(4, 2)).toContain("בחודשיים הבאים");
+  });
+
+  it("counts plainly from three months up", () => {
+    expect(hiddenObligationsText(9, 5)).toBe("עוד 9 חובות ב-5 החודשים הבאים");
+  });
+
+  it("never pairs a numeral 1 or 2 with a plural noun, at any combination", () => {
+    for (let c = 1; c <= 40; c++) {
+      for (let m = 1; m <= 14; m++) {
+        const text = hiddenObligationsText(c, m);
+        expect(text, `${c}/${m}`).not.toMatch(/\b1 חובות|ב-1 |ב-2 /);
+      }
+    }
   });
 });

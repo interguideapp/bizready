@@ -243,6 +243,34 @@ export function LapsedSection({ lapsed }: { lapsed: Obligation[] }) {
   );
 }
 
+/**
+ * What the free plan is not showing, counted honestly.
+ *
+ * The obligations behind this were never serialised (the paywall is decided on
+ * the server), so there is nothing here to un-blur — saying how many and when
+ * is the honest amount to give away.
+ *
+ * Extracted because the copy interpolated both counts straight into plural
+ * nouns: with one hidden obligation in one hidden month it read "עוד 1 חובות
+ * ב-1 החודשים הבאים", and both of those are reachable. Same dual problem as
+ * the lateness vocabulary, in a different pair of nouns, which is why it
+ * survived that sweep.
+ */
+export function hiddenObligationsText(
+  hiddenCount: number,
+  hiddenMonthCount: number
+): string {
+  const what =
+    hiddenCount === 1 ? "עוד חובה אחת" : `עוד ${hiddenCount} חובות`;
+  const when =
+    hiddenMonthCount <= 1
+      ? "בחודש הבא"
+      : hiddenMonthCount === 2
+        ? "בחודשיים הבאים"
+        : `ב-${hiddenMonthCount} החודשים הבאים`;
+  return `${what} ${when}`;
+}
+
 export interface PendingFilingView {
   templateId: string;
   title: string;

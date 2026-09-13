@@ -210,24 +210,26 @@ export async function runRemindersSweep(): Promise<Response> {
         appUrl,
       };
 
-      // email
-      if (biz.notify_email && emailConfigured() && !(await alreadySent(supabase, biz.id, "email", digestKey))) {
+      // email — claimed before sending, released if the send fails
+      if (
+        biz.notify_email &&
+        emailConfigured() &&
+        (await claimSend(supabase, biz.id, "email", digestKey))
+      ) {
         const { data: userRes } = await supabase.auth.admin.getUserById(biz.owner_id);
         const email = userRes?.user?.email;
-        if (email) {
-          const res = await sendEmailDigest(email, digest);
-          if (res.ok) {
-            await logSent(supabase, biz.id, "email", digestKey);
-            emailsSent++;
-          }
-        }
+        const res = email ? await sendEmailDigest(email, digest) : { ok: false };
+        if (res.ok) emailsSent++;
+        // No address on the account is not a delivered message either, so the
+        // claim goes back and a later sweep can try again.
+        else await releaseSend(supabase, biz.id, "email", digestKey);
       }
 
       // push — one message per registered device
       if (
         biz.notify_push &&
         pushConfigured() &&
-        !(await alreadySent(supabase, biz.id, "push", digestKey))
+        (await claimSend(supabase, biz.id, "push", digestKey))
       ) {
         const { data: subs } = await supabase
           .from("push_subscriptions")
@@ -253,10 +255,10 @@ export async function runRemindersSweep(): Promise<Response> {
               .eq("endpoint", sub.endpoint);
           }
         }
-        if (anyDelivered) {
-          await logSent(supabase, biz.id, "push", digestKey);
-          pushSent++;
-        }
+        if (anyDelivered) pushSent++;
+        // Every device gone or erroring is not a delivered push, so the claim
+        // goes back rather than marking the day done.
+        else await releaseSend(supabase, biz.id, "push", digestKey);
       }
 
       // whatsapp
@@ -264,13 +266,13 @@ export async function runRemindersSweep(): Promise<Response> {
         biz.notify_whatsapp &&
         biz.whatsapp_phone &&
         whatsappConfigured() &&
-        !(await alreadySent(supabase, biz.id, "whatsapp", digestKey))
+        (await claimSend(supabase, biz.id, "whatsapp", digestKey))
       ) {
         const res = await sendWhatsappDigest(biz.whatsapp_phone, digest);
-        if (res.ok) {
-          await logSent(supabase, biz.id, "whatsapp", digestKey);
-          whatsappSent++;
-        }
+        if (res.ok) whatsappSent++;
+        // Billed per message, so this is the channel where a duplicate costs
+        // real money and the claim-first order matters most.
+        else await releaseSend(supabase, biz.id, "whatsapp", digestKey);
       }
     } catch (e) {
       // Counted and named, never swallowed: a tenant whose reminders fail
@@ -310,23 +312,50 @@ export async function runRemindersSweep(): Promise<Response> {
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-async function alreadySent(
+/**
+ * Claim the right to send, atomically, before sending.
+ *
+ * This replaces a check-then-send pair that failed open in both directions.
+ * alreadySent discarded the query's error, so a database hiccup read as "not
+ * sent yet" and the digest went out again; logSent never checked its insert,
+ * so a failed write left a delivered message unrecorded and the next sweep
+ * sent it a second time. Two concurrent sweeps could also both read "not
+ * sent" and both send.
+ *
+ * That mattered much more after two changes made earlier today. The lazy sweep
+ * now runs whenever reminders are DUE rather than waiting for stale, and a run
+ * where every tenant failed is now recorded as failed — which correctly leaves
+ * the job due, so it retries hourly. Each retry was another chance to
+ * duplicate, and WhatsApp is billed per message.
+ *
+ * reminder_log carries UNIQUE (business_id, channel, dedupe_key), so the insert
+ * IS the lock: whoever lands the row owns the send, and everyone else is told
+ * no. Failing to claim — for any reason, including an error — means not
+ * sending, which is the safe direction: the in-app alert is derived on every
+ * page load and cannot fail, so a skipped digest costs a nudge and never the
+ * information itself.
+ */
+async function claimSend(
   supabase: Admin,
   businessId: string,
   channel: string,
   dedupeKey: string
 ): Promise<boolean> {
-  const { data } = await supabase
+  const { error } = await supabase
     .from("reminder_log")
-    .select("id")
-    .eq("business_id", businessId)
-    .eq("channel", channel)
-    .eq("dedupe_key", dedupeKey)
-    .maybeSingle();
-  return Boolean(data);
+    .insert({ business_id: businessId, channel, dedupe_key: dedupeKey });
+  return !error;
 }
 
-async function logSent(
+/**
+ * Give the claim back when the send itself failed.
+ *
+ * Without this, claiming first would turn a transient provider error into a
+ * silently skipped day — the opposite failure, and the one this product cares
+ * about more. A crash between the claim and the release still leaves the row,
+ * which errs toward not duplicating, and costs one nudge.
+ */
+async function releaseSend(
   supabase: Admin,
   businessId: string,
   channel: string,
@@ -334,5 +363,8 @@ async function logSent(
 ): Promise<void> {
   await supabase
     .from("reminder_log")
-    .insert({ business_id: businessId, channel, dedupe_key: dedupeKey });
+    .delete()
+    .eq("business_id", businessId)
+    .eq("channel", channel)
+    .eq("dedupe_key", dedupeKey);
 }

@@ -4,7 +4,6 @@ import {
   computeUpcomingObligations,
   crossedWindows,
   nextFilingPeriod,
-  recommendedDeadline,
   isStatutoryFiling,
   filingsBlockedByDismissal,
   filingsAwaitingPrerequisite,
@@ -146,17 +145,15 @@ describe("nextFilingPeriod", () => {
   });
 });
 
-describe("recommendedDeadline", () => {
-  it("anchors a one-off recommendation to the registration date", () => {
-    const t = TEMPLATES_BY_ID.get("open-income-tax-file")!; // deadline_days 7
-    expect(recommendedDeadline(t, "2026-07-01")).toBe("2026-07-08");
-  });
-
-  it("never produces a recommended date for a statutory filing", () => {
-    const t = TEMPLATES_BY_ID.get("vat-reporting")!;
-    expect(recommendedDeadline(t, "2026-07-01")).toBeNull();
-  });
-});
+/*
+ * The recommendedDeadline cases used to sit here.
+ *
+ * The function is gone: it was exported, tested and called by nothing, and the
+ * only date available to anchor it to is businesses.started_at, which is the
+ * signup day rather than the business's start. What B5 actually ships — an
+ * already-active business gets NO invented date for a non-statutory task — is
+ * asserted where it happens, in rules-engine.test.ts, across all three stages.
+ */
 
 describe("isStatutoryFiling", () => {
   it("marks the three penalty-bearing filings, nothing else", () => {

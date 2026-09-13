@@ -338,23 +338,22 @@ export function nextStatutoryDueDate(
 
 // ---------- recommended (non-statutory) deadlines ----------
 
-/**
- * One-off setup tasks (open your files, get insurance, …) have NO statutory
- * date. We anchor a *recommendation* to when the business started — honest
- * framing the user asked for: a suggestion, never a red "overdue".
+/*
+ * recommendedDeadline lived here: template.deadline_days added to a
+ * registration date, for the setup tasks that have no statutory date.
+ *
+ * It was exported and unit-tested and called by nothing, which is the worst
+ * state for a dated function to be in — it looks alive. B5 was fixed a
+ * different way: buildPlan now gives an already-active business NO date for a
+ * non-statutory task, because inventing "מומלץ עד <signup + 30>" for work done
+ * years ago is fiction that teaches people to distrust the real dates.
+ *
+ * Deleted rather than wired, because the only date available to wire it to is
+ * businesses.started_at, and that column is set to todayInIsrael() at signup.
+ * It is when the user joined BizReady, not when the business started — nothing
+ * in onboarding asks for the latter. Wiring this would have reproduced exactly
+ * the fiction B5 removed, and the tests would have gone green.
  */
-export function recommendedDeadline(
-  template: TaskTemplate,
-  registrationDate: string | null
-): string | null {
-  if (template.deadline_days == null) return null;
-  if (isStatutoryFiling(template.id)) return null;
-  const base = registrationDate
-    ? new Date(registrationDate + "T00:00:00Z")
-    : new Date();
-  base.setUTCDate(base.getUTCDate() + template.deadline_days);
-  return iso(base);
-}
 
 /**
  * One occurrence of a declared filing rule: the date, the period it covers, and

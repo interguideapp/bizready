@@ -326,15 +326,20 @@ export async function getNotifications(
   return (critical("את ההתראות", data, error) ?? []) as NotificationRow[];
 }
 
-export async function getUnreadCount(businessId: string): Promise<number> {
-  const supabase = await createClient();
-  const { count, error } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", businessId)
-    .is("read_at", null);
-  return optional("מונה ההתראות", count, error, 0);
-}
+/*
+ * getUnreadCount used to live here, and the dock badge used to call it.
+ *
+ * It counted unread rows in the notifications table, which is not what the
+ * badge means: the table only holds what the sweep managed to WRITE, and the
+ * attention list is derived on every page load from the obligations themselves.
+ * So a business with an overdue filing and no delivered notification showed a
+ * badge of zero. loadAttentionCount replaced it and the layout says so.
+ *
+ * Removed rather than left: it is the more obvious-looking of the two, and the
+ * next person to want "how many alerts" would reach for it and quietly
+ * reintroduce the undercount on the one surface whose job is that nothing gets
+ * missed.
+ */
 
 export interface OfferRow {
   id: string;

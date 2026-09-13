@@ -107,7 +107,19 @@ export async function GET(request: Request) {
       vat_file: business.vat_file,
       income_tax_file: business.income_tax_file,
       bituach_leumi_file: business.bituach_leumi_file,
-      started_at: business.started_at,
+      /*
+       * NOT the date the business started, and it used to be emitted as
+       * "started_at" beside the dealer and file numbers, where it reads as
+       * exactly that. businesses.started_at is set to todayInIsrael() when
+       * onboarding completes — the day the owner joined BizReady. Nothing in
+       * onboarding asks when the business actually started.
+       *
+       * This document's own disclaimer says it "מתעד פעולות שבוצעו במערכת", so
+       * the honest field is how far back that record goes. A wrong business
+       * start date in an evidence pack is the kind of error that discredits
+       * every true line next to it.
+       */
+      tracking_since: business.started_at,
     },
 
     integrity: {

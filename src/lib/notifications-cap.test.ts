@@ -19,7 +19,7 @@ import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/data";
 const src = readFileSync(join(process.cwd(), "src/lib/data.ts"), "utf8");
 const query = src.slice(
   src.indexOf("export async function getNotifications"),
-  src.indexOf("export async function getUnreadCount")
+  src.indexOf("export interface OfferRow")
 );
 
 describe("an unread alert can never be the row that is cut", () => {

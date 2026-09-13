@@ -5,6 +5,7 @@ import {
   announcedDateFor,
   filingRuleFor,
   nextAnnouncedFiling,
+  type DateRule,
   type FilingRule,
 } from "@/lib/content/filing-rules";
 import {
@@ -253,6 +254,56 @@ export function nextMonthlyDue(
  * the user tells us when the demand arrived, and returning a guess would be the
  * fabricated-deadline bug in a new costume.
  */
+/**
+ * When an annual filing is due, and which tax year it covers.
+ *
+ * ONE implementation, because there were two. nextStatutoryDueDate (which the
+ * reminder sweep uses) and occurrenceFor (which the obligations board uses)
+ * each derived this independently — the statutory calendar date, the
+ * registrar-fee-versus-return year offset, the published-date lookup, the
+ * announcedOnly refusal — and a comment in one of them asserted that they
+ * "can never disagree about one filing".
+ *
+ * They did agree, byte for byte, because someone duplicated it carefully. That
+ * is the same shape as the five other duplications this pass consolidated: the
+ * lateness vocabulary in six places, the ceiling boundary in two, the
+ * connection lifecycle in two. Every one of them was written correct and drifted
+ * later. A claim that two copies cannot diverge is not worth making while there
+ * are two copies.
+ *
+ * Returns null when the authority has not published a date for a filing that
+ * only exists once published — inventing one on the largest penalty exposure in
+ * the product is worse than admitting we do not have it.
+ */
+export function annualOccurrence(
+  entry: { kind: ObligationKind; rule: Extract<DateRule, { anchor: "annual" }> },
+  today: Date
+): { dueIso: string; coveredYear: number; announced: boolean } | null {
+  const statutoryIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
+  // A registrar fee is FOR the year it falls in; a return is for the year that
+  // just ended.
+  const forYear =
+    entry.kind === "registrar_fee"
+      ? Number(statutoryIso.slice(0, 4))
+      : Number(statutoryIso.slice(0, 4)) - 1;
+
+  // Where the authority publishes the date per tax year, that date wins. Read
+  // from the published map rather than derived from the calendar: the statutory
+  // base rolls forward once it passes, which shifts the derived year by one, so
+  // on 1 May 2026 a calendar derivation lands on tax year 2026 when the return
+  // actually open is 2025.
+  const published = nextAnnouncedFiling(entry.rule, iso(today));
+  const announced = published?.dueIso ?? announcedDateFor(entry.rule, forYear);
+
+  if (!announced && entry.rule.announcedOnly) return null;
+
+  return {
+    dueIso: announced ?? statutoryIso,
+    coveredYear: published?.taxYear ?? forYear,
+    announced: Boolean(announced),
+  };
+}
+
 export function nextStatutoryDueDate(
   templateId: string,
   today: Date,
@@ -265,19 +316,10 @@ export function nextStatutoryDueDate(
       return nextFilingPeriod(today, reportingFrequency(profile)).dueIso;
     case "monthly":
       return nextMonthlyDue(today, entry.rule.day).dueIso;
-    case "annual": {
-      const statutoryIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
-      const forYear =
-        entry.kind === "registrar_fee"
-          ? Number(statutoryIso.slice(0, 4))
-          : Number(statutoryIso.slice(0, 4)) - 1;
-      const published = nextAnnouncedFiling(entry.rule, iso(today));
-      const announced = published?.dueIso ?? announcedDateFor(entry.rule, forYear);
-      // Same precedence as occurrenceFor, so the reminder sweep and the
-      // calendar can never disagree about one filing.
-      if (!announced && entry.rule.announcedOnly) return null;
-      return announced ?? statutoryIso;
-    }
+    case "annual":
+      // Shared with occurrenceFor, so the sweep and the board cannot disagree
+      // about one filing — rather than being asserted not to.
+      return annualOccurrence({ kind: entry.kind, rule: entry.rule }, today)?.dueIso ?? null;
     case "on_demand":
       return null;
   }
@@ -347,32 +389,18 @@ function occurrenceFor(
       };
     }
     case "annual": {
-      const statutoryIso = nextAnnualDate(today, entry.rule.month, entry.rule.day);
-      // A registrar fee is FOR the year it falls in; a return is for the year
-      // that just ended.
-      const forYear =
-        entry.kind === "registrar_fee"
-          ? Number(statutoryIso.slice(0, 4))
-          : Number(statutoryIso.slice(0, 4)) - 1;
-
-      // Where the authority publishes the date per tax year, that date wins.
-      // Read from the published map rather than derived from the calendar: the
-      // statutory base rolls forward once it passes, which shifts the derived
-      // year by one, so on 1 May 2026 a calendar derivation lands on tax year
-      // 2026 when the return actually open is 2025.
-      const published = nextAnnouncedFiling(entry.rule, iso(today));
-      const announced = published?.dueIso ?? announcedDateFor(entry.rule, forYear);
-
-      if (!announced && entry.rule.announcedOnly) {
-        // No published date for this year, and no honest way to derive one.
-        // Returning null means the task explains the rule and shows no
-        // deadline — an invented date on the largest penalty exposure in the
-        // product is worse than admitting we do not have it yet.
+      // The SAME decision the reminder sweep makes, from the same function.
+      // Both branches used to derive it independently, correctly, with a
+      // comment asserting they could never disagree.
+      const occurrence = annualOccurrence({ kind: entry.kind, rule: entry.rule }, today);
+      if (!occurrence) {
+        // The authority has not published a date for a filing that only exists
+        // once published. The task explains the rule and shows no deadline — an
+        // invented date on the largest penalty exposure in the product is worse
+        // than admitting we do not have it yet.
         return null;
       }
-
-      const dueIso = announced ?? statutoryIso;
-      const coveredYear = published?.taxYear ?? forYear;
+      const { dueIso, coveredYear, announced } = occurrence;
 
       // The annual tax return is the one place a real, widely-used extension
       // exists, and it depends on being represented. Say that instead of

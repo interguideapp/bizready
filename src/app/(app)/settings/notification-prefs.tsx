@@ -7,11 +7,14 @@ import { PushToggle } from "@/components/push-toggle";
 import { Card } from "@/components/ui";
 
 export function NotificationPrefs({
+  deliveryDown = false,
   notifyEmail,
   notifyWhatsapp,
   whatsappPhone,
   vapidPublicKey,
 }: {
+  /** Whether the sending pipeline is currently down (lib/delivery.ts). */
+  deliveryDown?: boolean;
   notifyEmail: boolean;
   notifyWhatsapp: boolean;
   whatsappPhone: string | null;
@@ -46,6 +49,21 @@ export function NotificationPrefs({
       <p className="mb-4 text-sm text-ink-muted">
         נשלח לך סיכום כשמתקרב דדליין, משימה באיחור או משימה מחזורית חוזרת
       </p>
+
+      {/* THE SCREEN WHERE SOMEONE DECIDES TO RELY ON EMAIL.
+          The product makes six "נזכיר לכם" promises in various places, and most
+          are satisfied by the in-app alert, which is derived and cannot fail.
+          This one is different: ticking these boxes is the moment a person
+          stops checking and starts trusting a channel. Promising a summary
+          while the sending pipeline is down is the one version of that promise
+          that actually costs them a deadline. */}
+      {deliveryDown && (
+        <p className="mb-4 rounded-xl border border-status-progress/30 bg-status-progress-bg/40 p-3 text-xs leading-relaxed text-ink-soft">
+          <b className="text-ink">כרגע השליחה האוטומטית לא עובדת</b> — אפשר
+          להפעיל את ההעדפות כאן, אבל עד שהיא תחזור לא יצאו מיילים או פוש. מה
+          שדורש תשומת לב מופיע בכל מקרה בהתראות ובלוח החובות בכל כניסה.
+        </p>
+      )}
 
       <label className="flex cursor-pointer items-center justify-between rounded-xl border border-edge-soft px-4 py-3">
         <span className="text-sm font-medium text-ink-soft">תזכורות במייל</span>

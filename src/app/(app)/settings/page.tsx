@@ -4,6 +4,7 @@ import { UpgradeCta } from "@/components/upgrade-cta";
 import { PageTitle } from "@/components/ui";
 import { getMembers, isAdmin, requireBusinessContext } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
 import { isPro } from "@/lib/subscription";
 import { capabilitiesFor } from "@/lib/members";
 import type { OnboardingAnswers } from "@/lib/types";
@@ -41,6 +42,7 @@ export default async function SettingsPage() {
       </div>
       <div className="mb-5">
         <NotificationPrefs
+          deliveryDown={deliveryIsDown(await loadDeliveryHealth())}
           notifyEmail={business.notify_email}
           notifyWhatsapp={business.notify_whatsapp}
           whatsappPhone={business.whatsapp_phone}

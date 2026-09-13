@@ -5,9 +5,15 @@ import {
   getDocuments,
   getFiledPeriods,
   getNotifications,
+  getOpenSyncErrors,
 } from "@/lib/data";
 import { computeReminders } from "@/lib/reminders";
-import { mergeAttention, unreadCount, type AttentionItem } from "@/lib/live-attention";
+import {
+  mergeAttention,
+  syncErrorDrafts,
+  unreadCount,
+  type AttentionItem,
+} from "@/lib/live-attention";
 import { isPro } from "@/lib/subscription";
 import { profileOf } from "@/lib/tasks-live";
 import type { BusinessRow } from "@/lib/data";
@@ -39,11 +45,12 @@ export async function loadAttention(business: BusinessRow): Promise<AttentionIte
 export async function loadAttentionPage(
   business: BusinessRow
 ): Promise<{ items: AttentionItem[]; truncated: boolean }> {
-  const [storedRaw, tasks, filedPeriods, documents] = await Promise.all([
+  const [storedRaw, tasks, filedPeriods, documents, syncErrors] = await Promise.all([
     getNotifications(business.id),
     getBusinessTasks(business.id),
     getFiledPeriods(business.id),
     getDocuments(business.id),
+    getOpenSyncErrors(business.id),
   ]);
 
   const truncated = storedRaw.length > NOTIFICATIONS_PAGE_SIZE;
@@ -76,7 +83,10 @@ export async function loadAttentionPage(
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at }))
   );
 
-  return { items: mergeAttention(stored, drafts), truncated };
+  return {
+    items: mergeAttention(stored, [...drafts, ...syncErrorDrafts(syncErrors)]),
+    truncated,
+  };
 }
 
 /** What the dock badge should show. */

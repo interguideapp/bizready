@@ -70,6 +70,9 @@ export function attentionHref(item: {
   dedupeKey: string | null;
 }): string | null {
   if (item.templateId) return `/tasks/${item.templateId}?from=notifications`;
+  // A broken sync is fixed on the connection screen, which is also the only
+  // place these errors were ever shown.
+  if (item.dedupeKey?.startsWith("sync:")) return "/integrations";
   // Matched on the dedupe key, not on `key`: a stored row is keyed by its
   // database id, so only a derived item would ever have matched otherwise —
   // and the stored ones are exactly the notifications the cron emailed.
@@ -77,6 +80,48 @@ export function attentionHref(item: {
     return "/documents";
   }
   return null;
+}
+
+/**
+ * Open sync failures, as attention items.
+ *
+ * TYPE_RANK has ranked a "sync" type since this file was written and NOTHING
+ * ever produced one. A failed invoicing sync was recorded in sync_errors and
+ * rendered on /integrations only — so a user who never opened that screen
+ * never learned their sync was broken.
+ *
+ * That is worse than a missing convenience. The revenue figure this sync
+ * maintains is what the עוסק-פטור ceiling is measured against, so a silently
+ * stale figure can HIDE a real breach — the product would be quietly
+ * comparing a legal threshold against numbers that stopped updating.
+ *
+ * Derived rather than notified, like the rest of this surface: no cron has to
+ * run for the user to find out.
+ */
+export function syncErrorDrafts(
+  errors: { id: string; message: string; occurred_at: string }[]
+): NotificationDraft[] {
+  if (errors.length === 0) return [];
+  // One item however many errors there are. Five failures of the same broken
+  // connection are one problem, and five rows would bury the deadlines this
+  // list exists for.
+  const newest = errors[0];
+  return [
+    {
+      type: "sync",
+      title:
+        errors.length === 1
+          ? "הסנכרון מתוכנת החשבוניות נכשל"
+          : `הסנכרון מתוכנת החשבוניות נכשל (${errors.length} שגיאות פתוחות)`,
+      body:
+        "המחזור שמוצג עלול להיות לא מעודכן — וגם בדיקת תקרת עוסק פטור מסתמכת עליו. " +
+        "כדאי לבדוק את החיבור.",
+      template_id: "",
+      // Keyed on the newest occurrence, so a new failure speaks again and a
+      // standing one does not repeat every day.
+      dedupe_key: `sync:${newest.occurred_at}`,
+    },
+  ];
 }
 
 /** Urgency first, then recency. Overdue outranks everything. */

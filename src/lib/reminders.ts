@@ -36,7 +36,13 @@ export interface ReminderTask {
   waiting_for?: string | null;
 }
 
-export type NotificationType = "deadline" | "overdue" | "recurring";
+/**
+ * "sync" is produced by live-attention rather than by this sweep: a failed
+ * invoicing sync is derived from sync_errors on page load, so the user finds
+ * out without waiting for a cron. live-attention's TYPE_RANK has ranked it
+ * since it was written, and nothing had ever produced one.
+ */
+export type NotificationType = "deadline" | "overdue" | "recurring" | "sync";
 
 export interface NotificationDraft {
   type: NotificationType;

@@ -1,3 +1,4 @@
+import { todayInIsrael } from "@/lib/dates";
 import { NextResponse } from "next/server";
 import { fanOutSucceeded } from "@/lib/cron/outcome";
 import { fetchAllPages } from "@/lib/supabase/page-all";
@@ -186,7 +187,23 @@ export async function runRemindersSweep(): Promise<Response> {
       );
       if (urgent.length === 0) continue;
 
-      const digestKey = `digest:${today.toISOString().slice(0, 10)}`;
+      /*
+       * Keyed on the ISRAELI day, not the UTC one.
+       *
+       * This was today.toISOString().slice(0, 10) — the A10 pattern this
+       * product replaced everywhere else. Israel is UTC+2/+3, so between local
+       * midnight and 02:00/03:00 the UTC date is still YESTERDAY, and the key
+       * was therefore yesterday's. alreadySent then found yesterday's digest
+       * and skipped, which is right for the row it found and wrong for the day
+       * it was in.
+       *
+       * With the lazy sweep as the trigger that can cost a whole day: if the
+       * only visit on a given day falls in that window, the key resolves to
+       * the previous day, the send is skipped as a duplicate, and nobody gets
+       * a digest at all. The engine already reasons in Israeli days; this is
+       * the one place the bookkeeping did not.
+       */
+      const digestKey = `digest:${todayInIsrael(today)}`;
       const digest: OutboundDigest = {
         businessName: biz.name,
         items: urgent.map((n) => ({ title: n.title, body: n.body })),

@@ -1,3 +1,4 @@
+import { todayInIsrael } from "@/lib/dates";
 import type {
   NormalizedBatch,
   NormalizedContact,
@@ -105,7 +106,7 @@ export function parseWebhookPayload(raw: unknown): ParseResult {
           kind: "receipt",
           amount,
           currency: str(data.currency) ?? "ILS",
-          issued_at: isoDate(data.date) ?? new Date().toISOString().slice(0, 10),
+          issued_at: isoDate(data.date) ?? todayInIsrael(),
           customer_name: str(data.customer_name),
           status: event === "payment.failed" ? "failed" : "paid",
         });
@@ -126,7 +127,7 @@ export function parseWebhookPayload(raw: unknown): ParseResult {
           stage: (STAGES.has(stageRaw) ? stageRaw : "lead") as NormalizedContact["stage"],
           source: str(data.source),
           value: num(data.value),
-          occurred_at: isoDate(data.date) ?? new Date().toISOString().slice(0, 10),
+          occurred_at: isoDate(data.date) ?? todayInIsrael(),
         };
         batch.contacts.push(contact);
         break;
@@ -145,7 +146,7 @@ export function parseWebhookPayload(raw: unknown): ParseResult {
           total,
           status: str(data.status),
           items_count: num(data.items_count),
-          placed_at: isoDate(data.date) ?? new Date().toISOString().slice(0, 10),
+          placed_at: isoDate(data.date) ?? todayInIsrael(),
         };
         batch.orders.push(order);
         break;

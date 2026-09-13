@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { sanitizeAnswers } from "@/lib/validate-answers";
+import type { OnboardingAnswers } from "@/lib/types";
 
 /**
  * The catch-up pass has to be reachable, and its refusal has to be enforced
@@ -14,6 +16,26 @@ import { describe, expect, it } from "vitest";
  * public POST endpoint, so the ids arrive from a browser.
  */
 const root = process.cwd();
+
+/** A full answer set, so the sanitiser is not defaulting a missing field. */
+const ANSWERS: OnboardingAnswers = {
+  stage: "active",
+  entity_type: "osek_patur",
+  field: "beauty_care",
+  expected_revenue: "60k_to_ceiling",
+  work_location: "home",
+  sales_channel: "in_person",
+  client_type: "private",
+  product_type: "services",
+  hosts_clients: true,
+  collects_personal_data: true,
+  uses_vehicle: false,
+  has_website: false,
+  plans_employees: false,
+  employee_work_mode: "on_site",
+  wants_marketing: true,
+  already_done: [],
+};
 
 function read(rel: string): string {
   return readFileSync(join(root, rel), "utf8")
@@ -225,5 +247,37 @@ describe("the product offers the pass instead of waiting to be found", () => {
     expect(actions.slice(at, at + 700)).toContain(
       'stage !== "idea" && stage !== "setting_up" && stage !== "active"'
     );
+  });
+});
+
+describe("the delegation actually sticks", () => {
+  /**
+   * setBusinessStage does not write the column; it hands the merged answers to
+   * updateAnswers. That is the right shape — one writer for a field that gates
+   * which templates apply and whether recommended dates exist — but it means
+   * the correction survives only if the sanitiser preserves it and the path
+   * revalidates. Both are somebody else's code, and "delegated to code that
+   * drops it on the floor" is the same as not written at all.
+   */
+  it("the sanitiser keeps every stage it is given", () => {
+    for (const stage of ["idea", "setting_up", "active"] as const) {
+      expect(sanitizeAnswers({ ...ANSWERS, stage }).stage, stage).toBe(stage);
+    }
+  });
+
+  it("and refuses one it does not recognise, rather than storing it", () => {
+    // The action validates first, so this is the second line rather than the
+    // first — but a field this load-bearing should not depend on one check.
+    const out = sanitizeAnswers({ ...ANSWERS, stage: "trading" as never });
+    expect(["idea", "setting_up", "active"]).toContain(out.stage);
+  });
+
+  it("updateAnswers revalidates, so the card clears without a reload", () => {
+    // Otherwise answering "no" would appear to do nothing and the question
+    // would still be on screen — which is how it looked before it had a "no".
+    const actions = read("src/lib/actions.ts");
+    const at = actions.indexOf("export async function updateAnswers");
+    const end = actions.indexOf("export async function", at + 10);
+    expect(actions.slice(at, end)).toContain('revalidatePath("/", "layout")');
   });
 });

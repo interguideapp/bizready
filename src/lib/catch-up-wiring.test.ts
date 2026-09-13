@@ -90,3 +90,55 @@ describe("the page says what it is holding back", () => {
     expect(read("src/app/(app)/catch-up/page.tsx")).toMatch(/ראיה|אסמכתא/);
   });
 });
+
+describe("it is not offered to a role that cannot use it", () => {
+  /**
+   * Verified against the live policies, not assumed: business_tasks UPDATE
+   * requires can_edit_business() or ownership, so a viewer's write is rejected
+   * by RLS and the form would have silently done nothing while reporting
+   * "nothing to update". Offering a questionnaire that refuses every answer is
+   * the same defect as any other promise the product cannot keep — and it is
+   * the one this whole session has been about.
+   */
+  const page = read("src/app/(app)/catch-up/page.tsx");
+
+  it("reads the role rather than just the business", () => {
+    expect(page).toContain("requireBusinessContext()");
+    expect(page).toContain("capabilitiesFor(role).completeTasks");
+  });
+
+  it("shows a viewer why, instead of a form that will refuse them", () => {
+    expect(page).toContain("!canEdit ?");
+    expect(page).toMatch(/גישת צפייה/);
+  });
+
+  it("checks the capability before the empty-state branch", () => {
+    // Otherwise a viewer with nothing offerable gets "אין מה לרענן" — true by
+    // accident and misleading about why.
+    expect(page.indexOf("!canEdit ?")).toBeLessThan(page.indexOf("groups.length === 0"));
+  });
+
+  it("uses the same capability the board uses for the same action", () => {
+    // completeTasks, not a new one: closing a task from here and closing it
+    // from the obligations board are the same permission.
+    expect(read("src/app/(app)/calendar/page.tsx")).toContain(
+      "capabilitiesFor(role).completeTasks"
+    );
+  });
+});
+
+describe("a refused write is reported as refused", () => {
+  it("the action distinguishes it from nothing-to-do", () => {
+    // A role can change between the render and the submit, so the page's gate
+    // is not the only thing standing here.
+    const actions = read("src/lib/actions.ts");
+    expect(actions).toContain("refused: accepted.length - done - handled");
+    expect(actions).toContain("attempted: accepted.length");
+  });
+
+  it("the form says so rather than 'nothing to update'", () => {
+    const form = read("src/app/(app)/catch-up/catch-up-form.tsx");
+    expect(form).toContain("res.attempted > 0 && res.done === 0 && res.handled === 0");
+    expect(form).toMatch(/העדכון נדחה/);
+  });
+});

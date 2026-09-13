@@ -44,12 +44,21 @@ export function CatchUpForm({
         const res = await applyCatchUp(
           Object.entries(marks).map(([templateId, mark]) => ({ templateId, mark }))
         );
+        // Refused is not the same news as nothing-to-do: the write was
+        // rejected, which for this table means the role cannot edit. Saying
+        // "nothing to update" would tell someone their answers were pointless
+        // rather than not permitted.
+        if (res.attempted > 0 && res.done === 0 && res.handled === 0) {
+          toast.error("העדכון נדחה — נראה שלהרשאה שלכם אין הרשאת עריכה");
+          return;
+        }
         const parts: string[] = [];
         if (res.done > 0) parts.push(res.done === 1 ? "משימה אחת נסגרה" : `${res.done} משימות נסגרו`);
         if (res.handled > 0)
           parts.push(
             res.handled === 1 ? "אחת סומנה כמטופלת בחוץ" : `${res.handled} סומנו כמטופלות בחוץ`
           );
+        if (res.refused > 0) parts.push(`${res.refused} לא עודכנו`);
         toast.success(parts.join(" · ") || "לא היה מה לעדכן");
         setMarks({});
       } catch {

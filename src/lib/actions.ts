@@ -1669,7 +1669,7 @@ export async function runScheduledJobNow(
  */
 export async function applyCatchUp(
   submitted: { templateId: string; mark: CatchUpMark }[]
-): Promise<{ done: number; handled: number; skipped: number }> {
+): Promise<{ done: number; handled: number; refused: number; attempted: number }> {
   const { supabase, user } = await requireUser();
   const { data: business } = await supabase
     .from("businesses")
@@ -1745,5 +1745,19 @@ export async function applyCatchUp(
   // reports a score, an exposure or an alert has to be refreshed.
   revalidatePath("/", "layout");
 
-  return { done, handled, skipped: accepted.length - done - handled };
+  /*
+   * `refused` is not the same news as `skipped`, and the caller has to be able
+   * to tell. Skipped means the mark was not applicable — a stale tab, a task
+   * already closed. Refused means the write itself was rejected, which for this
+   * table means RLS: a viewer, or an accountant whose access was revoked. The
+   * page will not offer the form to a viewer, but a role can change between
+   * the render and the submit, and reporting that as "nothing to update" would
+   * tell someone their answers were pointless rather than not permitted.
+   */
+  return {
+    done,
+    handled,
+    refused: accepted.length - done - handled,
+    attempted: accepted.length,
+  };
 }

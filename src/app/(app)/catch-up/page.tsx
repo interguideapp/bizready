@@ -1,6 +1,7 @@
-import { ClipboardCheck, Lock } from "lucide-react";
+import { ClipboardCheck, Eye, Lock } from "lucide-react";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
-import { requireBusiness, getBusinessTasks } from "@/lib/data";
+import { requireBusinessContext, getBusinessTasks } from "@/lib/data";
+import { capabilitiesFor } from "@/lib/members";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { catchUpItems, statutoryHeldBack } from "@/lib/catch-up";
 import { CatchUpForm } from "./catch-up-form";
@@ -22,7 +23,15 @@ import { CatchUpForm } from "./catch-up-form";
  * a filing nobody made.
  */
 export default async function CatchUpPage() {
-  const business = await requireBusiness();
+  const { business, role } = await requireBusinessContext();
+  /*
+   * A viewer's write is rejected by RLS — business_tasks UPDATE requires
+   * can_edit_business() or ownership, checked against the live policies — so
+   * the form would have silently done nothing and reported "nothing to
+   * update". Offering a questionnaire that will refuse every answer is the
+   * same defect as any other promise the product cannot keep.
+   */
+  const canEdit = capabilitiesFor(role).completeTasks;
   const tasks = await getBusinessTasks(business.id);
 
   const items = catchUpItems(tasks, TEMPLATES_BY_ID);
@@ -44,7 +53,15 @@ export default async function CatchUpPage() {
         subtitle="סמנו מה שכבר טופל — התכנית, הציון וההתראות יחושבו מחדש לפי המצב האמיתי"
       />
 
-      {groups.length === 0 ? (
+      {!canEdit ? (
+        <Card>
+          <EmptyState
+            icon={<Eye className="h-6 w-6" aria-hidden />}
+            title="גישת צפייה"
+            subtitle="בהרשאה הזו אפשר לראות את התכנית אבל לא לעדכן אותה. סימון מה שכבר טופל נעשה על ידי בעל העסק או רו״ח עם הרשאת עריכה."
+          />
+        </Card>
+      ) : groups.length === 0 ? (
         <Card>
           <EmptyState
             icon={<ClipboardCheck className="h-6 w-6" aria-hidden />}

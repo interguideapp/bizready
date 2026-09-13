@@ -114,7 +114,7 @@ export default async function AdminPage() {
           {leads.length > 0 && <span className="tnum rounded-full bg-brand-tint px-2 py-0.5 text-xs font-bold text-brand-strong">{leads.length}</span>}
         </h2>
         {leads.length === 0 ? (
-          <p className="text-sm text-ink-muted">אין עדיין לידים. כל "שיחזרו אליי" בהצעת שותף יופיע כאן — הבסיס לחיוב.</p>
+          <p className="text-sm text-ink-muted">אין עדיין לידים. כל ״שיחזרו אליי״ בהצעת שותף יופיע כאן — הבסיס לחיוב.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {leads.map((l) => (

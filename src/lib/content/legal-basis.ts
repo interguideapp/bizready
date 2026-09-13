@@ -39,7 +39,7 @@ export type LegalBasis =
 
 export const LEGAL_BASIS: Record<string, LegalBasis> = {
   // ---------------------------------------------------------------- statute --
-  // Registration with the authorities: חוק מע"מ, פקודת מס הכנסה,
+  // Registration with the authorities: חוק מע״מ, פקודת מס הכנסה,
   // חוק הביטוח הלאומי, חוק החברות, פקודת השותפויות, חוק רישוי עסקים.
   "open-vat-file": "statute",
   "open-income-tax-file": "statute",
@@ -52,7 +52,7 @@ export const LEGAL_BASIS: Record<string, LegalBasis> = {
   "food-hygiene-training": "statute",
 
   // Books, invoices and filings: הוראות ניהול ספרים, חשבוניות ישראל,
-  // דיווח מע"מ תקופתי, דוח שנתי, מקדמות, אגרה שנתית לרשם.
+  // דיווח מע״מ תקופתי, דוח שנתי, מקדמות, אגרה שנתית לרשם.
   bookkeeping: "statute",
   "invoicing-software": "statute",
   "vat-reporting": "statute",

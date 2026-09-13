@@ -30,7 +30,7 @@ function ob(over: Partial<Obligation> = {}): Obligation {
     id: "x",
     kind: "vat",
     basis: "statutory",
-    title: 'דיווח מע"מ תקופתי',
+    title: 'דיווח מע״מ תקופתי',
     dueDate: "2026-09-15",
     templateId: "vat-reporting",
     daysUntil: -5,
@@ -140,15 +140,15 @@ describe("duties that have not started", () => {
         pending={[
           {
             templateId: "vat-reporting",
-            title: 'דיווח מע"מ תקופתי',
+            title: 'דיווח מע״מ תקופתי',
             awaitingId: "open-vat-file",
-            awaitingTitle: 'פתיחת תיק עוסק במע"מ',
+            awaitingTitle: 'פתיחת תיק עוסק במע״מ',
           },
         ]}
       />
     );
-    expect(screen.getByRole("link", { name: 'דיווח מע"מ תקופתי' })).toBeDefined();
-    expect(screen.getByRole("link", { name: 'פתיחת תיק עוסק במע"מ' })).toBeDefined();
+    expect(screen.getByRole("link", { name: 'דיווח מע״מ תקופתי' })).toBeDefined();
+    expect(screen.getByRole("link", { name: 'פתיחת תיק עוסק במע״מ' })).toBeDefined();
   });
 
   it("says explicitly that these have no date yet", () => {
@@ -193,7 +193,7 @@ describe("the board leads somewhere", () => {
     // The page that tells you what is late offered no way to go and do it:
     // every title was a <p>. /insights already linked its rows this way.
     render(<ObligationRow ob={ob()} />);
-    const link = screen.getByRole("link", { name: 'דיווח מע"מ תקופתי' });
+    const link = screen.getByRole("link", { name: 'דיווח מע״מ תקופתי' });
     expect(link.getAttribute("href")).toBe("/tasks/vat-reporting?from=calendar");
   });
 
@@ -201,7 +201,7 @@ describe("the board leads somewhere", () => {
     // A document expiry comes from the archive, not from a task.
     render(<ObligationRow ob={ob({ templateId: null, kind: "document_expiry" })} />);
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByText('דיווח מע"מ תקופתי')).toBeDefined();
+    expect(screen.getByText('דיווח מע״מ תקופתי')).toBeDefined();
   });
 });
 
@@ -372,16 +372,16 @@ describe("duties we decline to date, because the user set the prerequisite aside
   const blocked = [
     {
       templateId: "vat-reporting",
-      title: 'דיווח מע"מ תקופתי',
+      title: 'דיווח מע״מ תקופתי',
       blockedById: "open-vat-file",
-      blockedByTitle: 'פתיחת תיק עוסק במע"מ',
+      blockedByTitle: 'פתיחת תיק עוסק במע״מ',
     },
   ];
 
   it("names the duty and what was dismissed, both linked", () => {
     render(<BlockedFilingsSection blocked={blocked} />);
-    expect(screen.getByRole("link", { name: 'דיווח מע"מ תקופתי' })).toBeDefined();
-    expect(screen.getByRole("link", { name: 'פתיחת תיק עוסק במע"מ' })).toBeDefined();
+    expect(screen.getByRole("link", { name: 'דיווח מע״מ תקופתי' })).toBeDefined();
+    expect(screen.getByRole("link", { name: 'פתיחת תיק עוסק במע״מ' })).toBeDefined();
   });
 
   it("does NOT tell the user to finish a task they said is irrelevant", () => {

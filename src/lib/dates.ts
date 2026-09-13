@@ -35,3 +35,20 @@ export function israelParts(now: Date = new Date()): {
   const [y, m, d] = ymd.format(now).split("-").map(Number);
   return { year: y, month: m - 1, day: d };
 }
+
+/**
+ * Is `iso` within the last `ms`?
+ *
+ * Exists so a component does not read the clock in its own render body. That
+ * was flagged as an impure render call in plan-ready, and the reason it matters
+ * beyond the lint rule is that the window it guards had no test: /plan-ready
+ * re-showed "התכנית מוכנה" on every later visit until a window was added, and
+ * nothing asserted the window worked. A null or unparseable timestamp returns
+ * false, so a missing date never counts as "just now".
+ */
+export function withinLastMs(iso: string | null, ms: number, now: Date = new Date()): boolean {
+  if (!iso) return false;
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return false;
+  return now.getTime() - then <= ms;
+}

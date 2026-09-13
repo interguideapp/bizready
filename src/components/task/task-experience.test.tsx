@@ -50,7 +50,7 @@ function view(over: Partial<TaskView> = {}): TaskView {
     taskDbId: "task-1",
     templateId: "open-vat-file",
     archetype: "registration",
-    title: 'פתיחת תיק עוסק במע"מ',
+    title: 'פתיחת תיק עוסק במע״מ',
     categoryTitle: "הקמה ורישום",
     categoryIcon: "Scale",
     priority: "critical",

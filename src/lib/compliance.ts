@@ -31,7 +31,7 @@ import type { TaskStatus, TaskTemplate } from "@/lib/types";
  */
 
 export type ObligationKind =
-  | "vat" // דיווח מע"מ
+  | "vat" // דיווח מע״מ
   | "advances" // מקדמות מס (מס הכנסה או ביטוח לאומי)
   | "annual_report" // דוח שנתי
   | "employer_deductions" // דיווח ניכויים חודשי (טופס 102)
@@ -417,7 +417,7 @@ function occurrenceFor(
       // asserting a single date for everyone.
       const representedNote =
         entry.kind === "annual_report" && profile.hasAccountant
-          ? ' בייצוג של רו"ח או יועץ מס מקבלים בדרך כלל ארכה לפי מועדי ה"הסדר" של רשות המסים — ודאו את התאריך המדויק מול המייצג.'
+          ? ' בייצוג של רו״ח או יועץ מס מקבלים בדרך כלל ארכה לפי מועדי ה"הסדר" של רשות המסים — ודאו את התאריך המדויק מול המייצג.'
           : "";
 
       return {

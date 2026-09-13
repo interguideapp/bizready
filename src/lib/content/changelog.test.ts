@@ -17,7 +17,7 @@ const entry = (over: Partial<ChangelogEntry> & { id: string }): ChangelogEntry =
 });
 
 const TITLES: Record<string, string> = {
-  "vat-reporting": 'דיווחי מע"מ תקופתיים',
+  "vat-reporting": 'דיווחי מע״מ תקופתיים',
   "patur-ceiling-watch": "מעקב אחרי תקרת עוסק פטור",
   "company-annual-fee": "אגרה שנתית לרשם החברות",
 };
@@ -42,7 +42,7 @@ describe("only changes that affect THIS business are shown", () => {
       titleFor
     );
     expect(changes).toHaveLength(1);
-    expect(changes[0].title).toBe('דיווחי מע"מ תקופתיים');
+    expect(changes[0].title).toBe('דיווחי מע״מ תקופתיים');
     // ?from=home so the task page's back link returns the user to the home
     // screen they clicked from, rather than dumping them on /tasks.
     expect(changes[0].href).toBe("/tasks/vat-reporting?from=home");

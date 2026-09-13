@@ -150,7 +150,7 @@ export function StatusPicker({
             onChange={(e) => setDismissNote(e.target.value)}
             placeholder={
               dismissal === "handled_externally"
-                ? 'למשל: רו"ח מגיש את הדוח מדי שנה'
+                ? 'למשל: רו״ח מגיש את הדוח מדי שנה'
                 : "למשל: אין לי אתר ולא מתכוון להקים"
             }
             className="mb-3 w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"

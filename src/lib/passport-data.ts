@@ -1,4 +1,4 @@
-import { CATEGORIES_BY_ID, TEMPLATES_BY_ID } from "@/lib/content";
+import { TEMPLATES_BY_ID } from "@/lib/content";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import {
   getBusiness,
@@ -133,7 +133,7 @@ export async function loadPassport(): Promise<PassportData | null> {
   const regStatus: string[] = [`מסווג כ${entityLabel}`];
   if (business.dealer_number) regStatus.push(`מספר עוסק / ח.פ.: ${business.dealer_number}`);
   if (business.vat_file || business.entity_type === "osek_murshe" || business.entity_type === "company")
-    regStatus.push(business.vat_file ? `רשום במע"מ · תיק ${business.vat_file}` : `רשום במע"מ`);
+    regStatus.push(business.vat_file ? `רשום במע״מ · תיק ${business.vat_file}` : `רשום במע״מ`);
   if (business.income_tax_file) regStatus.push(`רשום במס הכנסה · תיק ${business.income_tax_file}`);
   if (business.bituach_leumi_file) regStatus.push(`רשום בביטוח לאומי · תיק ${business.bituach_leumi_file}`);
   if (business.accountant_name) regStatus.push(`מיוצג ע"י ${business.accountant_name}`);

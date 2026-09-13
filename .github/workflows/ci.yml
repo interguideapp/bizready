@@ -17,6 +17,13 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
+      # Lint was not in CI, and it had been failing for a while: five Hebrew
+      # strings using an ASCII quote where the text wants a gershayim, plus two
+      # real React faults — a clock read during render, and a synchronous
+      # setState in an effect with no cleanup, which wrote to an unmounted
+      # component. None of it could go red, so none of it got noticed.
+      - name: Lint
+        run: npm run lint
       - name: Tests
         run: npm test
       - name: Build

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, Loader2, Pencil, X } from "lucide-react";
+import { Check, Copy, Pencil, X } from "lucide-react";
 import { updateBusinessCard } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
@@ -183,7 +183,7 @@ export function BusinessCard({
 
       <p className="mt-5 text-xs leading-relaxed text-ink-faint">
         טיפ: אחרי שפותחים תיק ברשות — חוזרים לכאן ומזינים את מספר התיק. ככה
-        כשהבנק, הרו"ח או לקוח מבקשים פרט — הוא אצלכם בקליק.
+        כשהבנק, הרו״ח או לקוח מבקשים פרט — הוא אצלכם בקליק.
       </p>
     </div>
   );

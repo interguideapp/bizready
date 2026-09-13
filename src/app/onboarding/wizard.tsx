@@ -201,7 +201,7 @@ export function OnboardingWizard() {
                     setEntityHelp(false);
                   }}
                   options={[
-                    { value: "osek_patur", label: "עוסק פטור", hint: `מחזור עד ₪${YEARLY_FIGURES.osekPaturCeiling.toLocaleString()} בשנה, בלי גביית מע"מ` },
+                    { value: "osek_patur", label: "עוסק פטור", hint: `מחזור עד ₪${YEARLY_FIGURES.osekPaturCeiling.toLocaleString()} בשנה, בלי גביית מע״מ` },
                     { value: "osek_murshe", label: "עוסק מורשה", hint: "כל מחזור, גובים ומקזזים מע\"מ" },
                     { value: "company", label: "חברה בע\"מ", hint: "ישות נפרדת, אחריות מוגבלת, מס חברות 23%" },
                     { value: "partnership", label: "שותפות רשומה", hint: "שני שותפים ומעלה — כל שותף ממוסה על חלקו" },
@@ -221,10 +221,10 @@ export function OnboardingWizard() {
                         צפי מחזור מתחת ל-₪
                         {YEARLY_FIGURES.osekPaturCeiling.toLocaleString()} בשנה
                         ולקוחות בעיקר פרטיים — <b>עוסק פטור</b>: פחות בירוקרטיה,
-                        בלי דיווחי מע"מ
+                        בלי דיווחי מע״מ
                       </li>
                       <li>
-                        מחזור גבוה יותר, או לקוחות עסקיים שרוצים לקזז מע"מ, או
+                        מחזור גבוה יותר, או לקוחות עסקיים שרוצים לקזז מע״מ, או
                         הוצאות הקמה גדולות שכדאי לקזז — <b>עוסק מורשה</b>
                       </li>
                       <li>אפשר להתחיל פטור ולעבור למורשה כשגדלים</li>

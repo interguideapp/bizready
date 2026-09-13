@@ -17,7 +17,7 @@ function exposure(over: Partial<ExposureView> = {}): ExposureView {
   return {
     obligationId: "a",
     templateId: "vat-reporting",
-    title: 'דיווח מע"מ תקופתי',
+    title: 'דיווח מע״מ תקופתי',
     daysUntil: -5,
     basis: "statutory" as const,
     severity: "penalty_accruing",

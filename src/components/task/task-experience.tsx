@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { motion } from "motion/react";
 import {
   Eye,
@@ -29,10 +28,8 @@ import { StatusPicker, NotesEditor } from "@/components/task-controls";
 import { MilestoneTracker } from "@/components/task/milestone-tracker";
 import { NextCycleNote, ReopenedNote } from "@/components/task/next-cycle";
 import { FilingHistory } from "@/components/task/filing-history";
-import { TaskChecklist } from "@/components/task-checklist";
-import { DocumentUpload } from "@/components/document-upload";
 import { OfferCard } from "@/components/offer-card";
-import { fadeUp, spring } from "@/lib/motion";
+import { fadeUp } from "@/lib/motion";
 import { TaskBackLink } from "@/components/task/back-link";
 import { BasisChip, ProvenanceCard } from "@/components/task/provenance";
 import type { TaskView } from "@/lib/task-view";

@@ -203,7 +203,7 @@ export function applyBatch(input: ApplyInput): ApplyOutput {
         out.notifications.push({
           type: "overdue",
           title: "חשבונית ללא מספר הקצאה",
-          body: `חשבונית על ₪${doc.amount.toLocaleString()} מעל הסף (₪${YEARLY_FIGURES.invoiceAllocationThreshold.toLocaleString()}) יצאה בלי מספר הקצאה — הלקוח לא יוכל לקזז מע"מ.`,
+          body: `חשבונית על ₪${doc.amount.toLocaleString()} מעל הסף (₪${YEARLY_FIGURES.invoiceAllocationThreshold.toLocaleString()}) יצאה בלי מספר הקצאה — הלקוח לא יוכל לקזז מע״מ.`,
           template_id: "vat-reporting",
           dedupe_key: `alloc:${doc.external_id}`,
         });

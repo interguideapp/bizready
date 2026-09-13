@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { withinLastMs } from "@/lib/dates";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
@@ -23,8 +24,7 @@ export default async function PlanReadyPage() {
   if (!business?.onboarding_completed_at) redirect("/onboarding");
 
   // Past the window, this is just the home screen with confetti on it.
-  const completedAt = new Date(business.onboarding_completed_at).getTime();
-  if (Number.isFinite(completedAt) && Date.now() - completedAt > CELEBRATION_WINDOW_MS) {
+  if (!withinLastMs(business.onboarding_completed_at, CELEBRATION_WINDOW_MS)) {
     redirect("/home");
   }
 

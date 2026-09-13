@@ -82,7 +82,7 @@ describe("every surface that shows the set-aside carries the caveat", () => {
   it("keeps both halves of the contract in that constant", () => {
     // What the number is, and who confirms it.
     expect(SETASIDE_ESTIMATE_NOTE).toMatch(/הערכה/);
-    expect(SETASIDE_ESTIMATE_NOTE).toMatch(/רו״ח|רו"ח/);
+    expect(SETASIDE_ESTIMATE_NOTE).toMatch(/רו״ח|רו״ח/);
   });
 });
 

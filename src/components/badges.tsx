@@ -1,12 +1,5 @@
 import { aheadLabel, lateLabel } from "@/lib/he-distance";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Circle,
-  CircleDashed,
-  EyeOff,
-  Hourglass,
-} from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {

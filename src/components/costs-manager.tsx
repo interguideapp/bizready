@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Plus, Trash2, Wallet } from "lucide-react";
+import { Plus, Trash2, Wallet } from "lucide-react";
 import { addCost, deleteCost } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Button, Card } from "@/components/ui";
-import { Table, type Column } from "@/components/table";
+import { Table } from "@/components/table";
 import { CADENCE_LABEL, monthlyTotal, annualTotal, type CostRow, type Cadence } from "@/lib/costs";
 import { formatIlsRounded } from "@/lib/money";
 

@@ -2,13 +2,15 @@ import Link from "next/link";
 import { Megaphone } from "lucide-react";
 
 /**
- * Slot for professionals to advertise: shown in task pages with no partner yet
- * and at the bottom of the Shop. Leads go to the business inbox.
+ * Slot for professionals to advertise, at the bottom of the Shop.
+ *
+ * The docstring used to add "shown in task pages with no partner yet", and the
+ * only caller is /shop. It also built an encoded mailto subject from a
+ * `context` prop — the remains of the funnel that mailed a hardcoded personal
+ * Gmail. Both the subject and the prop that fed it were dead once the CTA
+ * became a link to /partners, and nothing passed context anyway.
  */
-export function AdvertiseCard({ context }: { context?: string }) {
-  const subject = encodeURIComponent(
-    `פרסום ב-BizReady${context ? ` — ${context}` : ""}`
-  );
+export function AdvertiseCard() {
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-dashed border-edge bg-surface/60 p-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-ink-muted">

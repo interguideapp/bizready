@@ -125,7 +125,7 @@ export function computeReminders(
   // you owe no VAT report before the VAT file exists. This engine skipped the
   // check entirely — so a new עוסק מורשה whose plan gave vat-reporting a
   // plan-build date, and who had not opened the file yet, was EMAILED,
-  // PUSHED and WhatsApp'd "באיחור: דיווח מע"מ" for a duty that did not legally
+  // PUSHED and WhatsApp'd "באיחור: דיווח מע״מ" for a duty that did not legally
   // exist. The same defect A9 removed from the home screen, in the loudest
   // channel the product has.
   //

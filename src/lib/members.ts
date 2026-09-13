@@ -3,7 +3,7 @@
  *
  * The product had one `businesses` row per owner, no roles and no invitations.
  * The accountant is the single most important collaborator in Israeli
- * compliance: they file the מע"מ returns, they hold the books, the deadlines
+ * compliance: they file the מע״מ returns, they hold the books, the deadlines
  * are functionally theirs. With no way to give them access, users share their
  * password — which is a worse outcome than any access model we could design.
  *
@@ -29,7 +29,7 @@ export type EffectiveRole = "owner" | MemberRole;
 
 export const ROLE_LABEL: Record<EffectiveRole, string> = {
   owner: "בעל העסק",
-  accountant: 'רו"ח / יועץ מס',
+  accountant: 'רו״ח / יועץ מס',
   viewer: "צפייה בלבד",
 };
 

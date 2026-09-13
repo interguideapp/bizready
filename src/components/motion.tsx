@@ -1,14 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  MotionConfig,
-  motion,
-  useInView,
-  useMotionValue,
-  useSpring,
-  type Variants,
-} from "motion/react";
+import { useRef, type ReactNode } from "react";
+import { MotionConfig, motion, useInView, type Variants } from "motion/react";
 import { fadeUp, spring, stagger } from "@/lib/motion";
 
 /** App-wide motion provider — honors the OS reduce-motion setting globally. */

@@ -233,7 +233,9 @@ function FilingHero({ view }: { view: TaskView }) {
   );
 }
 
-function DecisionHero({ view }: { view: TaskView }) {
+// Takes the prop without destructuring it: every hero is dispatched as
+// <Hero view={view} /> and that uniformity is worth more than the argument.
+function DecisionHero(_: { view: TaskView }) {
   const [answer, setAnswer] = useState<"yes" | "no" | null>(null);
   return (
     <Card className="p-5">
@@ -313,7 +315,9 @@ function DocumentHero({ view }: { view: TaskView }) {
   );
 }
 
-function PresenceHero({ view }: { view: TaskView }) {
+// Takes the prop without destructuring it: every hero is dispatched as
+// <Hero view={view} /> and that uniformity is worth more than the argument.
+function PresenceHero(_: { view: TaskView }) {
   return (
     <Card className="border-brand-edge bg-brand-tint/30 p-4">
       <h3 className="flex items-center gap-2 font-bold text-ink">

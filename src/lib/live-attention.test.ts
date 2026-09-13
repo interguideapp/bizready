@@ -282,7 +282,7 @@ describe("open sync failures reach the attention list", () => {
         ...syncErrorDrafts([err()]),
         {
           type: "overdue",
-          title: 'באיחור: דיווח מע"מ',
+          title: 'באיחור: דיווח מע״מ',
           body: null,
           template_id: "vat-reporting",
           dedupe_key: "overdue:vat-reporting:2026-09-15",

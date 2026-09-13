@@ -31,6 +31,18 @@ export default function GlobalError({
           <p style={{ fontSize: 14, lineHeight: 1.7, color: "#d2dbef", marginBottom: 24 }}>
             הנתונים שלכם לא נפגעו. נסו לטעון מחדש.
           </p>
+          {/*
+            The error object was destructured and then ignored, so the one screen
+            that appears when everything else has failed gave the user nothing to
+            quote. The digest is the only handle that ties what they saw to a
+            server log. dir="ltr" because it is a Latin hash inside RTL text and
+            would otherwise reorder.
+          */}
+          {error.digest && (
+            <p style={{ fontSize: 12, color: "#8f9cbb", marginBottom: 24 }}>
+              קוד לזיהוי התקלה: <span dir="ltr">{error.digest}</span>
+            </p>
+          )}
           <button
             onClick={reset}
             style={{

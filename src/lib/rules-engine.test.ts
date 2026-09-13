@@ -205,7 +205,7 @@ describe("buildPlan", () => {
     expect(ids).toContain("google-business-profile"); // עסק מקומי
     expect(ids).toContain("privacy-policy"); // אוספת פרטים
     expect(ids).not.toContain("website-accessibility"); // אין אתר
-    expect(ids).not.toContain("vat-reporting"); // פטור לא מדווח מע"מ
+    expect(ids).not.toContain("vat-reporting"); // פטור לא מדווח מע״מ
     expect(ids).toContain("patur-ceiling-watch"); // מעקב תקרה לפטור
     expect(ids).not.toContain("vehicle-expenses"); // בלי רכב
   });

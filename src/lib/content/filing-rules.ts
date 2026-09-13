@@ -93,7 +93,6 @@ const BTL_EMPLOYER_102 =
   "https://www.btl.gov.il/Insurance/Maasik/MToshavYisrael/DivuahVetashlum/Pages/Divuhach.aspx";
 const BTL_SELF_EMPLOYED_PAY =
   "https://www.btl.gov.il/Insurance/National%20Insurance/type_list/Self_Employed/Pages/howtopay.aspx";
-const BTL_126 = "https://www.btl.gov.il/Insurance/Maasik/Pages/Tofes126.aspx";
 const REGISTRAR_ANNUAL_FEE =
   "https://www.gov.il/he/service/company_partnership_annual_payment";
 

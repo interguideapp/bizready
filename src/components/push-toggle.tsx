@@ -11,16 +11,42 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const ok =
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window;
-    setSupported(ok);
-    if (!ok) return;
+    /*
+     * Every state write here is in an async callback, and deliberately.
+     *
+     * setSupported ran synchronously in this effect, which renders twice on
+     * every mount of a component the settings screen always shows. The absent
+     * cleanup was the worse half: getSubscription resolving after the user
+     * navigated away wrote to an unmounted component.
+     *
+     * "supported" starts false, so an unsupported browser needs no write at
+     * all — the early return leaves it correct. The catch still sets it true:
+     * the APIs exist, we merely could not read the current subscription, and
+     * hiding the toggle would remove a reminder channel from someone who has
+     * it. The toggle appearing unset is recoverable; the toggle not appearing
+     * is not.
+     */
+    if (
+      typeof window === "undefined" ||
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window)
+    ) {
+      return;
+    }
+    let cancelled = false;
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setEnabled(Boolean(sub)))
-      .catch(() => {});
+      .then((sub) => {
+        if (cancelled) return;
+        setSupported(true);
+        setEnabled(Boolean(sub));
+      })
+      .catch(() => {
+        if (!cancelled) setSupported(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function enable() {

@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { check } from "@/lib/rate-limit";
 import { allSweepHealth, type SweepJob, type SweepRun } from "@/lib/heartbeat";
 import { jobsDue } from "@/lib/cron/due";
+import { cronSecretConfigured } from "@/lib/cron-auth";
 
 /**
  * Run the scheduled work off ordinary traffic, when the scheduler is dead.
@@ -29,6 +30,12 @@ import { jobsDue } from "@/lib/cron/due";
  * "nothing is ever sent" into "sent whenever the product is used, at most once
  * an hour". That is a large improvement and not the same thing as a working
  * scheduler, and the delivery notice keeps saying so.
+ *
+ * CADENCE. With no CRON_SECRET there is provably no scheduler, so a reminder
+ * job that is DUE is swept; the hourly claim is then the only limit and the
+ * effective cadence is daily, matching the schedule. With a secret present the
+ * gate stays conservative and waits for "stale", so this never races a cron
+ * that is merely a few hours behind.
  */
 
 /** At most one lazy sweep an hour, across every render and every instance. */
@@ -60,11 +67,29 @@ export async function sweepIfScheduleIsDead(): Promise<
     // Only worth doing at all if the schedule is actually not running. A job
     // merely "due" because the cron is about to fire in ten minutes should be
     // left to the cron.
+    //
+    // BUT WAITING FOR "STALE" COSTS A REMINDER when there is no cron at all.
+    // reminders are scheduled every 24h with a 36h grace, so "stale" is only
+    // reached after 36 hours — which means that with the schedule dead this
+    // fallback ran about every 37 hours rather than daily. The escalating
+    // windows are 30/14/7/1, and the 1-day nudge is the last line of defence:
+    // a deadline 36 hours out reads as "2 days" at one sweep and is already
+    // past at the next, so the warning the user needed arrived as an overdue
+    // notice instead. A day-late reminder for a deadline is not a reminder.
+    //
+    // Vercel only sends the authorization header when CRON_SECRET exists, and
+    // the cron routes fail closed without it, so an absent secret means there
+    // is provably no scheduler to race — not a slow one. In that case the
+    // conservative wait buys nothing and costs the nudge, so being DUE is
+    // enough, which jobsDue has already decided on the real 24h cadence.
     const remindersHealth = allSweepHealth(runs, new Date().toISOString()).find(
       (h) => h.job === "reminders"
     );
+    const noSchedulerAtAll = !cronSecretConfigured();
     const scheduleLooksDead =
-      remindersHealth?.state === "never" || remindersHealth?.state === "stale";
+      noSchedulerAtAll ||
+      remindersHealth?.state === "never" ||
+      remindersHealth?.state === "stale";
     if (!scheduleLooksDead) return { ran: [], reason: "schedule looks alive" };
 
     // THE CLAIM. Without it, ten concurrent page renders start ten sweeps.

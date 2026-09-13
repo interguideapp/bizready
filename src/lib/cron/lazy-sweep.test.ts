@@ -39,12 +39,21 @@ const { sweepIfScheduleIsDead } = await import("@/lib/cron/lazy-sweep");
 const rows = (runs: Partial<SweepRun>[]) =>
   runs.map((r) => ({ job: r.job, last_ok_at: r.lastOkAt ?? null, last_failed_at: null }));
 
+const SECRET_BEFORE = process.env.CRON_SECRET;
+
 beforeEach(() => {
   rpc.mockReset();
   runReminders.mockReset().mockResolvedValue(new Response("{}"));
   checkFn.mockReset().mockResolvedValue({ ok: true, remaining: 0, retryAfterSeconds: 0 });
+  // The gate now depends on whether a scheduler exists at all, so each case
+  // must declare its own world rather than inherit the previous one's.
+  delete process.env.CRON_SECRET;
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  if (SECRET_BEFORE === undefined) delete process.env.CRON_SECRET;
+  else process.env.CRON_SECRET = SECRET_BEFORE;
+});
 
 describe("it runs only when the schedule is genuinely dead", () => {
   it("runs when nothing has ever run", () => {
@@ -67,10 +76,43 @@ describe("it runs only when the schedule is genuinely dead", () => {
     expect(runReminders).not.toHaveBeenCalled();
   });
 
-  it("leaves a merely-late job to the cron that is about to fire", async () => {
+  it("leaves a merely-late job to a cron that exists and is about to fire", async () => {
     // 30 hours is past the cadence and inside the grace window. Due, but not
-    // evidence of an outage.
+    // evidence of an outage — SO LONG AS there is a scheduler that could fire.
+    // This test did not set CRON_SECRET and so was asserting the conservative
+    // wait in the one world where it costs a reminder; see the case below.
+    process.env.CRON_SECRET = "present-for-this-test";
     const lastOkAt = new Date(Date.now() - 30 * 3_600_000).toISOString();
+    rpc.mockResolvedValue({ data: rows([{ job: "reminders", lastOkAt }]), error: null });
+    expect((await sweepIfScheduleIsDead()).ran).toEqual([]);
+  });
+
+  it("does NOT wait for stale when there is no scheduler at all", async () => {
+    /**
+     * The cost of the conservative wait, with no CRON_SECRET set.
+     *
+     * reminders run every 24h with a 36h grace, so "stale" arrives only after
+     * 36 hours — and this fallback therefore ran about every 37 hours rather
+     * than daily. The escalating windows are 30/14/7/1 and the 1-day nudge is
+     * the last line of defence: a deadline 36 hours out reads as "2 days" at
+     * one sweep and is already past at the next, so the warning arrived as an
+     * overdue notice. A day-late reminder for a deadline is not a reminder.
+     *
+     * Vercel only sends the authorization header when the secret exists and the
+     * cron routes fail closed without it, so an absent secret is proof there is
+     * no scheduler to race — not a slow one.
+     */
+    delete process.env.CRON_SECRET;
+    const lastOkAt = new Date(Date.now() - 30 * 3_600_000).toISOString();
+    rpc.mockResolvedValue({ data: rows([{ job: "reminders", lastOkAt }]), error: null });
+    expect((await sweepIfScheduleIsDead()).ran).toEqual(["reminders"]);
+  });
+
+  it("still does nothing at all when the job is not due yet", async () => {
+    // The daily cadence is still the cadence: no secret does not mean sweep on
+    // every render. jobsDue decides, and the hourly claim caps it besides.
+    delete process.env.CRON_SECRET;
+    const lastOkAt = new Date(Date.now() - 2 * 3_600_000).toISOString();
     rpc.mockResolvedValue({ data: rows([{ job: "reminders", lastOkAt }]), error: null });
     expect((await sweepIfScheduleIsDead()).ran).toEqual([]);
   });

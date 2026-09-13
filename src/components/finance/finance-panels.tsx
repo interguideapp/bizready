@@ -2,7 +2,7 @@ import { AlertTriangle, Banknote, CalendarClock, Gauge, TrendingUp } from "lucid
 import { Card } from "@/components/ui";
 import { RevenueChart, type MonthPoint } from "@/components/revenue-chart";
 import { ceilingStanding } from "@/lib/finance/ceiling";
-import { computeSetAside } from "@/lib/finance/setaside";
+import { SETASIDE_ESTIMATE_NOTE, computeSetAside } from "@/lib/finance/setaside";
 import { formatIlsRounded } from "@/lib/money";
 
 // One formatter for the whole app — see lib/money.ts. Rounded here because
@@ -99,9 +99,8 @@ export function FinancePanels({ d }: { d: FinanceData }) {
           </h2>
           <p className="tnum text-2xl font-bold text-ink">{nis(setAside.low)}–{nis(setAside.high)}</p>
           <p className="text-xs text-ink-muted">
-            הערכה בלבד — כ-25%–35% מהמחזור למס הכנסה וביטוח לאומי.
+            {SETASIDE_ESTIMATE_NOTE} כ-25%–35% מהמחזור למס הכנסה וביטוח לאומי.
             {(d.entityType === "osek_murshe" || d.entityType === "company") && " מע\"מ נגבה מהלקוח ומועבר בנפרד."}
-            {" "}לאימות מול רו״ח.
           </p>
           {d.nextPayments.length > 0 && (
             <div className="mt-3 border-t border-edge-soft pt-3">

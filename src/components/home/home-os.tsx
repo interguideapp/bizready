@@ -27,6 +27,7 @@ import {
   Wifi,
   Zap,
 } from "lucide-react";
+import { SETASIDE_ESTIMATE_NOTE } from "@/lib/finance/setaside";
 import { greetingFor, type QuickWin } from "@/lib/home";
 import type { ConfidenceState } from "@/lib/confidence";
 import { formatIlsRounded } from "@/lib/money";
@@ -521,7 +522,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
               detail={
                 data.tiles.money.hasIncome ? (
                   data.tiles.money.showSetAside ? (
-                    <>הערכה: {nis(data.tiles.money.setAsideLow)}–{nis(data.tiles.money.setAsideHigh)} מההכנסה שנרשמה השנה. מחזור החודש: {nis(data.tiles.money.monthRevenue)}.</>
+                    <>{SETASIDE_ESTIMATE_NOTE} {nis(data.tiles.money.setAsideLow)}–{nis(data.tiles.money.setAsideHigh)} מההכנסה שנרשמה השנה. מחזור החודש: {nis(data.tiles.money.monthRevenue)}.</>
                   ) : (
                     <>מס חברות מחושב על הרווח — הפרשה מדויקת מול הרו״ח.</>
                   )

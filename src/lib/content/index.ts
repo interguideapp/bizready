@@ -34,7 +34,7 @@ export const ALREADY_DONE_OPTIONS: {
   entities?: EntityType[];
 }[] = [
   // individual / partnership registration
-  { id: "open-vat-file", label: "פתחתי תיק עוסק במע\"מ", entities: ["osek_patur", "osek_murshe", "partnership"] },
+  { id: "open-vat-file", label: "פתחתי תיק עוסק במע״מ", entities: ["osek_patur", "osek_murshe", "partnership"] },
   { id: "open-income-tax-file", label: "יש לי תיק במס הכנסה", entities: ["osek_patur", "osek_murshe", "partnership"] },
   { id: "open-bituach-leumi-file", label: "נרשמתי בביטוח לאומי", entities: ["osek_patur", "osek_murshe", "partnership"] },
   // company
@@ -47,7 +47,7 @@ export const ALREADY_DONE_OPTIONS: {
   // universal
   { id: "business-bank-account", label: "יש חשבון בנק נפרד לעסק", entities: ["osek_patur", "osek_murshe", "partnership"] },
   { id: "invoicing-software", label: "יש לי תוכנת חשבוניות" },
-  { id: "choose-accountant", label: "יש לי רו\"ח / יועץ מס" },
+  { id: "choose-accountant", label: "יש לי רו״ח / יועץ מס" },
   { id: "buy-domain", label: "יש לי דומיין" },
   { id: "build-website", label: "יש לי אתר / דף נחיתה" },
   { id: "google-business-profile", label: "יש לי פרופיל עסק בגוגל" },

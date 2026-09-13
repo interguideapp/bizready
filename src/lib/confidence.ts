@@ -82,7 +82,7 @@ export function computeConfidence(input: ConfidenceInput): Confidence {
       // Plural neutral, like the rest of the product: "חצית" was singular
       // masculine, and "חרגתם" is also the more precise verb.
       headline: "חרגתם מתקרת עוסק פטור",
-      detail: "זמן לעבור לעוסק מורשה — מעל התקרה חל חיוב מע\"מ. כדאי להסדיר בהקדם.",
+      detail: "זמן לעבור לעוסק מורשה — מעל התקרה חל חיוב מע״מ. כדאי להסדיר בהקדם.",
       theOneThing: ceilingTaskId ? { templateId: ceilingTaskId, title: "מעבר לעוסק מורשה" } : null,
       realRisks: 1,
     };

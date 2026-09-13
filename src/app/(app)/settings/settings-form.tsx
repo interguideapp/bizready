@@ -114,7 +114,7 @@ const EMPLOYEE_SELECT = {
 /** Shown only for עוסק מורשה — drives the real VAT/advances filing dates. */
 const VAT_FREQUENCY_SELECT = {
   key: "vat_frequency" as const,
-  label: "תדירות דיווח מע\"מ ומקדמות",
+  label: "תדירות דיווח מע״מ ומקדמות",
   options: [
     { value: "bimonthly", label: "אחת לחודשיים" },
     { value: "monthly", label: "כל חודש" },

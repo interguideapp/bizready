@@ -55,7 +55,7 @@ function view(over: Partial<TaskView> = {}): TaskView {
     categoryIcon: "Scale",
     priority: "critical",
     status: "todo",
-    why: "בלי תיק במע\"מ אסור להתחיל לפעול",
+    why: "בלי תיק במע״מ אסור להתחיל לפעול",
     steps: ["שלב ראשון", "שלב שני"],
     stepsDone: [],
     // Built from the real registry rather than hand-written, so the fixture

@@ -43,7 +43,7 @@ function draft(over: Partial<NotificationDraft> = {}): NotificationDraft {
 describe("a broken sweep can no longer produce an all-clear", () => {
   it("surfaces an overdue filing with nothing stored at all", () => {
     // This is the state a dead cron leaves the database in.
-    const items = mergeAttention([], [draft({ type: "overdue", title: "באיחור: מע\"מ" })]);
+    const items = mergeAttention([], [draft({ type: "overdue", title: "באיחור: מע״מ" })]);
     expect(items).toHaveLength(1);
     expect(items[0].derived).toBe(true);
     expect(isGenuinelyCalm(items)).toBe(false);

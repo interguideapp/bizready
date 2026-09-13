@@ -225,7 +225,7 @@ const TEMPLATE_CHAINS: Record<string, Stage[]> = {
   // reported-but-unpaid filing is the expensive middle state.
   "vat-reporting": [
     { id: "gather", label: "אוספים חשבוניות ותשומות", owner: "you", advance: "הנתונים מוכנים" },
-    { id: "file", label: "מוכן לדיווח מע\"מ", owner: "you", advance: "דיווחתי" },
+    { id: "file", label: "מוכן לדיווח מע״מ", owner: "you", advance: "דיווחתי" },
     {
       id: "pay",
       label: "דווח — ממתין לתשלום",

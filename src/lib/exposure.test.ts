@@ -14,7 +14,7 @@ function ob(over: Partial<Obligation> = {}): Obligation {
     id: "o1",
     kind: "vat",
     basis: "statutory",
-    title: "דיווח מע\"מ",
+    title: "דיווח מע״מ",
     dueDate: "2026-09-15",
     templateId: "vat-reporting",
     daysUntil: 4,
@@ -142,7 +142,7 @@ describe("ranking by what it will actually cost", () => {
         title: "פרופיל גוגל",
         daysUntil: 0,
       }),
-      ob({ id: "vat", daysUntil: -5, title: "דיווח מע\"מ" }),
+      ob({ id: "vat", daysUntil: -5, title: "דיווח מע״מ" }),
     ]);
     expect(ranked[0].obligationId).toBe("vat");
   });

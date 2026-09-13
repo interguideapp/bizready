@@ -178,7 +178,7 @@ export function computeBadges(ctx: BadgeContext): Badge[] {
     {
       id: "registered",
       title: "רשומים כחוק",
-      description: "פתחתם תיק עוסק במע\"מ",
+      description: "פתחתם תיק עוסק במע״מ",
       icon: "Landmark",
       earned: isDone("open-vat-file"),
     },
@@ -192,7 +192,7 @@ export function computeBadges(ctx: BadgeContext): Badge[] {
     {
       id: "reporting",
       title: "מדווחים בזמן",
-      description: "השלמתם דיווח סטטוטורי (מע\"מ / מקדמות / שנתי)",
+      description: "השלמתם דיווח סטטוטורי (מע״מ / מקדמות / שנתי)",
       icon: "FileCheck2",
       earned: anyStatutoryDone,
     },

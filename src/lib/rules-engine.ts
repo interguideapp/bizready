@@ -138,7 +138,7 @@ export function buildPlan(
       //
       // The old comment here claimed "X days from now = from business start",
       // and that is only true if the user signed up on their first day. An
-      // already-operating business was handed "פתיחת תיק עוסק במע\"מ — מומלץ עד
+      // already-operating business was handed "פתיחת תיק עוסק במע״מ — מומלץ עד
       // <signup + 30>" for something it did years ago, and once that date
       // passed, "היה מומלץ עד" — a deadline invented at signup, for work
       // already finished. Plausible-looking dates that are fiction teach people
@@ -211,7 +211,7 @@ export function reconcilePlan(
    *
    * buildPlan dates a non-statutory task as addDays(today, deadline_days) —
    * unless the business is already ACTIVE, in which case it gets no date at
-   * all, because "פתיחת תיק עוסק במע\"מ — מומלץ עד <signup + 30>" is fiction
+   * all, because "פתיחת תיק עוסק במע״מ — מומלץ עד <signup + 30>" is fiction
    * for work finished years ago (B5).
    *
    * But reconcilePlan only ever decided which tasks EXIST. So someone who

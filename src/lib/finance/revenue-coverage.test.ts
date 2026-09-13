@@ -6,7 +6,7 @@ import { revenueCoverage } from "@/lib/finance/ceiling";
 /**
  * How current the revenue behind a ceiling reading is.
  *
- * The עוסק פטור ceiling decides a legal fact — over it, registration for מע"מ
+ * The עוסק פטור ceiling decides a legal fact — over it, registration for מע״מ
  * is required — and the percentage was rendered with no indication of the
  * data's age. revenueYtd is summed from sync_metrics, which the nightly sync
  * fills, and that sync has NO fallback: lazy-sweep runs reminders only, so

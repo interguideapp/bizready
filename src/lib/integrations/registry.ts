@@ -12,7 +12,7 @@ import type { IntegrationCategory, ProviderAdapter, PullableField } from "./type
 const DOC_FIELDS: PullableField[] = [
   { key: "customer_name", label: "שמות לקוחות", default: true },
   { key: "allocation_number", label: "מספרי הקצאה", default: true },
-  { key: "vat_amount", label: "סכומי מע\"מ", default: true },
+  { key: "vat_amount", label: "סכומי מע״מ", default: true },
 ];
 const LEAD_FIELDS: PullableField[] = [
   { key: "source", label: "מקור הליד", default: true },
@@ -75,9 +75,9 @@ export const PROVIDERS: ProviderAdapter[] = [
   ),
   csvProvider(
     "invoicing-csv",
-    "ייצוא מסמכים (חשבשבת / דוח רו\"ח)",
+    "ייצוא מסמכים (חשבשבת / דוח רו״ח)",
     "invoicing",
-    "מייצאים דוח מסמכים חודשי (CSV/Excel→CSV) ומעלים כאן. עמודות: תאריך, סוג, סכום, מע\"מ, לקוח, מספר הקצאה."
+    "מייצאים דוח מסמכים חודשי (CSV/Excel→CSV) ומעלים כאן. עמודות: תאריך, סוג, סכום, מע״מ, לקוח, מספר הקצאה."
   ),
 
   // ---- payments ----

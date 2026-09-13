@@ -40,7 +40,7 @@ const SECTIONS: { title: string; fields: FieldDef[] }[] = [
   {
     title: "תיקים ברשויות",
     fields: [
-      { key: "vat_file", label: "תיק מע\"מ", dir: "ltr" },
+      { key: "vat_file", label: "תיק מע״מ", dir: "ltr" },
       { key: "income_tax_file", label: "תיק מס הכנסה", dir: "ltr" },
       { key: "bituach_leumi_file", label: "תיק ביטוח לאומי", dir: "ltr" },
     ],
@@ -54,7 +54,7 @@ const SECTIONS: { title: string; fields: FieldDef[] }[] = [
     ],
   },
   {
-    title: "רו\"ח / יועץ מס",
+    title: "רו״ח / יועץ מס",
     fields: [
       { key: "accountant_name", label: "שם" },
       { key: "accountant_phone", label: "טלפון", dir: "ltr" },

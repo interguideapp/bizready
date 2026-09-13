@@ -27,7 +27,7 @@ describe("computeAttention", () => {
 
   it("raises the overdue statutory filing as most urgent", () => {
     const obs: AttentionObligation[] = [
-      { templateId: "vat-reporting", title: "מע\"מ", dueDate: "2026-09-10", daysUntil: -10, basis: "statutory", periodLabel: "יולי–אוגוסט" },
+      { templateId: "vat-reporting", title: "מע״מ", dueDate: "2026-09-10", daysUntil: -10, basis: "statutory", periodLabel: "יולי–אוגוסט" },
       { templateId: "annual-tax-report", title: "שנתי", dueDate: "2027-04-30", daysUntil: 220, basis: "statutory", periodLabel: null },
     ];
     const a = computeAttention(obs, [], new Map(), today);
@@ -36,7 +36,7 @@ describe("computeAttention", () => {
 
   it("picks the most important AVAILABLE task as next — critical over recommended, and not the urgent one", () => {
     const obs: AttentionObligation[] = [
-      { templateId: "vat-reporting", title: "מע\"מ", dueDate: "2026-09-25", daysUntil: 5, basis: "statutory", periodLabel: null },
+      { templateId: "vat-reporting", title: "מע״מ", dueDate: "2026-09-25", daysUntil: 5, basis: "statutory", periodLabel: null },
     ];
     const nodes = [
       node({ templateId: "vat-reporting", priority: "critical", state: "available" }),

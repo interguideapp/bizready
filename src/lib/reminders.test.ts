@@ -416,7 +416,7 @@ describe("an open recurring habit keeps nudging", () => {
 
 describe("an overdue notification says which period", () => {
   it("names the period for a VAT filing", () => {
-    // "באיחור: דיווח מע\"מ" does not say late for WHAT. An email is often all
+    // "באיחור: דיווח מע״מ" does not say late for WHAT. An email is often all
     // someone sees for days, and with two periods outstanding they need to know
     // which one this is about.
     const { notifications } = computeReminders(

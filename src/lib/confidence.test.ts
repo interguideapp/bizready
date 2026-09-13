@@ -5,7 +5,7 @@ describe("computeConfidence", () => {
   it("is at_risk when a statutory filing is overdue", () => {
     const c = computeConfidence({
       overdueStatutory: 2,
-      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: -5 },
+      urgent: { templateId: "vat-reporting", title: "דיווח מע״מ", daysUntil: -5 },
       next: null,
       remainingCritical: 4,
     });
@@ -19,7 +19,7 @@ describe("computeConfidence", () => {
     const c = computeConfidence({
       overdueStatutory: 0,
       urgent: null,
-      next: { templateId: "open-vat-file", title: "פתיחת תיק עוסק במע\"מ" },
+      next: { templateId: "open-vat-file", title: "פתיחת תיק עוסק במע״מ" },
       remainingCritical: 5,
     });
     expect(c.state).toBe("on_track");
@@ -31,7 +31,7 @@ describe("computeConfidence", () => {
   it("prefers the urgent dated item over the next task for the one thing", () => {
     const c = computeConfidence({
       overdueStatutory: 0,
-      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: 3 },
+      urgent: { templateId: "vat-reporting", title: "דיווח מע״מ", daysUntil: 3 },
       next: { templateId: "pricing", title: "תמחור" },
       remainingCritical: 3,
     });
@@ -53,7 +53,7 @@ describe("computeConfidence", () => {
   it("flags at_risk with a switch-to-murshe action when the patur ceiling is crossed", () => {
     const c = computeConfidence({
       overdueStatutory: 0,
-      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: 3 },
+      urgent: { templateId: "vat-reporting", title: "דיווח מע״מ", daysUntil: 3 },
       next: null,
       remainingCritical: 2,
       ceilingPct: 104,
@@ -68,7 +68,7 @@ describe("computeConfidence", () => {
   it("adds an approaching-ceiling note to on_track without alarming", () => {
     const c = computeConfidence({
       overdueStatutory: 0,
-      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: 5 },
+      urgent: { templateId: "vat-reporting", title: "דיווח מע״מ", daysUntil: 5 },
       next: null,
       remainingCritical: 2,
       ceilingPct: 88,
@@ -82,7 +82,7 @@ describe("computeConfidence", () => {
   it("an overdue filing still outranks a crossed ceiling for the headline", () => {
     const c = computeConfidence({
       overdueStatutory: 1,
-      urgent: { templateId: "vat-reporting", title: "דיווח מע\"מ", daysUntil: -3 },
+      urgent: { templateId: "vat-reporting", title: "דיווח מע״מ", daysUntil: -3 },
       next: null,
       remainingCritical: 2,
       ceilingPct: 120,

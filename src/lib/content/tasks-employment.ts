@@ -30,7 +30,7 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
     ],
     docs_needed: ["מספרי התיקים של העסק"],
     est_cost: "חינם",
-    est_time: "שעה (או דרך רו\"ח)",
+    est_time: "שעה (או דרך רו״ח)",
     completion: {
       confirm: "פתחתי תיק ניכויים ותיק מעסיק",
       fields: [{ key: "deductions_file", label: "מספר תיק ניכויים", required: true }],

@@ -98,7 +98,7 @@ export function ceilingOutlook(args: {
  * How current the revenue behind a ceiling reading actually is.
  *
  * The ceiling decides a legal fact — over it, an עוסק פטור must register for
- * מע"מ — and the percentage was rendered with no indication of the data's age.
+ * מע״מ — and the percentage was rendered with no indication of the data's age.
  * revenueYtd is summed from sync_metrics, which the nightly sync fills, and
  * that sync has no fallback: lazy-sweep runs reminders only, so when the
  * schedule is dead the figure is whatever was last pulled by hand.

@@ -82,7 +82,7 @@ export function FinancePanels({ d }: { d: FinanceData }) {
               />
             </div>
             {/* WHERE THIS PERCENTAGE COMES FROM.
-                A number that decides whether someone must register for מע"מ
+                A number that decides whether someone must register for מע״מ
                 must not be read as current when it is not. Said plainly when
                 the data is behind, and quietly when it is not — a provenance
                 line that shouts every month becomes wallpaper. */}
@@ -166,7 +166,7 @@ export function FinancePanels({ d }: { d: FinanceData }) {
           <p className="tnum text-2xl font-bold text-ink">{nis(setAside.low)}–{nis(setAside.high)}</p>
           <p className="text-xs text-ink-muted">
             {SETASIDE_ESTIMATE_NOTE} כ-25%–35% מהמחזור למס הכנסה וביטוח לאומי.
-            {(d.entityType === "osek_murshe" || d.entityType === "company") && " מע\"מ נגבה מהלקוח ומועבר בנפרד."}
+            {(d.entityType === "osek_murshe" || d.entityType === "company") && " מע״מ נגבה מהלקוח ומועבר בנפרד."}
           </p>
           {d.nextPayments.length > 0 && (
             <div className="mt-3 border-t border-edge-soft pt-3">

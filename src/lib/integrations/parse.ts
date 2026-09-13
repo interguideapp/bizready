@@ -182,7 +182,7 @@ export function parseCsvRows(
         external_id: str(row.external_id) ?? `csv-${i}-${row.date ?? row["תאריך"] ?? ""}-${amount}`,
         kind: "invoice",
         amount,
-        vat_amount: num(row.vat ?? row["מעמ"] ?? row["מע\"מ"]),
+        vat_amount: num(row.vat ?? row["מעמ"] ?? row["מע״מ"]),
         issued_at: isoDate(row.date ?? row["תאריך"]),
         customer_name: str(row.customer ?? row["לקוח"]),
         allocation_number: str(row.allocation_number ?? row["מספר הקצאה"]),

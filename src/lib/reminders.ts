@@ -299,7 +299,7 @@ export function computeReminders(
         if (statutory) {
           // NAME THE PERIOD.
           //
-          // "באיחור: דיווח מע\"מ" does not say late for WHAT, and now that a
+          // "באיחור: דיווח מע״מ" does not say late for WHAT, and now that a
           // period is a first-class thing the product tracks it can. This
           // matters most here rather than on screen: an email or a WhatsApp
           // is often all someone sees for days, and if two periods are

@@ -51,7 +51,7 @@ export const icountAdapter: ProviderAdapter = {
   pullableFields: [
     { key: "customer_name", label: "שמות לקוחות", default: true },
     { key: "allocation_number", label: "מספרי הקצאה (חשבוניות ישראל)", default: true },
-    { key: "vat_amount", label: "סכומי מע\"מ", default: true },
+    { key: "vat_amount", label: "סכומי מע״מ", default: true },
   ],
 
   async testConnection(creds) {

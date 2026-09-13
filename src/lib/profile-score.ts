@@ -38,7 +38,7 @@ export function computeProfileCompleteness(
   const checks: ProfileCheck[] = [
     { id: "name", label: "שם העסק", done: filled(business.name), href: "/business" },
     { id: "dealer", label: "מספר עוסק", done: filled(business.dealer_number), href: "/business" },
-    { id: "vat", label: "תיק מע\"מ", done: filled(business.vat_file), href: "/business" },
+    { id: "vat", label: "תיק מע״מ", done: filled(business.vat_file), href: "/business" },
     { id: "income-tax", label: "תיק מס הכנסה", done: filled(business.income_tax_file), href: "/business" },
     { id: "bituach", label: "תיק ביטוח לאומי", done: filled(business.bituach_leumi_file), href: "/business" },
     {
@@ -49,7 +49,7 @@ export function computeProfileCompleteness(
     },
     {
       id: "accountant",
-      label: "איש מקצוע מלווה (רו\"ח / יועץ)",
+      label: "איש מקצוע מלווה (רו״ח / יועץ)",
       done: filled(business.accountant_name) || filled(business.accountant_phone),
       href: "/business",
     },

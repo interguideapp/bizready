@@ -112,7 +112,7 @@ export async function loadPassport(): Promise<PassportData | null> {
     if (v && v.trim()) identity.push({ label, value: v, ltr });
   };
   push("מספר עוסק", business.dealer_number, true);
-  push("תיק מע\"מ", business.vat_file, true);
+  push("תיק מע״מ", business.vat_file, true);
   push("תיק מס הכנסה", business.income_tax_file, true);
   push("תיק ביטוח לאומי", business.bituach_leumi_file, true);
   push("בנק", business.bank_name);
@@ -121,9 +121,9 @@ export async function loadPassport(): Promise<PassportData | null> {
   // on the business card, which is the user's own private reference, and in
   // their data export.
   push("מספר חשבון", maskAccount(business.bank_account), true);
-  push("רו\"ח / יועץ מס", business.accountant_name);
-  push("טלפון רו\"ח", business.accountant_phone, true);
-  push("אימייל רו\"ח", business.accountant_email, true);
+  push("רו״ח / יועץ מס", business.accountant_name);
+  push("טלפון רו״ח", business.accountant_phone, true);
+  push("אימייל רו״ח", business.accountant_email, true);
 
   const hasCosts = costs.length > 0;
   const entityLabel = ENTITY_LABELS[business.entity_type as keyof typeof ENTITY_LABELS] ?? "עוסק";

@@ -31,7 +31,7 @@ import type { Obligation, ObligationKind } from "@/lib/compliance";
  */
 
 const KIND_META: Record<ObligationKind, { label: string; icon: React.ReactNode }> = {
-  vat: { label: "דיווח מע\"מ", icon: <Receipt className="h-4 w-4" aria-hidden /> },
+  vat: { label: "דיווח מע״מ", icon: <Receipt className="h-4 w-4" aria-hidden /> },
   advances: { label: "מקדמות מס", icon: <Landmark className="h-4 w-4" aria-hidden /> },
   annual_report: { label: "דוח שנתי", icon: <Landmark className="h-4 w-4" aria-hidden /> },
   employer_deductions: { label: "ניכויים (102)", icon: <Users className="h-4 w-4" aria-hidden /> },

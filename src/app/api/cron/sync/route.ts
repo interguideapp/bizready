@@ -78,19 +78,27 @@ export async function runSyncSweep(): Promise<Response> {
         code: "sync_failed",
         message,
       });
-      await supabase.from("notifications").upsert(
-        [
-          {
-            business_id: connection.business_id,
-            type: "system",
-            title: `סנכרון ${adapter.label} נכשל`,
-            body: "בדקו את פרטי החיבור במסך האינטגרציות.",
-            template_id: null,
-            dedupe_key: `syncfail:${connection.id}:${new Date().toISOString().slice(0, 10)}`,
-          },
-        ],
-        { onConflict: "business_id,dedupe_key", ignoreDuplicates: true }
-      );
+      /*
+       * No notification row is written here, deliberately.
+       *
+       * This used to upsert one keyed `syncfail:<connection>:<date>`, while
+       * syncErrorDrafts derives an alert from the very same sync_errors row it
+       * just inserted, keyed `sync:<occurred_at>`. mergeAttention dedupes by
+       * exact key equality, so the two could never match: ONE broken connection
+       * produced TWO rows in the alerts list, under different titles, and at
+       * different positions — type "sync" ranks 3 while "system" is unranked
+       * and sorts last, so they did not even read as a duplicate.
+       *
+       * The stored copy was also the worse of the two. getOpenSyncErrors
+       * filters on resolved_at, so the derived alert disappears the moment the
+       * user resolves the error; a stored row persists until it is READ. Fixing
+       * the connection left the alarm standing, which is the same shape as the
+       * renewal that could never be cleared.
+       *
+       * The sync_errors insert above is the durable record, and the alert is
+       * derived from it on every page load, so nothing is lost by not storing a
+       * second version of the same fact.
+       */
     }
   }
 

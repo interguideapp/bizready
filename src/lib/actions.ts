@@ -157,13 +157,14 @@ export async function updateAnswers(
     .eq("id", business.id);
   if (error) throw new Error(error.message);
 
+  // status and due_date too, so a correction can clear dates it invented.
   const { data: existing } = await supabase
     .from("business_tasks")
-    .select("template_id, is_relevant")
+    .select("template_id, is_relevant, status, due_date")
     .eq("business_id", business.id);
 
   const reconcile = reconcilePlan(answers, TASK_TEMPLATES, existing ?? []);
-  const { toAdd, toFlagIrrelevant, toFlagRelevant } = reconcile;
+  const { toAdd, toFlagIrrelevant, toFlagRelevant, toRedate } = reconcile;
 
   if (toAdd.length > 0) {
     await supabase.from("business_tasks").insert(
@@ -189,6 +190,33 @@ export async function updateAnswers(
       .update({ is_relevant: true })
       .eq("business_id", business.id)
       .in("template_id", toFlagRelevant);
+  }
+
+  /*
+   * Re-date what the corrected answers re-dated.
+   *
+   * The case this exists for: someone signed up as "setting_up", got a
+   * recommended date on every non-statutory task, and has now told us the
+   * business is already active — which means buildPlan gives those tasks no
+   * date at all, because a suggested deadline for work finished years ago is
+   * fiction (B5). Until now the correction changed which tasks existed and
+   * left every invented date in place, and those dates feed the obligations
+   * board, taskImportance and the exposure ranking.
+   *
+   * One statement per date rather than one per task: the dates come in a
+   * handful of distinct values, so this is a few updates and not forty.
+   */
+  const byDate = new Map<string, string[]>();
+  for (const t of toRedate) {
+    const key = t.due_date ?? "";
+    byDate.set(key, [...(byDate.get(key) ?? []), t.template_id]);
+  }
+  for (const [key, templateIds] of byDate) {
+    await supabase
+      .from("business_tasks")
+      .update({ due_date: key === "" ? null : key })
+      .eq("business_id", business.id)
+      .in("template_id", templateIds);
   }
 
   // reporting frequency (or entity) may have changed — re-anchor the real

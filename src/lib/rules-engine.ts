@@ -187,16 +187,57 @@ function addDays(date: Date, days: number): string {
 export function reconcilePlan(
   answers: OnboardingAnswers,
   templates: TaskTemplate[],
-  existing: { template_id: string; is_relevant: boolean }[],
+  existing: {
+    template_id: string;
+    is_relevant: boolean;
+    status?: string;
+    due_date?: string | null;
+  }[],
   today: Date = new Date()
 ): {
   toAdd: PlannedTask[];
   toFlagIrrelevant: string[]; // template_ids
   toFlagRelevant: string[]; // template_ids
+  /** Existing tasks whose recommended date the corrected answers changed. */
+  toRedate: { template_id: string; due_date: string | null }[];
 } {
   const existingIds = new Set(existing.map((t) => t.template_id));
   const plan = buildPlan(answers, templates, today);
   const applicableIds = new Set(plan.map((t) => t.template_id));
+  const plannedDate = new Map(plan.map((t) => [t.template_id, t.due_date] as const));
+
+  /*
+   * RE-DATING, which this did not do and which made a correction useless.
+   *
+   * buildPlan dates a non-statutory task as addDays(today, deadline_days) —
+   * unless the business is already ACTIVE, in which case it gets no date at
+   * all, because "פתיחת תיק עוסק במע\"מ — מומלץ עד <signup + 30>" is fiction
+   * for work finished years ago (B5).
+   *
+   * But reconcilePlan only ever decided which tasks EXIST. So someone who
+   * signed up as setting_up, got forty invented recommended dates, and later
+   * corrected the answer to active kept every one of them — and those dates
+   * feed the obligations board, taskImportance and the exposure ranking, and
+   * turn into "היה מומלץ עד" as they pass. The correction changed the plan's
+   * shape and left its fiction in place.
+   *
+   * Only non-statutory, not-done tasks. A statutory date is re-anchored
+   * separately from the filing rules and must never be overwritten from here,
+   * and re-dating something already finished says nothing about anything.
+   */
+  const toRedate = existing
+    .filter((t) => {
+      if (t.status === "done") return false;
+      if (isStatutoryFiling(t.template_id)) return false;
+      if (!applicableIds.has(t.template_id)) return false;
+      const planned = plannedDate.get(t.template_id) ?? null;
+      const stored = t.due_date ?? null;
+      return planned !== stored;
+    })
+    .map((t) => ({
+      template_id: t.template_id,
+      due_date: plannedDate.get(t.template_id) ?? null,
+    }));
 
   return {
     toAdd: plan.filter((t) => !existingIds.has(t.template_id)),
@@ -206,6 +247,7 @@ export function reconcilePlan(
     toFlagRelevant: existing
       .filter((t) => !t.is_relevant && applicableIds.has(t.template_id))
       .map((t) => t.template_id),
+    toRedate,
   };
 }
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Command } from "lucide-react";
+import { ClipboardCheck, Command } from "lucide-react";
 import { UpgradeCta } from "@/components/upgrade-cta";
-import { PageTitle } from "@/components/ui";
+import { Card, PageTitle } from "@/components/ui";
 import { getMembers, isAdmin, requireBusinessContext } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
@@ -65,6 +65,30 @@ export default async function SettingsPage() {
           vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
         />
       </div>
+      {/*
+        Next to the answers, because they are the two halves of the same
+        question. SettingsForm changes what APPLIES to the business; this
+        records what is already DONE — and only the first was reachable after
+        onboarding, so a plan could be perfectly applicable and still describe
+        none of the work the owner had actually finished.
+      */}
+      <Card className="mb-5 p-4">
+        <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
+          <ClipboardCheck className="h-4.5 w-4.5 text-brand-strong" aria-hidden />
+          ריענון: מה כבר קיים בעסק
+        </h2>
+        <p className="mb-3 text-sm leading-relaxed text-ink-muted">
+          עשיתם דברים מחוץ למערכת, או שהעסק היה קיים עוד לפני שנרשמתם? סמנו מה
+          שכבר טופל והציון, הדדליינים וההתראות יחושבו מחדש לפי המצב האמיתי.
+        </p>
+        <Link
+          href="/catch-up"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-edge px-5 py-2.5 text-sm font-medium text-ink-soft transition hover:border-brand-edge hover:text-brand-strong"
+        >
+          פתיחת השאלון
+        </Link>
+      </Card>
+
       <SettingsForm answers={business.onboarding_answers as OnboardingAnswers} />
 
       {/* Collaborators and privacy are the owner's, not an advisor's: exporting

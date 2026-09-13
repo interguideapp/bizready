@@ -1,0 +1,116 @@
+import { isStatutoryFiling } from "@/lib/compliance";
+import type { TaskTemplate } from "@/lib/types";
+
+/**
+ * "What does the business already have?" — asked again, at any time.
+ *
+ * Onboarding asks this once, from a curated list of eighteen ALREADY_DONE
+ * options, and `already_done` is then read exactly once: at plan-build time in
+ * rules-engine. After that there is no catch-up pass at all. A business that
+ * existed before signing up, or an owner who spent three months getting things
+ * done without opening the app, had to walk the plan task by task — and the
+ * product's own readiness score, exposure ranking and alerts were all computed
+ * from a picture it knew was stale.
+ *
+ * This is the same question over the ACTUAL plan rather than a curated subset,
+ * so it covers whatever is genuinely open for this business.
+ *
+ * WHAT IT MAY NOT OFFER, and this is the whole safety property: a statutory
+ * filing can never be ticked here. The audit was explicit — "never allow a
+ * client to set a statutory filing done without the evidence flow" — because a
+ * crafted payload marking vat-reporting done silences the overdue alarm, earns
+ * the "מדווחים בזמן" badge and makes the penalty-bearing reminder path
+ * unreachable, all for a filing nobody made. Those keep their own completion
+ * flow, which captures evidence into the audit trail. This offers the setup and
+ * housekeeping work, which is where the catch-up backlog actually is.
+ */
+
+/** What the user can say about one open task. */
+export type CatchUpMark = "done" | "handled_externally";
+
+export interface CatchUpItem {
+  templateId: string;
+  title: string;
+  categoryId: string;
+  /** Statutory filings are excluded entirely; this is everything else open. */
+  priority: TaskTemplate["priority"];
+}
+
+export interface CatchUpTask {
+  template_id: string;
+  status: string;
+  is_relevant: boolean;
+}
+
+/** Statutory filings, listed so a screen can say WHY they are absent. */
+export function statutoryHeldBack(
+  tasks: CatchUpTask[],
+  templates: Map<string, TaskTemplate>
+): CatchUpItem[] {
+  return tasks
+    .filter((t) => t.is_relevant && t.status !== "done" && isStatutoryFiling(t.template_id))
+    .map((t) => itemOf(t.template_id, templates))
+    .filter((i): i is CatchUpItem => i !== null);
+}
+
+function itemOf(
+  templateId: string,
+  templates: Map<string, TaskTemplate>
+): CatchUpItem | null {
+  const tpl = templates.get(templateId);
+  if (!tpl) return null;
+  return {
+    templateId,
+    title: tpl.title,
+    categoryId: tpl.category_id,
+    priority: tpl.priority,
+  };
+}
+
+/**
+ * Everything the questionnaire may offer, in plan order.
+ *
+ * Open and relevant only: a task already done needs no catch-up, and one the
+ * user dismissed was a deliberate decision this must not quietly reverse.
+ */
+export function catchUpItems(
+  tasks: CatchUpTask[],
+  templates: Map<string, TaskTemplate>
+): CatchUpItem[] {
+  return tasks
+    .filter(
+      (t) =>
+        t.is_relevant &&
+        t.status !== "done" &&
+        t.status !== "not_relevant" &&
+        !isStatutoryFiling(t.template_id)
+    )
+    .map((t) => itemOf(t.template_id, templates))
+    .filter((i): i is CatchUpItem => i !== null);
+}
+
+/**
+ * Which of the submitted marks may actually be applied.
+ *
+ * Runs on the server over the business's own plan, because a Server Action is
+ * a public POST endpoint and the ids arrive from the browser. Anything not
+ * currently offerable is dropped rather than rejected wholesale: a plan that
+ * changed in another tab must not make the whole submission fail.
+ */
+export function acceptableMarks(
+  submitted: { templateId: string; mark: CatchUpMark }[],
+  tasks: CatchUpTask[],
+  templates: Map<string, TaskTemplate>
+): { templateId: string; mark: CatchUpMark }[] {
+  const offerable = new Set(catchUpItems(tasks, templates).map((i) => i.templateId));
+  const seen = new Set<string>();
+  return submitted.filter((m) => {
+    if (!offerable.has(m.templateId)) return false;
+    if (m.mark !== "done" && m.mark !== "handled_externally") return false;
+    // One decision per task, first wins, so a duplicated id cannot produce two
+    // conflicting writes in one submission.
+    if (seen.has(m.templateId)) return false;
+    seen.add(m.templateId);
+    return true;
+  });
+}

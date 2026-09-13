@@ -83,6 +83,21 @@ export default async function PlanReadyPage() {
           קדימה לעבודה
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </Link>
+
+        {/*
+          The one moment an already-operating business most needs this. The
+          wizard's "מה כבר יש?" step offers a curated eighteen options; the plan
+          just built is the full list, and this is the first time the user can
+          see it. Without the offer here, someone who has been trading for three
+          years starts with a plan that says they have done none of it.
+        */}
+        <p className="mt-5 text-sm text-ink-muted">
+          העסק כבר קיים ועשיתם חלק מזה?{" "}
+          <Link href="/catch-up" className="font-medium text-brand-strong hover:underline">
+            סמנו מה שכבר טופל
+          </Link>{" "}
+          והתכנית תחושב מחדש.
+        </p>
       </div>
     </div>
   );

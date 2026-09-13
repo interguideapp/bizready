@@ -25,6 +25,7 @@ import {
   terminalStageFor,
 } from "@/lib/content/milestones";
 import { ledgerPeriodFor } from "@/lib/filings";
+import { acceptableMarks, type CatchUpMark } from "@/lib/catch-up";
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { deleteAccountCompletely } from "@/lib/privacy";
 import { capLength, check } from "@/lib/rate-limit";
@@ -1647,4 +1648,102 @@ export async function runScheduledJobNow(
     revalidatePath("/admin");
     return { ok: false, detail: e instanceof Error ? e.message : "שגיאה לא צפויה" };
   }
+}
+
+/**
+ * Apply a catch-up pass: "these were already handled."
+ *
+ * Onboarding asks this once and `already_done` is read once, at plan-build
+ * time. A business that existed before signing up, or an owner who got a lot
+ * done offline, had no way to tell the product except task by task — while the
+ * readiness score, the exposure ranking and every alert were computed from a
+ * picture known to be stale. See lib/catch-up.ts.
+ *
+ * The statutory refusal is enforced HERE, not only in the list the screen
+ * renders. A Server Action is a public POST endpoint and TypeScript vanishes at
+ * runtime, so the ids arrive from a browser and are checked against this
+ * business's own plan. Marking vat-reporting done would silence the overdue
+ * alarm, earn the on-time badge and make the penalty-bearing reminder path
+ * unreachable, for a filing nobody made — acceptableMarks drops it and this
+ * never sees it.
+ */
+export async function applyCatchUp(
+  submitted: { templateId: string; mark: CatchUpMark }[]
+): Promise<{ done: number; handled: number; skipped: number }> {
+  const { supabase, user } = await requireUser();
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", user.id)
+    .single();
+  if (!business) redirect("/onboarding");
+
+  const { data: tasks } = await supabase
+    .from("business_tasks")
+    .select("id, template_id, status, is_relevant")
+    .eq("business_id", business.id);
+  const plan = tasks ?? [];
+
+  const accepted = acceptableMarks(
+    Array.isArray(submitted) ? submitted.slice(0, 200) : [],
+    plan,
+    TEMPLATES_BY_ID
+  );
+  const byTemplate = new Map(plan.map((t) => [t.template_id, t] as const));
+
+  const now = new Date().toISOString();
+  let done = 0;
+  let handled = 0;
+
+  for (const { templateId, mark } of accepted) {
+    const row = byTemplate.get(templateId);
+    if (!row) continue;
+
+    if (mark === "done") {
+      const { error } = await supabase
+        .from("business_tasks")
+        .update({
+          status: "done",
+          completed_at: now,
+          stage: terminalStageFor(templateId),
+          waiting_for: null,
+          follow_up_date: null,
+        })
+        .eq("id", row.id);
+      if (error) continue;
+      done++;
+    } else {
+      const { error } = await supabase
+        .from("business_tasks")
+        .update({
+          status: "not_relevant",
+          dismissal: "handled_externally",
+          dismissal_note: "סומן בשאלון הריענון",
+          completed_at: null,
+          stage: null,
+        })
+        .eq("id", row.id);
+      if (error) continue;
+      handled++;
+    }
+
+    // The trail records that this came from the catch-up pass rather than from
+    // the task's own completion flow, because the two carry different evidence:
+    // one captured documents at the time, this is the owner's recollection.
+    await supabase.from("task_events").insert({
+      business_id: business.id,
+      task_id: row.id,
+      template_id: templateId,
+      kind: mark === "done" ? "completed" : "status_change",
+      from_status: row.status,
+      to_status: mark === "done" ? "done" : "not_relevant",
+      detail: { via: "catch-up", mark },
+    });
+  }
+
+  // Everything downstream is derived from the task set, so every surface that
+  // reports a score, an exposure or an alert has to be refreshed.
+  revalidatePath("/", "layout");
+
+  return { done, handled, skipped: accepted.length - done - handled };
 }

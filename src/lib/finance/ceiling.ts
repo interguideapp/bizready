@@ -93,3 +93,43 @@ export function ceilingOutlook(args: {
   // Strictly over, same boundary rule as an actual crossing.
   return args.projectedYearEnd > args.ceiling ? "projected_cross" : "none";
 }
+
+/**
+ * How current the revenue behind a ceiling reading actually is.
+ *
+ * The ceiling decides a legal fact — over it, an עוסק פטור must register for
+ * מע"מ — and the percentage was rendered with no indication of the data's age.
+ * revenueYtd is summed from sync_metrics, which the nightly sync fills, and
+ * that sync has no fallback: lazy-sweep runs reminders only, so when the
+ * schedule is dead the figure is whatever was last pulled by hand.
+ *
+ * So a business genuinely over the ceiling could read 78% from three-month-old
+ * data and conclude it had room. A stale number presented as a current one is
+ * worse than no number, because it is acted upon.
+ *
+ * Months rather than days: revenue metrics are monthly, so "through July" while
+ * it is September means August is missing, whatever the day.
+ */
+export interface RevenueCoverage {
+  /** Whole months between the latest covered month and the current one. */
+  monthsBehind: number;
+  /**
+   * True once a month that should have arrived has not. The previous month is
+   * allowed: on 3 September, coverage through August is simply up to date.
+   */
+  behind: boolean;
+}
+
+export function revenueCoverage(
+  throughMonth: string | null,
+  todayIso: string
+): RevenueCoverage | null {
+  if (!throughMonth || !/^\d{4}-\d{2}/.test(throughMonth)) return null;
+  const [ty, tm] = throughMonth.slice(0, 7).split("-").map(Number);
+  const [ny, nm] = todayIso.slice(0, 7).split("-").map(Number);
+  if (![ty, tm, ny, nm].every(Number.isFinite)) return null;
+  const monthsBehind = (ny - ty) * 12 + (nm - tm);
+  // Future-dated data is not "behind"; clamp rather than report a negative.
+  if (monthsBehind <= 0) return { monthsBehind: 0, behind: false };
+  return { monthsBehind, behind: monthsBehind > 1 };
+}

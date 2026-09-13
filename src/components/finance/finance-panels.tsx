@@ -1,7 +1,8 @@
 import { AlertTriangle, Banknote, CalendarClock, Gauge, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui";
 import { RevenueChart, type MonthPoint } from "@/components/revenue-chart";
-import { ceilingOutlook, ceilingStanding } from "@/lib/finance/ceiling";
+import { ceilingOutlook, ceilingStanding, revenueCoverage } from "@/lib/finance/ceiling";
+import { formatHeDate } from "@/lib/dates";
 import { computeForecast } from "@/lib/integrations/forecast";
 import { SETASIDE_ESTIMATE_NOTE, computeSetAside } from "@/lib/finance/setaside";
 import { formatIlsRounded } from "@/lib/money";
@@ -15,6 +16,16 @@ export interface FinanceData {
   entityType: string;
   ceiling: number;
   revenueYtd: number;
+  /**
+   * The latest month the revenue figures actually cover, as yyyy-mm.
+   *
+   * The ceiling decides a legal fact and its percentage was rendered with no
+   * indication of the data's age, while the nightly sync that fills those
+   * figures has no fallback. A business genuinely over the ceiling could read
+   * 78% off three-month-old data and conclude it had room.
+   */
+  revenueThroughMonth: string | null;
+  todayIso: string;
   latestMonthRevenue: number;
   monthlyCosts: number;
   nextPayments: { title: string; date: string }[];
@@ -37,6 +48,7 @@ export function FinancePanels({ d }: { d: FinanceData }) {
     projectedYearEnd: forecast.runRateYearEnd,
     reliable: forecast.reliable,
   });
+  const coverage = revenueCoverage(d.revenueThroughMonth, d.todayIso);
   const net = d.latestMonthRevenue - d.monthlyCosts;
   const setAside = computeSetAside(d.revenueYtd);
 
@@ -69,6 +81,36 @@ export function FinancePanels({ d }: { d: FinanceData }) {
                 style={{ width: `${ceilingPct}%` }}
               />
             </div>
+            {/* WHERE THIS PERCENTAGE COMES FROM.
+                A number that decides whether someone must register for מע"מ
+                must not be read as current when it is not. Said plainly when
+                the data is behind, and quietly when it is not — a provenance
+                line that shouts every month becomes wallpaper. */}
+            {coverage?.behind && d.revenueThroughMonth && (
+              <p
+                role="status"
+                className="mt-2 flex items-start gap-1.5 rounded-lg border border-status-progress/40 bg-status-progress/5 px-2.5 py-2 text-xs leading-relaxed text-ink"
+              >
+                <AlertTriangle
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-progress"
+                  aria-hidden
+                />
+                <span>
+                  המספר הזה מבוסס על מחזור עד{" "}
+                  {formatHeDate(d.revenueThroughMonth + "-01")} בלבד
+                  {coverage.monthsBehind >= 2
+                    ? ` — חסרים ${coverage.monthsBehind - 1 === 1 ? "חודש" : `${coverage.monthsBehind - 1} חודשים`}`
+                    : ""}
+                  . האחוז אמיתי רק ביחס למה שנרשם, ולכן ייתכן שאתם גבוהים יותר.
+                  כדאי לסנכרן או לרשום את ההכנסות החסרות.
+                </span>
+              </p>
+            )}
+            {!coverage?.behind && d.revenueThroughMonth && (
+              <p className="mt-1.5 text-xs text-ink-muted">
+                מבוסס על מחזור עד {formatHeDate(d.revenueThroughMonth + "-01")}.
+              </p>
+            )}
             {/* On course to cross, though not there yet. Stated as a
                 projection, never as a breach — ceiling.state remains the only
                 thing that says something has actually happened. */}

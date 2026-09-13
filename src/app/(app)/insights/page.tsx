@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatHeDate, israelParts } from "@/lib/dates";
+import { formatHeDate, israelParts, todayInIsrael } from "@/lib/dates";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CalendarClock, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
@@ -149,6 +149,13 @@ export default async function InsightsPage() {
     .filter((m) => REVENUE_METRICS.has(m.metric) && m.metric_date.startsWith(String(year)))
     .reduce((s, m) => s + m.value, 0);
   const hasFinance = revenueYtd > 0;
+  const revenueMonths = [
+    ...new Set(
+      metrics
+        .filter((m) => REVENUE_METRICS.has(m.metric) && m.value > 0)
+        .map((m) => m.metric_date.slice(0, 7))
+    ),
+  ].sort();
 
   // seed the manual income logger from what's already been entered
   const manualByKey: Record<string, number> = {};
@@ -163,6 +170,13 @@ export default async function InsightsPage() {
         entityType: business.entity_type,
         ceiling: YEARLY_FIGURES.osekPaturCeiling,
         revenueYtd,
+        // The latest month the figures actually cover, so the ceiling
+        // percentage can say how current it is. Taken from the metric rows
+        // themselves rather than from a connection's last_sync_at: a
+        // hand-logged month counts exactly the same, and this needs no extra
+        // query.
+        revenueThroughMonth: revenueMonths.length > 0 ? revenueMonths[revenueMonths.length - 1] : null,
+        todayIso: todayInIsrael(now),
         latestMonthRevenue: revByMonth.get(`${now.getFullYear()}-${now.getMonth()}`) ?? 0,
         monthlyCosts: costs.length ? monthlyTotal(costs) : 0,
         nextPayments: obligations.slice(0, 3).map((o) => ({

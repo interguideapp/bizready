@@ -184,6 +184,22 @@ describe("the product offers the pass instead of waiting to be found", () => {
      */
     const page = read("src/app/(app)/home/page.tsx");
     expect(page).toContain("suggestCatchUp: looksLikeCatchUpNeeded({");
+    /*
+     * And the STORED tasks, not the cycle-projected ones. projectCycles
+     * rewrites a reopened task to status "todo" AND completed_at null — right
+     * for every screen asking "what is open now", wrong for the only question
+     * this asks. Fed the projected list, an owner whose single closed task was
+     * a recurring one that came round again reads as never having engaged and
+     * is asked on every home visit.
+     *
+     * Asserted because I planted exactly that and the predicate's own tests
+     * stayed green: the fix has two halves and they live in different files.
+     */
+    const at = page.indexOf("looksLikeCatchUpNeeded({");
+    const call = page.slice(at, page.indexOf("})", at));
+    expect(call, "home feeds the projected task list").toContain(
+      "tasks: await getBusinessTasks(business.id)"
+    );
   });
 
   it("and the card links to the questionnaire", () => {

@@ -40,6 +40,12 @@ export interface CatchUpTask {
   template_id: string;
   status: string;
   is_relevant: boolean;
+  /**
+   * Optional, and only looksLikeCatchUpNeeded reads it: a task closed once and
+   * reopened by its own recurrence still carries the timestamp, which is the
+   * projection-proof way to ask "has this owner ever closed anything".
+   */
+  completed_at?: string | null;
 }
 
 /** Statutory filings, listed so a screen can say WHY they are absent. */
@@ -141,17 +147,29 @@ export function acceptableMarks(
  * It is phrased as a QUESTION wherever it is shown, because the inference can
  * be wrong: a genuinely new owner who described themselves as active has done
  * nothing yet, and telling them their records are stale would be false.
+ *
+ * MUST BE GIVEN STORED TASKS, not the cycle-projected ones.
+ *
+ * projectCycles rewrites a reopened task to status "todo" AND completed_at
+ * null, which is right for every screen that asks "what is open now" and wrong
+ * for the only question this asks: has this owner EVER closed anything. Fed the
+ * projected list, a business whose single closed task was a recurring one that
+ * has since reopened reads as never having engaged, and gets asked on every
+ * home visit despite keeping its plan current. getBusinessTasks is React-cached,
+ * so the stored set costs nothing extra on a page that already loaded it.
  */
 export function looksLikeCatchUpNeeded(args: {
   stage: string | undefined;
+  /** STORED tasks. See the note above about projectCycles. */
   tasks: CatchUpTask[];
   templates: Map<string, TaskTemplate>;
 }): boolean {
   if (args.stage !== "active") return false;
-  // Any close at all — done, or dismissed as handled elsewhere — means the
-  // owner has engaged with the plan and is keeping it current.
+  // Any close at all — done, dismissed as handled elsewhere, or a completion
+  // timestamp from a recurring task that has since come round again — means
+  // the owner has engaged with the plan and is keeping it current.
   const everClosed = args.tasks.some(
-    (t) => t.status === "done" || t.status === "not_relevant"
+    (t) => t.status === "done" || t.status === "not_relevant" || Boolean(t.completed_at)
   );
   if (everClosed) return false;
   // And there has to be something the questionnaire could actually take.

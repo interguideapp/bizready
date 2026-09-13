@@ -4,6 +4,7 @@ import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { positionOf } from "@/lib/content/milestones";
 import {
+  getBusinessTasks,
   getContentChanges,
   requireBusiness,
   getDocuments,
@@ -322,7 +323,10 @@ export default async function HomePage() {
     // active, nothing ever closed. Asked rather than asserted.
     suggestCatchUp: looksLikeCatchUpNeeded({
       stage: answers?.stage,
-      tasks,
+      // The STORED tasks, not the cycle-projected ones: projectCycles
+      // clears completed_at on a reopened task, which would make an owner who
+      // has been keeping the plan current look like they never engaged.
+      tasks: await getBusinessTasks(business.id),
       templates: TEMPLATES_BY_ID,
     }),
     ruleChanges,

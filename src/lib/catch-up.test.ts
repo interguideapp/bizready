@@ -241,3 +241,41 @@ describe("noticing that a catch-up is probably needed", () => {
     expect(needed("setting_up", many)).toBe(false);
   });
 });
+
+describe("the nudge survives a reopened recurring task", () => {
+  /**
+   * A defect in my own heuristic, found by auditing it an hour after writing
+   * it. projectCycles rewrites a reopened task to status "todo" AND
+   * completed_at null — right for every screen asking "what is open now",
+   * wrong for the only question this asks: has this owner EVER closed
+   * anything.
+   *
+   * Fed the projected list, a business whose single closed task was a
+   * recurring one that has since come round again reads as never having
+   * engaged, and gets asked on every home visit despite keeping its plan
+   * current. Home now passes the STORED tasks, and the predicate also accepts
+   * a completion timestamp as proof of engagement, so it is right either way.
+   */
+  const needed = (tasks: CatchUpTask[]) =>
+    looksLikeCatchUpNeeded({ stage: "active", tasks, templates: TEMPLATES_BY_ID });
+
+  it("a completion timestamp counts, even with the status reopened", () => {
+    // Exactly what projectCycles produces: todo, no completed_at... except the
+    // stored row still has one, which is the fact that matters.
+    expect(
+      needed([
+        task("choose-accountant", { status: "todo", completed_at: "2026-03-01T09:00:00Z" }),
+        task("open-vat-file"),
+      ])
+    ).toBe(false);
+  });
+
+  it("still fires when nothing has ever been closed", () => {
+    // The case above must not have disabled the nudge outright.
+    expect(needed([task("choose-accountant"), task("open-vat-file")])).toBe(true);
+  });
+
+  it("treats a null timestamp as no engagement", () => {
+    expect(needed([task("choose-accountant", { completed_at: null })])).toBe(true);
+  });
+});

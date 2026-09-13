@@ -48,7 +48,21 @@ export async function GET(request: Request) {
   if (!cronAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  return runSourceWatchSweep();
+}
 
+/**
+ * The work, separated from the HTTP guard.
+ *
+ * Extracted so it can be run by something other than a cron trigger. With
+ * CRON_SECRET unset every /api/cron/* call is rejected — correctly — which
+ * meant there was NO way to run the sweep at all, not even for the owner,
+ * and the dispatcher's own comment claimed these routes were how a single
+ * job gets re-run by hand. They were not. An admin can now run it from
+ * /admin, authorized by their session, which is a stronger check than a
+ * shared secret rather than a weaker one.
+ */
+export async function runSourceWatchSweep(): Promise<Response> {
   const supabase = createAdminClient();
   const run = await beginCronRun(supabase, "source-watch");
   const urls = watchedUrls();

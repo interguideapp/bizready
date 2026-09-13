@@ -160,3 +160,39 @@ describe("the one-line summary", () => {
     );
   });
 });
+
+describe("how long ago, in Hebrew that survives small numbers", () => {
+  const at = (hoursAgo: number) =>
+    sweepHealth(
+      {
+        job: "reminders",
+        lastOkAt: new Date(Date.UTC(2026, 8, 13, 12, 0, 0) - hoursAgo * 3_600_000).toISOString(),
+      },
+      "2026-09-13T12:00:00Z"
+    );
+
+  it("does not say 'לפני 0 שעות' about a job that just ran", () => {
+    // Seen on the panel, not in the source: the summary divided into days and
+    // fell back to hours, so a fresh success read "רצה לפני 0 שעות".
+    expect(sweepSummary(at(0.2))).toContain("ממש עכשיו");
+    expect(sweepSummary(at(0.2))).not.toContain("0 שעות");
+  });
+
+  it("uses the dual for one and two, in both units", () => {
+    expect(sweepSummary(at(1.5))).toContain("לפני שעה");
+    expect(sweepSummary(at(2.5))).toContain("לפני שעתיים");
+    expect(sweepSummary(at(24))).toContain("אתמול");
+    expect(sweepSummary(at(48))).toContain("לפני יומיים");
+  });
+
+  it("counts plainly once a number reads naturally", () => {
+    expect(sweepSummary(at(5))).toContain("לפני 5 שעות");
+    expect(sweepSummary(at(24 * 9))).toContain("לפני 9 ימים");
+  });
+
+  it("never emits a singular noun with a plural count", () => {
+    for (let h = 0; h < 24 * 40; h++) {
+      expect(sweepSummary(at(h))).not.toMatch(/לפני 1 |לפני 2 |לפני 0 /);
+    }
+  });
+});

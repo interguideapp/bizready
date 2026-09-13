@@ -160,16 +160,32 @@ export function sweepDetail(h: SweepHealth): string {
   return sweepSummary(h).slice(h.label.length + 2);
 }
 
+/**
+ * How long ago, in Hebrew that survives small numbers.
+ *
+ * The previous version divided into days and fell back to
+ * `לפני ${hoursSince} שעות`, so a job that had just succeeded read
+ * "רצה לפני 0 שעות" — seen on the panel, not in the source. Hebrew has a dual,
+ * so one and two need their own words in both units.
+ */
+function agoPhrase(hoursSince: number | null): string {
+  if (hoursSince === null) return "לא ידוע";
+  if (hoursSince < 1) return "ממש עכשיו";
+  const days = Math.floor(hoursSince / 24);
+  if (days === 0) {
+    if (hoursSince < 2) return "לפני שעה";
+    if (hoursSince < 3) return "לפני שעתיים";
+    return `לפני ${Math.floor(hoursSince)} שעות`;
+  }
+  if (days === 1) return "אתמול";
+  if (days === 2) return "לפני יומיים";
+  return `לפני ${days} ימים`;
+}
+
 /** One line naming what is broken and for how long. */
 export function sweepSummary(h: SweepHealth): string {
   if (h.state === "never") return `${h.label}: לא רצה מעולם`;
-  const days = h.hoursSince === null ? null : Math.floor(h.hoursSince / 24);
-  const ago =
-    days === null
-      ? "לא ידוע"
-      : days >= 1
-        ? `לפני ${days} ימים`
-        : `לפני ${h.hoursSince} שעות`;
+  const ago = agoPhrase(h.hoursSince);
   if (h.failing) return `${h.label}: הריצה האחרונה נכשלה (${ago})`;
   if (h.state === "stale") return `${h.label}: לא רצה ${ago}`;
   if (h.state === "late") return `${h.label}: רצה ${ago}, מתעכבת`;

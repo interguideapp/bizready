@@ -3,10 +3,10 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { jobsDue } from "@/lib/cron/due";
 import type { SweepJob, SweepRun } from "@/lib/heartbeat";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GET as runReminders } from "../reminders/route";
-import { GET as runRetention } from "../retention/route";
-import { GET as runSourceWatch } from "../source-watch/route";
-import { GET as runSync } from "../sync/route";
+import { runRemindersSweep } from "../reminders/route";
+import { runRetentionSweep } from "../retention/route";
+import { runSourceWatchSweep } from "../source-watch/route";
+import { runSyncSweep } from "../sync/route";
 
 export const dynamic = "force-dynamic";
 // Hobby's ceiling. `sync` asked for 300, which this plan cannot grant, so the
@@ -30,11 +30,11 @@ export const maxDuration = 60;
  * heartbeat rows, so nothing here needs to know what any of them does.
  */
 
-const RUNNERS: Record<SweepJob, (request: Request) => Promise<Response>> = {
-  reminders: runReminders,
-  retention: runRetention,
-  sync: runSync,
-  "source-watch": runSourceWatch,
+export const RUNNERS: Record<SweepJob, () => Promise<Response>> = {
+  reminders: runRemindersSweep,
+  retention: runRetentionSweep,
+  sync: runSyncSweep,
+  "source-watch": runSourceWatchSweep,
 };
 
 /**
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
       continue;
     }
     try {
-      const res = await RUNNERS[job](request);
+      const res = await RUNNERS[job]();
       ran.push({ job, status: res.status });
     } catch (e) {
       // One job failing must not stop the rest — reminders running is not

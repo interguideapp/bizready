@@ -1,5 +1,6 @@
 import { AlertOctagon, CheckCircle2, Clock, HelpCircle } from "lucide-react";
 import { SWEEP_SCHEDULE, sweepDetail, type SweepHealth } from "@/lib/heartbeat";
+import { RunJobButton } from "@/components/admin/run-job-button";
 
 /**
  * Whether the scheduled work is actually running.
@@ -92,6 +93,9 @@ export function SweepHealthPanel({
                 ? "שבועי"
                 : "יומי"}
             </span>
+            {/* Runnable by hand, because with CRON_SECRET unset it was not
+                runnable at all — by anyone, including the owner. */}
+            <RunJobButton job={h.job} label={h.label} />
           </li>
         ))}
       </ul>

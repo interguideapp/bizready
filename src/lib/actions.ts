@@ -1597,3 +1597,54 @@ export async function publishContentChange(input: {
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+/**
+ * Run a scheduled job now, from /admin.
+ *
+ * WHY THIS EXISTS. The cron routes fail closed on CRON_SECRET, which is right,
+ * and with that variable unset there was NO way to run the sweep at all — not
+ * for the operator, not for the owner, not for anyone. The dispatcher's own
+ * comment claimed the individual routes were "how a single job is re-run by
+ * hand"; they were not, because the hand has no secret either.
+ *
+ * So reminders could not be sent even deliberately. That is a worse position
+ * than a missing schedule: a schedule can be fixed tomorrow, but "the product
+ * cannot send a reminder even when told to" is a dead capability.
+ *
+ * Authorized by an ADMIN SESSION, which is a stronger check than a shared
+ * secret, not a weaker one — requireAdmin needs a signed-in user present in
+ * admin_users, a table with no self-insert policy. Nothing about the cron
+ * guard is relaxed: this is a second, narrower door, not a wider one.
+ *
+ * The jobs are idempotent by dedupe key, so pressing this twice does not
+ * double-send. The heartbeat records the run like any other, so a manual run is
+ * visible as a run rather than looking like the schedule recovered.
+ */
+export async function runScheduledJobNow(
+  job: "reminders" | "sync" | "retention" | "source-watch"
+): Promise<{ ok: boolean; detail: string }> {
+  await requireAdmin();
+
+  // Imported here rather than at module scope: these pull in the admin client
+  // and the whole notification stack, and actions.ts is imported by client
+  // components for its other exports.
+  const { RUNNERS } = await import("@/app/api/cron/daily/route");
+  const runner = RUNNERS[job];
+  if (!runner) return { ok: false, detail: "עבודה לא מוכרת" };
+
+  try {
+    const res = await runner();
+    const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    revalidatePath("/admin");
+    return {
+      ok: res.ok,
+      detail: res.ok
+        ? JSON.stringify(body ?? {})
+        : `נכשל (${res.status}): ${JSON.stringify(body ?? {})}`,
+    };
+  } catch (e) {
+    // The job records its own failure in the heartbeat before it throws.
+    revalidatePath("/admin");
+    return { ok: false, detail: e instanceof Error ? e.message : "שגיאה לא צפויה" };
+  }
+}

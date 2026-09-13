@@ -81,3 +81,26 @@ describe("when everything is running", () => {
     expect(screen.getAllByText(/^תזכורות$/)).toHaveLength(1);
   });
 });
+
+describe("a job can be run by hand", () => {
+  it("offers a run control for every job", () => {
+    // With CRON_SECRET unset every /api/cron/* call is rejected — correctly —
+    // which left NO way to run the sweep at all, not even for the owner. The
+    // dispatcher's own comment claimed the individual routes were "how a single
+    // job is re-run by hand"; they were not, because the hand has no secret.
+    render(<SweepHealthPanel health={nothingRun()} secretConfigured={false} />);
+    expect(screen.getAllByRole("button", { name: /הרצה עכשיו/ })).toHaveLength(4);
+  });
+
+  it("names which job each control runs, for a screen reader", () => {
+    render(<SweepHealthPanel health={nothingRun()} secretConfigured={false} />);
+    expect(screen.getByRole("button", { name: "הרצה עכשיו: תזכורות" })).toBeDefined();
+  });
+
+  it("offers it even when everything is healthy", () => {
+    // A manual re-run is how an operator retries one failed job, not only how
+    // they work around a dead schedule.
+    render(<SweepHealthPanel health={allFresh()} secretConfigured />);
+    expect(screen.getAllByRole("button", { name: /הרצה עכשיו/ })).toHaveLength(4);
+  });
+});

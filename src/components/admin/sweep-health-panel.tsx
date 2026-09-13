@@ -21,13 +21,42 @@ const ICON = {
   never: <HelpCircle className="h-4 w-4 text-status-overdue" aria-hidden />,
 } as const;
 
-export function SweepHealthPanel({ health }: { health: SweepHealth[] }) {
+export function SweepHealthPanel({
+  health,
+  secretConfigured,
+}: {
+  health: SweepHealth[];
+  /** Whether CRON_SECRET exists. The value is never sent here. */
+  secretConfigured: boolean;
+}) {
   const broken = health.filter(
     (h) => h.critical && (h.state === "stale" || h.state === "never")
   );
 
   return (
     <div className="rounded-2xl border border-edge bg-card p-4">
+      {/* THE ONE PIECE OF CONFIGURATION, STATED.
+          An empty heartbeat has two completely different causes — the schedule
+          was never registered, or it fired and was rejected for a missing
+          secret — and this page could not tell them apart. It said "שווה לבדוק
+          ש-CRON_SECRET מוגדר", which is advice, not an answer. Now it answers. */}
+      {!secretConfigured && (
+        <p className="mb-3 rounded-xl bg-status-overdue/10 p-3 text-sm leading-relaxed text-status-overdue">
+          <b>CRON_SECRET לא מוגדר בסביבה הזו</b>
+          {" — "}
+          כל קריאה ל-/api/cron/* נדחית ב-401, ולכן שום תזכורת לא תישלח גם אם
+          התזמון פעיל. Vercel שולח את כותרת ההרשאה רק כשהמשתנה קיים. אחרי
+          שמגדירים אותו ב-Project → Settings → Environment Variables ומפרסמים
+          מחדש, השורה הזו תיעלם והעבודות למטה יתחילו להצטבר.
+        </p>
+      )}
+      {secretConfigured && broken.length > 0 && (
+        <p className="mb-3 rounded-xl bg-surface-2 p-3 text-xs leading-relaxed text-ink-muted">
+          CRON_SECRET מוגדר, כך שדחייה על אימות אינה ההסבר. אם למטה אין ריצות
+          בכלל, התזמון עצמו לא נרשם — ב-Hobby מותרות שתי עבודות cron לכל
+          פרויקט, ו-vercel.json צריך להישאר עם רשומה אחת.
+        </p>
+      )}
       {broken.length > 0 && (
         <p className="mb-3 rounded-xl bg-status-overdue/10 p-3 text-sm leading-relaxed text-status-overdue">
           <b>
@@ -38,7 +67,7 @@ export function SweepHealthPanel({ health }: { health: SweepHealth[] }) {
           {" — "}
           כל עוד זה המצב, לא נשלחות תזכורות במייל, בפוש או בוואטסאפ. המשתמשים
           עדיין רואים את מה שדחוף כשהם נכנסים לאפליקציה, אבל לא מקבלים פנייה
-          יזומה. שווה לבדוק ש-CRON_SECRET מוגדר ושהתזמון פעיל בפלטפורמה.
+          יזומה.
         </p>
       )}
 

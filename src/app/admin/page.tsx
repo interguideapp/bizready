@@ -9,6 +9,7 @@ import { PublishChange } from "@/components/admin/publish-change";
 import { ReviewQueuePanel } from "@/components/admin/review-queue-panel";
 import { buildReviewQueue, januaryFiguresDue } from "@/lib/content/review-queue";
 import { todayInIsrael } from "@/lib/dates";
+import { cronSecretConfigured } from "@/lib/cron-auth";
 import { allSweepHealth, type SweepJob } from "@/lib/heartbeat";
 import { SweepHealthPanel } from "@/components/admin/sweep-health-panel";
 import { createClient } from "@/lib/supabase/server";
@@ -88,7 +89,7 @@ export default async function AdminPage() {
           <Activity className="h-4.5 w-4.5 text-brand-400" aria-hidden />
           עבודות מתוזמנות
         </h2>
-        <SweepHealthPanel health={sweepHealthRows} />
+        <SweepHealthPanel health={sweepHealthRows} secretConfigured={cronSecretConfigured()} />
       </section>
 
       <section className="mb-8">

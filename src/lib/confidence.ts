@@ -27,6 +27,7 @@ export interface ConfidenceInput {
   ceilingTaskId?: string | null;
 }
 
+import { crossedByPct } from "@/lib/finance/ceiling";
 import { distanceLabel } from "@/lib/he-distance";
 
 export interface Confidence {
@@ -52,7 +53,10 @@ const daysPhrase = distanceLabel;
 
 export function computeConfidence(input: ConfidenceInput): Confidence {
   const { overdueStatutory, urgent, next, remainingCritical, ceilingPct, ceilingTaskId } = input;
-  const nearCeiling = ceilingPct != null && ceilingPct >= 80 && ceilingPct < 100;
+  // Up to AND INCLUDING the ceiling. Being at it is not exceeding it, so 100%
+  // exactly belongs in "approaching", not in the breach branch below.
+  const nearCeiling =
+    ceilingPct != null && ceilingPct >= 80 && !crossedByPct(ceilingPct);
   const ceilingNote = nearCeiling ? ` · מתקרבים לתקרת הפטור (${Math.round(ceilingPct!)}%)` : "";
 
   // 1. real risk — overdue statutory filings alarm honestly
@@ -69,10 +73,15 @@ export function computeConfidence(input: ConfidenceInput): Confidence {
   }
 
   // 1b. real risk — the עוסק-פטור ceiling was crossed (retroactive VAT exposure)
-  if (ceilingPct != null && ceilingPct >= 100) {
+  // STRICTLY over. At exactly the ceiling the exemption still holds, and
+  // declaring "at_risk" there told a business it had a legal problem it did
+  // not have. Same boundary the finance panel now applies, from the same rule.
+  if (crossedByPct(ceilingPct)) {
     return {
       state: "at_risk",
-      headline: "חצית את תקרת עוסק פטור",
+      // Plural neutral, like the rest of the product: "חצית" was singular
+      // masculine, and "חרגתם" is also the more precise verb.
+      headline: "חרגתם מתקרת עוסק פטור",
       detail: "זמן לעבור לעוסק מורשה — מעל התקרה חל חיוב מע\"מ. כדאי להסדיר בהקדם.",
       theOneThing: ceilingTaskId ? { templateId: ceilingTaskId, title: "מעבר לעוסק מורשה" } : null,
       realRisks: 1,

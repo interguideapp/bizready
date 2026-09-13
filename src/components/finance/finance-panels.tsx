@@ -1,6 +1,7 @@
 import { AlertTriangle, Banknote, CalendarClock, Gauge, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui";
 import { RevenueChart, type MonthPoint } from "@/components/revenue-chart";
+import { ceilingStanding } from "@/lib/finance/ceiling";
 import { computeSetAside } from "@/lib/finance/setaside";
 import { formatIlsRounded } from "@/lib/money";
 
@@ -20,7 +21,11 @@ export interface FinanceData {
 
 export function FinancePanels({ d }: { d: FinanceData }) {
   const isPatur = d.entityType === "osek_patur";
-  const ceilingPct = Math.min(100, Math.round((d.revenueYtd / d.ceiling) * 100));
+  // The STATE comes from the real figures; pct is only the bar's width. It used
+  // to be the other way round, and Math.round turned ₪122,500 against a
+  // ₪122,833 ceiling into "you have crossed it, you must change status".
+  const ceiling = ceilingStanding(d.revenueYtd, d.ceiling);
+  const ceilingPct = ceiling.pct;
   const net = d.latestMonthRevenue - d.monthlyCosts;
   const setAside = computeSetAside(d.revenueYtd);
 
@@ -49,14 +54,20 @@ export function FinancePanels({ d }: { d: FinanceData }) {
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-track">
               <div
-                className={`h-full rounded-full ${ceilingPct >= 100 ? "bg-status-overdue" : ceilingPct >= 80 ? "bg-status-progress" : "bg-gradient-to-l from-brand-600 to-accent-to"}`}
+                className={`h-full rounded-full ${ceiling.state === "crossed" ? "bg-status-overdue" : ceiling.state === "approaching" ? "bg-status-progress" : "bg-gradient-to-l from-brand-600 to-accent-to"}`}
                 style={{ width: `${ceilingPct}%` }}
               />
             </div>
-            {ceilingPct >= 80 && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-status-progress">
+            {ceiling.state !== "ok" && (
+              <p
+                className={`mt-1.5 flex items-center gap-1 text-xs font-medium ${
+                  ceiling.state === "crossed" ? "text-status-overdue" : "text-status-progress"
+                }`}
+              >
                 <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-                {ceilingPct >= 100 ? "חצית את התקרה — חובה לעבור לעוסק מורשה" : "מתקרבים לתקרה — הזמן לתכנן מעבר לעוסק מורשה"}
+                {ceiling.state === "crossed"
+                  ? "חרגתם מהתקרה — חובה לעבור לעוסק מורשה"
+                  : "מתקרבים לתקרה — הזמן לתכנן מעבר לעוסק מורשה"}
               </p>
             )}
           </div>

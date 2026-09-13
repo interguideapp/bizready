@@ -82,3 +82,29 @@ export function daysUntilIso(iso: string, todayIso: string): number {
       86_400_000
   );
 }
+
+/**
+ * The span a check actually covered, for a claim that must not overreach.
+ *
+ * The alerts list only looks as far ahead as the reminder windows allow — seven
+ * days on the free plan, thirty on Pro — and its empty state said
+ * "אין דדליין מתקרב". For a free business with a VAT filing twenty days out
+ * that is simply false, and it is the worst sentence this product can print: a
+ * clean bill of health it did not check for. Even on Pro it was false past
+ * thirty days.
+ *
+ * So the sentence names its own horizon. Weeks and months read far better than
+ * "ב-7 הימים הקרובים", and the dual forms are spelled out because a numeral 1
+ * beside a plural noun is the recurring defect in this codebase.
+ */
+export function horizonLabel(days: number): string {
+  if (days <= 1) return "ביום הקרוב";
+  if (days === 2) return "ביומיים הקרובים";
+  if (days === 7) return "בשבוע הקרוב";
+  if (days === 14) return "בשבועיים הקרובים";
+  if (days === 30 || days === 31) return "בחודש הקרוב";
+  if (days === 60 || days === 61) return "בחודשיים הקרובים";
+  if (days % 7 === 0 && days < 30) return `ב-${days / 7} השבועות הקרובים`;
+  if (days >= 90 && days % 30 === 0) return `ב-${days / 30} החודשים הקרובים`;
+  return `ב-${days} הימים הקרובים`;
+}

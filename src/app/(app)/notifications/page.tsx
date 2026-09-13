@@ -8,6 +8,9 @@ import { SweepNotice } from "./sweep-notice";
 import { DeliveryNotice } from "@/components/delivery-notice";
 import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/data";
+import { isPro } from "@/lib/subscription";
+import { REMINDER_WINDOWS_FREE, REMINDER_WINDOWS_PRO } from "@/lib/compliance";
+import { horizonLabel } from "@/lib/he-distance";
 
 /**
  * התראות — derived live, not just read back.
@@ -34,6 +37,19 @@ export default async function NotificationsPage() {
   const { items, truncated } = page;
   const unsent = derivedCount(items);
   const down = deliveryIsDown(delivery);
+  /*
+   * How far ahead this list actually looked.
+   *
+   * computeReminders only raises a deadline item once a reminder window is
+   * crossed — seven days on the free plan, thirty on Pro — so an empty list
+   * means "nothing inside that horizon", not "nothing at all". The empty state
+   * used to say "אין דדליין מתקרב", and for a free business with a VAT filing
+   * twenty days out that is a clean bill of health the product never checked
+   * for. A9 and A2 in one sentence, on the screen whose entire job is that
+   * nothing gets missed.
+   */
+  const windows = isPro(business) ? REMINDER_WINDOWS_PRO : REMINDER_WINDOWS_FREE;
+  const horizon = Math.max(...windows);
 
   return (
     <div>
@@ -72,7 +88,9 @@ export default async function NotificationsPage() {
           <EmptyState
             icon={<BellOff className="h-6 w-6" aria-hidden />}
             title="אין כרגע מה לטפל"
-            subtitle="בדקנו את המשימות שלכם עכשיו — אין דדליין מתקרב, אין איחור ואין תקופת דיווח חדשה. נעדכן אותך כאן ברגע שיהיה."
+            subtitle={`בדקנו את המשימות שלכם עכשיו — אין דדליין ${horizonLabel(
+              horizon
+            )}, אין איחור ואין תקופת דיווח חדשה. מה שרחוק יותר מופיע בלוח החובות לפי תאריך, ונעדכן אותך כאן ברגע שיתקרב.`}
           />
         </Card>
       ) : (

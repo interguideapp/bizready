@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
+import { isStatutoryFiling } from "@/lib/compliance";
 import type { AppliesWhen, OnboardingAnswers } from "@/lib/types";
 import {
   buildPlan,
@@ -243,14 +244,76 @@ describe("buildPlan", () => {
     expect(onlyB.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("marks already_done templates as done and sets due dates", () => {
+  it("marks already_done templates as done", () => {
     const plan = buildPlan(onlineShop, TASK_TEMPLATES, new Date("2026-07-18"));
     const vat = plan.find((t) => t.template_id === "open-vat-file")!;
     expect(vat.status).toBe("done");
-    expect(vat.due_date).toBe("2026-07-18"); // deadline_days: 0
     const bituach = plan.find((t) => t.template_id === "open-bituach-leumi-file")!;
     expect(bituach.status).toBe("todo");
-    expect(bituach.due_date).toBe("2026-08-01"); // +14 days
+  });
+
+  /**
+   * A recommended date is only honest for a business that is starting now.
+   *
+   * This test used to assert the opposite, because the engine invented one
+   * regardless: onlineShop is stage "active", and it was handed
+   * "open-bituach-leumi-file — מומלץ עד signup + 14" for a business already
+   * trading. Once that date passed it read "היה מומלץ עד", a deadline invented
+   * at signup for work most likely already done. Plausible dates that are
+   * fiction teach people to distrust the real ones.
+   *
+   * The wizard already asks this and already promises the right behaviour:
+   * "העסק כבר פעיל" offers "נבדוק מה חסר ונשלים פערים" — a gap review, not a
+   * schedule. The answer was collected on every signup and read by nothing.
+   */
+  describe("recommended dates", () => {
+    const at = (answers: OnboardingAnswers) =>
+      buildPlan(answers, TASK_TEMPLATES, new Date("2026-07-18T09:00:00Z"));
+
+    it("invents none for a business that is already operating", () => {
+      const plan = at({ ...onlineShop, stage: "active" });
+      const soft = plan.filter(
+        (t) => !isStatutoryFiling(t.template_id) && t.due_date !== null
+      );
+      expect(soft).toEqual([]);
+    });
+
+    it("still dates them for a business setting up now", () => {
+      const plan = at({ ...onlineShop, stage: "setting_up" });
+      const bituach = plan.find((t) => t.template_id === "open-bituach-leumi-file")!;
+      expect(bituach.due_date).toBe("2026-08-01");
+    });
+
+    it("still dates them for an idea", () => {
+      const plan = at({ ...onlineShop, stage: "idea" });
+      expect(plan.some((t) => !isStatutoryFiling(t.template_id) && t.due_date)).toBe(true);
+    });
+
+    it("never withholds a STATUTORY date, whatever the stage", () => {
+      // The law does not care how long the business has existed. Suppressing a
+      // filing deadline would be the same defect in the dangerous direction.
+      for (const stage of ["idea", "setting_up", "active"] as const) {
+        const plan = at({ ...onlineShop, stage });
+        const vatReporting = plan.find((t) => t.template_id === "vat-reporting");
+        expect(vatReporting?.due_date, stage).toBeTruthy();
+      }
+    });
+
+    /**
+     * NOT asserted, deliberately.
+     *
+     * addDays now uses UTC on both sides rather than local setDate with a UTC
+     * read. I wrote a test claiming that fixed an off-by-one and my own
+     * re-plant disproved it: with the old form restored, the test still
+     * passed. Shifting by whole days moves the same instant either way, so a
+     * sweep of 168 hour/offset combinations found zero disagreements. The forms
+     * differ only across a DST transition, for an instant within an hour of UTC
+     * midnight, which this runtime (UTC+7, no DST) cannot produce.
+     *
+     * So there is nothing here a test can honestly hold. The change stands on
+     * predictability, and this note stands in place of a green tick that would
+     * have meant nothing.
+     */
   });
 });
 

@@ -133,20 +133,48 @@ export function buildPlan(
     .map((t) => ({
       template_id: t.id,
       status: alreadyDone.has(t.id) ? ("done" as const) : ("todo" as const),
-      // statutory filings get their real, anchored next date; everything else
-      // keeps a soft recommended date (X days from now = from business start).
+      // Statutory filings get their real, anchored date. A recommended date is
+      // only honest for a business that is actually starting now.
+      //
+      // The old comment here claimed "X days from now = from business start",
+      // and that is only true if the user signed up on their first day. An
+      // already-operating business was handed "פתיחת תיק עוסק במע\"מ — מומלץ עד
+      // <signup + 30>" for something it did years ago, and once that date
+      // passed, "היה מומלץ עד" — a deadline invented at signup, for work
+      // already finished. Plausible-looking dates that are fiction teach people
+      // to distrust the real ones.
+      //
+      // The wizard already asks this and already promises the right behaviour:
+      // "העסק כבר פעיל" offers "נבדוק מה חסר ונשלים פערים" — a gap review, not
+      // a schedule. The answer was collected on every signup and read by
+      // nothing. Now it decides this.
       due_date: isStatutoryFiling(t.id)
         ? nextStatutoryDueDate(t.id, today, profile)
-        : t.deadline_days != null
+        : t.deadline_days != null && answers.stage !== "active"
           ? addDays(today, t.deadline_days)
           : null,
       is_relevant: true,
     }));
 }
 
+/**
+ * Add whole days and return a calendar date.
+ *
+ * UTC on both sides, which is the single timezone contract A10 asked this
+ * module to share with compliance.ts. It previously advanced with local
+ * setDate and read the result with UTC toISOString.
+ *
+ * NOT a bug fix, and I checked rather than assuming it was: shifting by whole
+ * days moves the same instant by the same amount either way, so both forms
+ * return the same date. Swept 168 combinations of hour and offset on this
+ * runtime — zero disagreed. The only divergence is across a DST transition,
+ * where local arithmetic preserves wall-clock time and UTC arithmetic preserves
+ * exact 24-hour multiples, and then only for an instant within an hour of UTC
+ * midnight. Worth having for predictability; not worth claiming as a defect.
+ */
 function addDays(date: Date, days: number): string {
   const d = new Date(date);
-  d.setDate(d.getDate() + days);
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 

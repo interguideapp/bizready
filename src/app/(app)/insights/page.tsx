@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatHeDate, israelParts } from "@/lib/dates";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CalendarClock, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
@@ -124,14 +125,27 @@ export default async function InsightsPage() {
   for (const m of metrics) {
     if (!REVENUE_METRICS.has(m.metric)) continue;
     if (m.metric === "revenue" && m.value > 0) hasSynced = true;
-    const dt = new Date(m.metric_date + "T00:00:00");
-    const key = `${dt.getFullYear()}-${dt.getMonth()}`;
+    // Bucketed by slicing the string, not by parsing it.
+    //
+    // The parse here was local-in, local-out, so it happened to be correct —
+    // but it is one keystroke from the shift that was live elsewhere (parse as
+    // UTC, read in the ambient zone), and revenue landing in the wrong month
+    // feeds the עוסק פטור ceiling. Two lines below, revenueYtd already decides
+    // the year with startsWith, so the string form is this file's own idiom.
+    const key = m.metric_date.slice(0, 7);
     revByMonth.set(key, (revByMonth.get(key) ?? 0) + m.value);
   }
   const monthly: MonthPoint[] = [];
+  // The twelve-month window ends on the ISRAELI month. now.getMonth() is the
+  // server's, and at 01:00 on the 1st in Israel that is still last month, so
+  // the chart would have been labelled a month behind for those hours.
+  const hereNow = israelParts(now);
   for (let i = 11; i >= 0; i--) {
-    const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthly.push({ year: dt.getFullYear(), month: dt.getMonth(), value: revByMonth.get(`${dt.getFullYear()}-${dt.getMonth()}`) ?? 0 });
+    const dt = new Date(Date.UTC(hereNow.year, hereNow.month - i, 1));
+    const year = dt.getUTCFullYear();
+    const month = dt.getUTCMonth();
+    const key = `${year}-${String(month + 1).padStart(2, "0")}`;
+    monthly.push({ year, month, value: revByMonth.get(key) ?? 0 });
   }
   const revenueYtd = metrics
     .filter((m) => REVENUE_METRICS.has(m.metric) && m.metric_date.startsWith(String(year)))
@@ -155,7 +169,7 @@ export default async function InsightsPage() {
         monthlyCosts: costs.length ? monthlyTotal(costs) : 0,
         nextPayments: obligations.slice(0, 3).map((o) => ({
           title: o.title,
-          date: new Date(o.dueDate + "T00:00:00").toLocaleDateString("he-IL"),
+          date: formatHeDate(o.dueDate),
         })),
       }
     : null;
@@ -254,7 +268,7 @@ export default async function InsightsPage() {
                       <span className={`absolute right-[-4px] h-2.5 w-2.5 rounded-full led ${o.daysUntil < 0 && o.basis === "statutory" ? "text-status-overdue bg-status-overdue" : o.daysUntil < 0 || o.daysUntil <= 7 ? "text-status-progress bg-status-progress" : "text-brand-400 bg-brand-400"}`} />
                       <div className="ms-4 flex min-w-0 flex-1 items-center justify-between gap-3">
                         <span className="min-w-0 truncate text-sm text-ink-soft">{o.title}{o.periodLabel && <span className="text-ink-faint"> · {o.periodLabel}</span>}</span>
-                        <span className="tnum shrink-0 text-xs font-semibold text-ink">{new Date(o.dueDate + "T00:00:00").toLocaleDateString("he-IL")}</span>
+                        <span className="tnum shrink-0 text-xs font-semibold text-ink">{formatHeDate(o.dueDate)}</span>
                       </div>
                     </div>
                   ))}

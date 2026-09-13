@@ -52,3 +52,49 @@ export function withinLastMs(iso: string | null, ms: number, now: Date = new Dat
   if (!Number.isFinite(then)) return false;
   return now.getTime() - then <= ms;
 }
+
+/**
+ * A date-only `yyyy-mm-dd` rendered for a Hebrew reader, pinned to Israel.
+ *
+ * The pinning is the point. Thirty-four places formatted dates by hand, and the
+ * shared formatHe did `new Date(iso + "T00:00:00Z").toLocaleDateString("he-IL")`
+ * — parsed as UTC midnight, then rendered in whatever zone the RENDERER is in.
+ * On the server that is UTC and harmless. In a client component it is the
+ * viewer's browser, and for any negative offset the instant falls on the
+ * previous day:
+ *
+ *   deadline 2026-09-15, viewer in America/New_York  ->  14.9.2026
+ *
+ * Measured, not assumed. One day early on every deadline, for an owner
+ * travelling or with a browser set to another zone, in the product whose whole
+ * value is the date. todayInIsrael already decided that the calendar day is
+ * Israel's; this makes the DISPLAYED day agree with it.
+ *
+ * An unparseable value comes back untouched rather than as "Invalid Date".
+ */
+const heDate = new Intl.DateTimeFormat("he-IL", {
+  timeZone: TZ,
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+});
+
+const heDayMonth = new Intl.DateTimeFormat("he-IL", {
+  timeZone: TZ,
+  day: "numeric",
+  month: "numeric",
+});
+
+/** `15.9.2026`. Takes a date-only ISO; anything else is returned as given. */
+export function formatHeDate(iso: string): string {
+  const d = new Date(iso.slice(0, 10) + "T12:00:00Z");
+  if (Number.isNaN(d.getTime())) return iso;
+  return heDate.format(d);
+}
+
+/** `15.9`, for tight rows where the year is already obvious. */
+export function formatHeDayMonth(iso: string): string {
+  const d = new Date(iso.slice(0, 10) + "T12:00:00Z");
+  if (Number.isNaN(d.getTime())) return iso;
+  return heDayMonth.format(d);
+}

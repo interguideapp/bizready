@@ -1,4 +1,5 @@
 import { filingRuleFor, type DateRule } from "@/lib/content/filing-rules";
+import { formatHeDate } from "@/lib/dates";
 
 /**
  * The dates a user can pick from when setting a deadline, computed rather than
@@ -227,10 +228,15 @@ export function effectiveDeadline(args: {
 }
 
 /** A date as a business owner reads it, not as a database stores it. */
+/**
+ * Kept as the name callers already use; the implementation moved to dates.ts.
+ *
+ * It parsed UTC midnight and then rendered in the RENDERER's zone, so in a
+ * client component a 15 September deadline showed as 14.9.2026 to any viewer
+ * at a negative offset. Measured across four zones, not assumed.
+ */
 export function formatHe(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("he-IL", { day: "numeric", month: "numeric", year: "numeric" });
+  return formatHeDate(iso);
 }
 
 /** How the option list describes a date to distinguish two picks on the same day. */

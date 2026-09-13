@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { formatHeDate, todayInIsrael } from "@/lib/dates";
 import { ExternalLink, FileText, Link2, Loader2, Trash2 } from "lucide-react";
 import { deleteDocument, updateDocument } from "@/lib/actions";
 import { toast } from "@/components/toaster";
@@ -38,12 +39,17 @@ export function DocumentRowItem({
 
   // Compared as date strings, not Date objects: an expiry is a calendar day,
   // and comparing it against a local clock is how "today" became "yesterday"
-  // for three hours every night before todayInIsrael existed. The client cannot
-  // call that helper, but a lexicographic compare of two yyyy-mm-dd strings has
-  // no timezone in it at all.
-  const expired = doc.expires_at
-    ? doc.expires_at < new Date().toLocaleDateString("sv-SE")
-    : false;
+  // for three hours every night before todayInIsrael existed.
+  //
+  // The note that used to sit here said the client cannot call todayInIsrael
+  // and that comparing two yyyy-mm-dd strings "has no timezone in it at all".
+  // Half right, and the wrong half mattered: the COMPARISON has no timezone,
+  // but toLocaleDateString("sv-SE") produced today in the BROWSER's zone, so
+  // the left operand did. An owner reading this from another zone saw valid
+  // certificates marked expired, and expired ones marked valid. dates.ts is
+  // pure Intl with no imports, so a client component can call it perfectly
+  // well — the claim it could not was never checked.
+  const expired = doc.expires_at ? doc.expires_at < todayInIsrael() : false;
 
   function associate(taskId: string) {
     startTransition(async () => {
@@ -85,10 +91,10 @@ export function DocumentRowItem({
             (expired ? (
               <span className="font-medium text-status-overdue">
                 {" · פג תוקף ב-"}
-                {new Date(doc.expires_at + "T00:00:00").toLocaleDateString("he-IL")}
+                {formatHeDate(doc.expires_at)}
               </span>
             ) : (
-              ` · בתוקף עד ${new Date(doc.expires_at + "T00:00:00").toLocaleDateString("he-IL")}`
+              ` · בתוקף עד ${formatHeDate(doc.expires_at)}`
             ))}
           {taskTitle && (
             <span className="text-brand-strong"> · שייך ל{taskTitle}</span>

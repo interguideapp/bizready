@@ -1,4 +1,4 @@
-import { todayInIsrael } from "@/lib/dates";
+import { formatHeDate, formatHeDayMonth, todayInIsrael } from "@/lib/dates";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { positionOf } from "@/lib/content/milestones";
@@ -232,7 +232,7 @@ export default async function HomePage() {
           : (t.waiting_for ?? pos.stage.label),
         step: pos.step,
         total: pos.total,
-        followUp: t.follow_up_date ? new Date(t.follow_up_date + "T00:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }) : null,
+        followUp: t.follow_up_date ? formatHeDayMonth(t.follow_up_date) : null,
         href: `/tasks/${t.template_id}?from=home`,
       };
     })
@@ -253,7 +253,7 @@ export default async function HomePage() {
 
   // next statutory deadline
   const nextDeadline = actionable.length > 0
-    ? { title: actionable[0].title, date: new Date(actionable[0].dueDate + "T00:00:00").toLocaleDateString("he-IL"), daysUntil: actionable[0].daysUntil }
+    ? { title: actionable[0].title, date: formatHeDate(actionable[0].dueDate), daysUntil: actionable[0].daysUntil }
     : null;
 
   // recent activity — what you updated/uploaded

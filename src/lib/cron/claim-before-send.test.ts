@@ -52,18 +52,23 @@ describe("the check-then-send pair is gone", () => {
     const fn = shipped.slice(at, at + 500);
     expect(fn).toContain('.from("reminder_log")');
     expect(fn).toContain(".insert(");
-    // The whole point: an error means we did NOT get the claim.
-    expect(fn).toContain("return !error;");
+    // The whole point: only a clean insert is a claim. This asserted
+    // `return !error` and broke when the two failure kinds were split apart —
+    // correctly, which is what it is for.
+    expect(fn).toContain('if (!error) return "claimed";');
   });
 });
 
 describe("every channel claims first", () => {
   it("gates each send on the claim", () => {
+    // Via the per-business `claim` helper, which also counts the broken case.
+    // This named claimSend directly and broke when that indirection arrived.
     for (const channel of CHANNELS) {
       expect(shipped, `${channel} does not claim first`).toContain(
-        `await claimSend(supabase, biz.id, "${channel}", digestKey)`
+        `(await claim("${channel}"))`
       );
     }
+    expect(shipped).toContain("claimSend(supabase, biz.id, channel, digestKey)");
   });
 
   it("releases the claim when the send did not happen", () => {
@@ -92,5 +97,55 @@ describe("releaseSend only removes its own claim", () => {
     for (const col of ["business_id", "channel", "dedupe_key"]) {
       expect(fn, `release is not scoped by ${col}`).toContain(`.eq("${col}"`);
     }
+  });
+});
+
+describe("a broken claim is distinguished from an already-sent one", () => {
+  /**
+   * A blind spot I opened with the change above, and closed in the same hour.
+   *
+   * The first version returned !error, so "already sent" and "the insert is
+   * broken" were the same answer: skip. Skipping is right for both, but they
+   * are not the same NEWS. If claims failed systematically — a policy changed,
+   * the table moved — outbound would stop entirely while every business still
+   * succeeded: no tenant throws, emailsSent is simply 0, and fanOutSucceeded
+   * would call the run healthy. Silent total stoppage reported as a good night
+   * is exactly the failure this session keeps removing.
+   */
+  it("names the three outcomes rather than returning a boolean", () => {
+    expect(shipped).toContain('"claimed" | "already-sent" | "unavailable"');
+  });
+
+  it("treats only a unique violation as already-sent", () => {
+    // 23505 is Postgres unique_violation: the expected way to lose a claim.
+    expect(shipped).toContain("23505");
+    expect(shipped).toContain('error.code === UNIQUE_VIOLATION ? "already-sent" : "unavailable"');
+  });
+
+  it("counts the unavailable case", () => {
+    expect(shipped).toContain("claimsUnavailable++");
+    expect(shipped).toContain('if (result === "unavailable") claimsUnavailable++');
+  });
+
+  it("reports it, so an operator can see why nothing went out", () => {
+    const summaryAt = shipped.indexOf("const summary = {");
+    expect(summaryAt).toBeGreaterThan(-1);
+    expect(shipped.slice(summaryAt, summaryAt + 500)).toContain("claimsUnavailable,");
+  });
+
+  it("makes the run fail when no claim could be taken", () => {
+    // The point: walking every business without throwing is not a successful
+    // night if nothing could be sent.
+    expect(shipped).toContain("claimsUnavailable === 0");
+  });
+
+  it("still skips quietly when the digest was genuinely already sent", () => {
+    // The common case must not be reported as a fault, or the signal is noise
+    // from the second sweep of every day onwards.
+    const at = shipped.indexOf("const claim = async");
+    expect(at).toBeGreaterThan(-1);
+    const helper = shipped.slice(at, at + 400);
+    expect(helper).toContain('result === "unavailable"');
+    expect(helper).not.toContain('result === "already-sent"');
   });
 });

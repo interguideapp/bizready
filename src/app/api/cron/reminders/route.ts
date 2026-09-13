@@ -105,6 +105,12 @@ export async function runRemindersSweep(): Promise<Response> {
    * One tenant's bad data must not decide whether anybody else is reminded.
    */
   let failedBusinesses = 0;
+  /*
+   * Claims that could not be taken for a reason OTHER than "already sent".
+   * Counted because a systematic claim failure stops outbound entirely while
+   * every tenant still succeeds — see claimSend.
+   */
+  let claimsUnavailable = 0;
   const failures: { businessId: string; error: string }[] = [];
 
   for (const biz of businesses) {
@@ -204,6 +210,12 @@ export async function runRemindersSweep(): Promise<Response> {
        * the one place the bookkeeping did not.
        */
       const digestKey = `digest:${todayInIsrael(today)}`;
+      /** Claim, and count the one outcome that means the mechanism is broken. */
+      const claim = async (channel: string) => {
+        const result = await claimSend(supabase, biz.id, channel, digestKey);
+        if (result === "unavailable") claimsUnavailable++;
+        return result === "claimed";
+      };
       const digest: OutboundDigest = {
         businessName: biz.name,
         items: urgent.map((n) => ({ title: n.title, body: n.body })),
@@ -214,7 +226,7 @@ export async function runRemindersSweep(): Promise<Response> {
       if (
         biz.notify_email &&
         emailConfigured() &&
-        (await claimSend(supabase, biz.id, "email", digestKey))
+        (await claim("email"))
       ) {
         const { data: userRes } = await supabase.auth.admin.getUserById(biz.owner_id);
         const email = userRes?.user?.email;
@@ -229,7 +241,7 @@ export async function runRemindersSweep(): Promise<Response> {
       if (
         biz.notify_push &&
         pushConfigured() &&
-        (await claimSend(supabase, biz.id, "push", digestKey))
+        (await claim("push"))
       ) {
         const { data: subs } = await supabase
           .from("push_subscriptions")
@@ -266,7 +278,7 @@ export async function runRemindersSweep(): Promise<Response> {
         biz.notify_whatsapp &&
         biz.whatsapp_phone &&
         whatsappConfigured() &&
-        (await claimSend(supabase, biz.id, "whatsapp", digestKey))
+        (await claim("whatsapp"))
       ) {
         const res = await sendWhatsappDigest(biz.whatsapp_phone, digest);
         if (res.ok) whatsappSent++;
@@ -291,10 +303,13 @@ export async function runRemindersSweep(): Promise<Response> {
     // would keep the job due so it retried the same failure all night. But not
     // true when the loop achieved nothing for anyone either: see
     // fanOutSucceeded, which both fan-out sweeps now share.
-    ok: fanOutSucceeded(businesses.length, failedBusinesses),
+    // A run that could not take a single claim sent nothing, however many
+    // businesses it walked without throwing.
+    ok: fanOutSucceeded(businesses.length, failedBusinesses) && claimsUnavailable === 0,
     businesses: businesses.length,
     failedBusinesses,
     failures,
+    claimsUnavailable,
     // In the summary so a future truncation is visible in cron_runs rather
     // than only in its absence.
     pages,
@@ -335,16 +350,37 @@ type Admin = ReturnType<typeof createAdminClient>;
  * page load and cannot fail, so a skipped digest costs a nudge and never the
  * information itself.
  */
+/**
+ * Postgres unique_violation. The EXPECTED way to fail a claim: somebody
+ * already sent this digest.
+ */
+const UNIQUE_VIOLATION = "23505";
+
+export type ClaimResult = "claimed" | "already-sent" | "unavailable";
+
 async function claimSend(
   supabase: Admin,
   businessId: string,
   channel: string,
   dedupeKey: string
-): Promise<boolean> {
+): Promise<ClaimResult> {
   const { error } = await supabase
     .from("reminder_log")
     .insert({ business_id: businessId, channel, dedupe_key: dedupeKey });
-  return !error;
+  if (!error) return "claimed";
+  /*
+   * A BLIND SPOT I OPENED, and closed in the same hour.
+   *
+   * The first version of this returned !error, so "already sent" and "the
+   * insert is broken" were the same answer: skip. Skipping is the right
+   * behaviour for both — see the note above about failing closed — but they
+   * are not the same NEWS. If claims failed systematically, because a policy
+   * changed or the table moved, outbound would stop entirely while every
+   * business still succeeded: no tenant throws, emailsSent is simply 0, and
+   * fanOutSucceeded would call the run healthy. Silent total stoppage reported
+   * as a good night is the exact failure this session has been removing.
+   */
+  return error.code === UNIQUE_VIOLATION ? "already-sent" : "unavailable";
 }
 
 /**

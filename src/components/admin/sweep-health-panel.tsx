@@ -1,5 +1,5 @@
 import { AlertOctagon, CheckCircle2, Clock, HelpCircle } from "lucide-react";
-import { SWEEP_SCHEDULE, sweepSummary, type SweepHealth } from "@/lib/heartbeat";
+import { SWEEP_SCHEDULE, sweepDetail, type SweepHealth } from "@/lib/heartbeat";
 
 /**
  * Whether the scheduled work is actually running.
@@ -57,7 +57,7 @@ export function SweepHealthPanel({
           פרויקט, ו-vercel.json צריך להישאר עם רשומה אחת.
         </p>
       )}
-      {broken.length > 0 && (
+      {secretConfigured && broken.length > 0 && (
         <p className="mb-3 rounded-xl bg-status-overdue/10 p-3 text-sm leading-relaxed text-status-overdue">
           <b>
             {broken.length === 1
@@ -84,7 +84,7 @@ export function SweepHealthPanel({
                   </span>
                 )}
               </p>
-              <p className="text-xs text-ink-muted">{sweepSummary(h)}</p>
+              <p className="text-xs text-ink-muted">{sweepDetail(h)}</p>
             </div>
             <span className="tnum shrink-0 text-xs text-ink-faint">
               {/* The cadence it is judged against, so "late" is checkable. */}

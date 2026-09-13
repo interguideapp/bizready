@@ -149,6 +149,17 @@ export function needsAttention(health: SweepHealth[]): SweepHealth[] {
   );
 }
 
+/**
+ * The state phrase on its own, with no job name.
+ *
+ * Used where the name is already shown next to it. sweepSummary prefixes the
+ * label, and in the admin row that rendered as "תזכורות / תזכורות: לא רצה
+ * מעולם" — the name twice, which only became obvious on looking at it.
+ */
+export function sweepDetail(h: SweepHealth): string {
+  return sweepSummary(h).slice(h.label.length + 2);
+}
+
 /** One line naming what is broken and for how long. */
 export function sweepSummary(h: SweepHealth): string {
   if (h.state === "never") return `${h.label}: לא רצה מעולם`;

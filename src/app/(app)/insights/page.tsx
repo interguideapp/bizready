@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { loadLiveTasks } from "@/lib/tasks-live";
-import { CalendarClock, Gauge, Info } from "lucide-react";
+import { CalendarClock, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
 import { CostsManager } from "@/components/costs-manager";
 import { TrophyWall } from "@/components/insights/trophy-wall";
@@ -23,6 +23,7 @@ import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeUpcomingObligations } from "@/lib/compliance";
 import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
+import { ReadinessByCategory } from "@/components/insights/readiness";
 import { DeliveryNotice } from "@/components/delivery-notice";
 import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
 import {
@@ -202,45 +203,26 @@ export default async function InsightsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
         {/* readiness breakdown */}
         <FadeIn>
-          <Card className="h-full p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-section text-ink"><Gauge className="h-4.5 w-4.5 text-brand-400" aria-hidden />היערכות לפי תחום</h2>
-              <span className="tnum text-sm text-ink-muted">ציון כולל <b className="text-ink">{score.overall}</b></span>
-            </div>
-            {/* A bare number invites the reader to treat it as a verdict. This
-                says what is behind it, which is the only part they can act on. */}
-            {weakest.length > 0 && (
-              <p className="mb-3 text-xs leading-relaxed text-ink-muted">
-                מה שמוריד אותו עכשיו:{" "}
-                {weakest.map((c, i) => (
-                  <span key={c.category_id}>
-                    {i > 0 && ", "}
-                    <b className="font-medium text-ink-soft">
-                      {CATEGORIES.find((x) => x.id === c.category_id)?.title ?? c.category_id}
-                    </b>{" "}
-                    ({c.total - c.done} שנותרו)
-                  </span>
-                ))}
-                .
-              </p>
-            )}
-            <div className="flex flex-col gap-2.5">
-              {CATEGORIES.filter((c) => scoreByCat.has(c.id)).map((c) => {
-                const s = scoreByCat.get(c.id)!;
-                return (
-                  <div key={c.id}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="text-ink-soft">{c.title}</span>
-                      <span className="tnum text-xs text-ink-muted">{s.done}/{s.total}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface-3">
-                      <div className="h-full rounded-full bg-gradient-to-l from-brand-600 to-brand-400" style={{ width: `${s.score}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+          <ReadinessByCategory
+            overall={score.overall}
+            categories={CATEGORIES.filter((c) => scoreByCat.has(c.id)).map((c) => {
+              const sc = scoreByCat.get(c.id)!;
+              return {
+                categoryId: c.id,
+                title: c.title,
+                score: sc.score,
+                done: sc.done,
+                total: sc.total,
+              };
+            })}
+            weakest={weakest.map((c) => ({
+              categoryId: c.category_id,
+              title: CATEGORIES.find((x) => x.id === c.category_id)?.title ?? c.category_id,
+              score: c.score,
+              done: c.done,
+              total: c.total,
+            }))}
+          />
         </FadeIn>
 
         {/* trophy wall */}

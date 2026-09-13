@@ -238,7 +238,7 @@ export function HomeOS({ data }: { data: HomeOSData }) {
                 </div>
                 <span className="tnum text-sm font-bold text-ink">{data.completeness.percent}%</span>
               </div>
-              <div className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+              <div className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-track">
                 <div
                   className="h-full rounded-full bg-gradient-to-l from-brand-600 to-brand-400 transition-[width] duration-500"
                   style={{ width: `${data.completeness.percent}%` }}

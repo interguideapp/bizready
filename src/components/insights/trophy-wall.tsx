@@ -57,7 +57,7 @@ export function TrophyWall({
           <span className="text-ink-faint">/{badges.length}</span>
         </span>
       </div>
-      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-surface-3">
+      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-track">
         <div
           className="h-full rounded-full bg-gradient-to-l from-brand-500 to-accent-to"
           style={{ width: `${pct}%`, boxShadow: "0 0 10px var(--accent-glow)" }}

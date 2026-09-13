@@ -47,7 +47,7 @@ export function FinancePanels({ d }: { d: FinanceData }) {
               </span>
               <span className="tnum text-ink-muted">{nis(d.revenueYtd)} / {nis(d.ceiling)}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-3">
+            <div className="h-2 overflow-hidden rounded-full bg-track">
               <div
                 className={`h-full rounded-full ${ceilingPct >= 100 ? "bg-status-overdue" : ceilingPct >= 80 ? "bg-status-progress" : "bg-gradient-to-l from-brand-600 to-accent-to"}`}
                 style={{ width: `${ceilingPct}%` }}

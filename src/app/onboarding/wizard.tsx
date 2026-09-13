@@ -152,7 +152,7 @@ export function OnboardingWizard() {
               שאלה {positionInVisible + 1} מתוך {visibleCount}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
+          <div className="h-1.5 overflow-hidden rounded-full bg-track">
             <div
               className="h-full rounded-full bg-gradient-to-l from-brand-600 to-accent-to transition-all duration-500"
               style={{ width: `${progress}%` }}

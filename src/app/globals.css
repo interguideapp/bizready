@@ -13,6 +13,17 @@
   --surface: #eef1f8;
   --surface-2: #e6eaf4;
   --surface-3: #dbe1f0;
+  /**
+   * The unfilled part of a progress bar.
+   *
+   * Every track in the product used --surface-3, which in dark sits at
+   * #131d33 against a card of rgb(19,27,48) — measured 1.02:1, i.e. invisible.
+   * So a 0% row rendered blank and no bar conveyed "out of what", including
+   * the onboarding progress bar. WCAG 1.4.11 wants 3:1 for a component whose
+   * extent carries meaning, and this product ships a critical task about
+   * exactly that standard.
+   */
+  --track: #8993ab;
   --card: rgba(255, 255, 255, 0.7);
   --card-solid: #ffffff;
   /* Opaque backing for any glass surface that carries text. See the note on
@@ -68,6 +79,8 @@
   --surface: #060911;
   --surface-2: #0b1120;
   --surface-3: #131d33;
+  /** See the light-theme note: --surface-3 measured 1.02:1 against the card. */
+  --track: #7e8a9f;
   --card: rgba(17, 25, 44, 0.55);
   --card-solid: #0e1626;
   /* ---------------------------------------------------------------------
@@ -149,6 +162,7 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
+  --color-track: var(--track);
   --color-card: var(--card);
   --color-card-solid: var(--card-solid);
   --color-glass-base: var(--glass-base);

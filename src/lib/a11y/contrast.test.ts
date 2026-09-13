@@ -183,3 +183,51 @@ describe("no text is rendered below the legible floor", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * A progress track has to be visible, or the bar has no scale.
+ *
+ * Every track in the product drew on --surface-3, which in dark is #131d33
+ * against a card of rgb(19,27,48) — measured in a browser at **1.02:1**, i.e.
+ * invisible. So a 0% category rendered as a blank row, indistinguishable from a
+ * rendering failure, and no bar anywhere conveyed "out of what". Six bars were
+ * affected, including the onboarding progress bar, which is the one place a
+ * reader most needs to see how far there is left to go.
+ *
+ * WCAG 1.4.11 asks 3:1 for a component whose extent carries meaning, and this
+ * product ships a `critical` task telling users to meet exactly that standard.
+ */
+describe("a progress track is distinguishable from the card it sits on", () => {
+  const NON_TEXT_MIN = 3;
+
+  for (const [themeName, tokens] of THEMES) {
+    it(`${themeName}: --track clears ${NON_TEXT_MIN}:1 on the worst-case card`, () => {
+      const ratio = contrastRatio(parseColor(tokens["--track"]).rgb, worstCase(tokens));
+      expect(
+        ratio,
+        `${themeName} --track = ${tokens["--track"]} is ${ratio.toFixed(2)}:1`
+      ).toBeGreaterThanOrEqual(NON_TEXT_MIN);
+    });
+
+    it(`${themeName}: --surface-3 is NOT used as a track, being too close to the card`, () => {
+      // The token itself is fine for what it is for; this records WHY it may
+      // not carry a track, so the next person does not reach for it again.
+      const ratio = contrastRatio(parseColor(tokens["--surface-3"]).rgb, worstCase(tokens));
+      expect(ratio).toBeLessThan(NON_TEXT_MIN);
+    });
+  }
+
+  it("no progress bar still draws its track with --surface-3", () => {
+    const files = [
+      "src/app/onboarding/wizard.tsx",
+      "src/components/finance/finance-panels.tsx",
+      "src/components/home/home-os.tsx",
+      "src/components/insights/readiness.tsx",
+      "src/components/insights/trophy-wall.tsx",
+    ];
+    const offenders = files.filter((f) =>
+      fs.readFileSync(path.join(process.cwd(), f), "utf8").includes("rounded-full bg-surface-3")
+    );
+    expect(offenders).toEqual([]);
+  });
+});

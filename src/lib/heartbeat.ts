@@ -191,3 +191,22 @@ export function sweepSummary(h: SweepHealth): string {
   if (h.state === "late") return `${h.label}: רצה ${ago}, מתעכבת`;
   return `${h.label}: רצה ${ago}`;
 }
+
+/**
+ * Is this scheduled job not running?
+ *
+ * One definition, because there were two. delivery.ts inlined
+ * `state === "stale" || state === "never" || failing` for the reminders job,
+ * and the integrations page then needed the same judgement for sync — at which
+ * point the expression would have existed twice over the same three states,
+ * which is how the overdue count ended up written three ways.
+ *
+ * "late" is deliberately not down: a notice that fires on one missed nightly
+ * run gets ignored, and then the real outage is invisible too. A job that runs
+ * and errors every time IS down, which "hours since last success" alone would
+ * have called late at worst.
+ */
+export function jobIsDown(health: SweepHealth | null | undefined): boolean {
+  if (!health) return false;
+  return health.state === "never" || health.state === "stale" || health.failing;
+}

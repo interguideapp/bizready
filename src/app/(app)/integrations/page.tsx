@@ -2,18 +2,23 @@ import { BadgeCheck, Eye, Lock, ShieldCheck, Unplug } from "lucide-react";
 import { PageTitle } from "@/components/ui";
 import { IntegrationsManager, type ProviderInfo } from "@/components/integrations/manager";
 import { requireBusiness, getConnections, getOpenSyncErrors } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
+import { allSweepHealth, jobIsDown, type SweepJob } from "@/lib/heartbeat";
+import { lapsedLabel } from "@/lib/he-distance";
 import { ErrorsList } from "./errors-list";
 import { PROVIDERS } from "@/lib/integrations/registry";
 
 /**
  * Focused, honest integrations screen. We activate the invoicing sources first
  * (where the regulatory value lives) — read-only, consent-based, no bank
- * passwords. Manual "סנכרן עכשיו" works today; the nightly auto-sync + webhooks
- * run in the background once the service-role key is set.
+ * passwords. Manual "סנכרן עכשיו" works today, and the page now READS the
+ * heartbeat to say whether the nightly sync is running rather than hedging
+ * about a key the reader cannot check.
  */
 export default async function IntegrationsPage() {
   const business = await requireBusiness();
-  const [connections, syncErrors] = await Promise.all([
+  const supabase = await createClient();
+  const [connections, syncErrors, sweeps] = await Promise.all([
     getConnections(business.id),
     // getOpenSyncErrors had no caller: the query existed, the row type existed,
     // and ErrorsList existed — 63 lines of finished UI that nothing imported.
@@ -21,7 +26,36 @@ export default async function IntegrationsPage() {
     // never shown it. This is where those errors belong: next to the connection
     // that produced them.
     getOpenSyncErrors(business.id),
+    supabase.rpc("sweep_health"),
   ]);
+
+  /*
+   * Whether the nightly sync is ACTUALLY running, rather than a hedge about it.
+   *
+   * This line used to read "הסנכרון האוטומטי הלילי פועל ברקע כשמוגדר מפתח
+   * השירות" — a condition the reader has no way to evaluate, which is the same
+   * non-answer the admin panel used to give about CRON_SECRET. The page can
+   * simply look: the heartbeat records every job's last success.
+   *
+   * It matters more here than the wording suggests. Unlike reminders, sync has
+   * NO fallback — the lazy sweep deliberately runs reminders only — so when the
+   * schedule is dead, revenue is whatever was last pulled by hand. Revenue
+   * feeds the עוסק פטור ceiling, so someone who believes the figures refresh
+   * nightly is trusting a percentage that may be months stale.
+   */
+  const syncHealth = allSweepHealth(
+    ((sweeps.data ?? []) as {
+      job: string;
+      last_ok_at: string | null;
+      last_failed_at: string | null;
+    }[]).map((r) => ({
+      job: r.job as SweepJob,
+      lastOkAt: r.last_ok_at,
+      lastFailedAt: r.last_failed_at,
+    })),
+    new Date().toISOString()
+  ).find((h) => h.job === "sync");
+  const autoSyncRunning = Boolean(syncHealth) && !jobIsDown(syncHealth);
 
   // invoicing-first: expose only the invoicing providers as serializable info
   const providers: ProviderInfo[] = PROVIDERS.filter((p) => p.category === "invoicing").map((p) => ({
@@ -71,8 +105,24 @@ export default async function IntegrationsPage() {
       </section>
 
       <p className="mt-6 text-xs leading-relaxed text-ink-faint">
-        אין חיבור? אפשר להזין נתונים ידנית — המערכת עובדת בדיוק אותו דבר. הסנכרון האוטומטי הלילי פועל
-        ברקע כשמוגדר מפתח השירות.
+        אין חיבור? אפשר להזין נתונים ידנית — המערכת עובדת בדיוק אותו דבר.{" "}
+        {autoSyncRunning ? (
+          <>
+            הסנכרון הלילי פועל ברקע
+            {syncHealth?.hoursSince != null && syncHealth.hoursSince > 0
+              ? ` — רץ בהצלחה לפני ${syncHealth.hoursSince} שעות.`
+              : "."}
+          </>
+        ) : (
+          <>
+            <b className="text-ink">הסנכרון הלילי אינו פעיל כרגע</b>
+            {syncHealth?.hoursSince != null
+              ? ` (${lapsedLabel(Math.floor(syncHealth.hoursSince / 24))})`
+              : " — הוא לא רץ עדיין אף פעם"}
+            , ולכן המחזור מתעדכן רק כשמריצים ״סנכרן עכשיו״. שימו לב שבדיקת תקרת
+            עוסק פטור מסתמכת על המחזור הזה.
+          </>
+        )}
       </p>
     </div>
   );

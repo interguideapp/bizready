@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { allSweepHealth, type SweepHealth, type SweepJob } from "@/lib/heartbeat";
+import { allSweepHealth, jobIsDown, type SweepHealth, type SweepJob } from "@/lib/heartbeat";
 import {
   anyOutboundChannel,
   outboundChannels,
@@ -80,9 +80,8 @@ export function deliveryIsDown(health: DeliveryHealth | null): boolean {
   // which is the case that was live: a job that runs is not a message that
   // arrives.
   if (!anyOutboundChannel(health.channels)) return true;
-  const { sweep } = health;
-  if (!sweep) return false;
-  return sweep.state === "stale" || sweep.state === "never" || sweep.failing;
+  // jobIsDown, not a fourth copy of the same three-state expression.
+  return jobIsDown(health.sweep);
 }
 
 /**

@@ -167,7 +167,7 @@ export default async function InsightsPage() {
       {/* Consequence before progress. */}
       {/* A user who lives on this page would otherwise keep waiting for an
           email that is not coming. */}
-      {deliveryIsDown(delivery) && delivery && <DeliveryNotice health={delivery} compact />}
+      {deliveryIsDown(delivery) && <DeliveryNotice health={delivery} compact />}
 
       <OverdueBanner count={overdueStatutory.length} />
 

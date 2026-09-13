@@ -1,6 +1,24 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { allSweepHealth, type SweepHealth, type SweepJob } from "@/lib/heartbeat";
+import {
+  anyOutboundChannel,
+  outboundChannels,
+  type OutboundChannels,
+} from "@/lib/notify/configured";
+
+/**
+ * The heartbeat plus whether anything can be sent at all.
+ *
+ * Two independent ways for a promise of "we will remind you" to be false, and
+ * the product only ever measured one of them. See lib/notify/configured.ts:
+ * with the sweep healthy and no mail provider set, the board claimed the
+ * deadline guard was active while reminder_log had not a single row.
+ */
+export interface DeliveryHealth {
+  sweep: SweepHealth | null;
+  channels: OutboundChannels;
+}
 
 /**
  * Is the product still able to reach the user?
@@ -19,15 +37,14 @@ import { allSweepHealth, type SweepHealth, type SweepJob } from "@/lib/heartbeat
  * timestamps — no tenant data, no error text — which is exactly why it exists
  * as a summary function rather than as table access.
  */
-export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Promise<
-  SweepHealth | null
-> {
+export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Promise<DeliveryHealth> {
+  const channels = outboundChannels();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("sweep_health");
   // A monitoring read must never break the page it is monitoring. With no
   // answer we say nothing, which is the same position the product was in
   // before this existed.
-  if (error) return null;
+  if (error) return { sweep: null, channels };
   const rows = (
     (data ?? []) as {
       job: string;
@@ -43,7 +60,9 @@ export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Pro
   // case that actually matters: an empty cron_runs table is a scheduler that
   // has not run once, and reporting that as healthy would be the worst
   // possible reading.
-  return allSweepHealth(rows, new Date().toISOString()).find((h) => h.job === "reminders") ?? null;
+  const sweep =
+    allSweepHealth(rows, new Date().toISOString()).find((h) => h.job === "reminders") ?? null;
+  return { sweep, channels };
 });
 
 /**
@@ -54,7 +73,30 @@ export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Pro
  * needsAttention uses, so the admin panel and the user surfaces agree about
  * what counts as broken.
  */
-export function deliveryIsDown(health: SweepHealth | null): boolean {
+export function deliveryIsDown(health: DeliveryHealth | null): boolean {
   if (!health) return false;
-  return health.state === "stale" || health.state === "never" || health.failing;
+  // No configured channel is not a degraded state, it is the absence of the
+  // mechanism. The sweep can be perfectly healthy and still deliver nothing,
+  // which is the case that was live: a job that runs is not a message that
+  // arrives.
+  if (!anyOutboundChannel(health.channels)) return true;
+  const { sweep } = health;
+  if (!sweep) return false;
+  return sweep.state === "stale" || sweep.state === "never" || sweep.failing;
+}
+
+/**
+ * Which of the two reasons applies, for copy that names the real problem.
+ *
+ * "unconfigured" is not something the reader can fix and must not be phrased as
+ * a fault of theirs; "sweep" is an outage. Telling someone their reminders are
+ * delayed when no channel exists would send them to look at a setting that is
+ * not the cause.
+ */
+export function deliveryFault(
+  health: DeliveryHealth | null
+): "none" | "unconfigured" | "sweep" {
+  if (!health) return "none";
+  if (!anyOutboundChannel(health.channels)) return "unconfigured";
+  return deliveryIsDown(health) ? "sweep" : "none";
 }

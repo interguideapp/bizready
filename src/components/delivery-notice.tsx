@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { RadioTower } from "lucide-react";
-import type { SweepHealth } from "@/lib/heartbeat";
+import { deliveryFault, type DeliveryHealth } from "@/lib/delivery";
 
 /**
  * Outbound reminders are not going out — said as a fact, on the screens where
@@ -21,16 +21,29 @@ export function DeliveryNotice({
   health,
   compact = false,
 }: {
-  health: SweepHealth;
+  health: DeliveryHealth;
   /** One line, for a screen whose job is not notifications. */
   compact?: boolean;
 }) {
+  /*
+   * Two different problems, and the copy has to tell them apart.
+   *
+   * "unconfigured" means no channel exists at all, so there is nothing to come
+   * back and no delay to wait out — phrasing it as an outage would send the
+   * reader to check a setting that is not the cause, and "לא נשלחו מזה 3 ימים"
+   * implies it worked four days ago. "sweep" is a genuine outage of a
+   * mechanism that does exist.
+   */
+  const fault = deliveryFault(health);
+  const sweep = health.sweep;
   const since =
-    health.state === "never"
-      ? "עדיין לא נשלחו התראות אוטומטיות"
-      : health.hoursSince !== null && health.hoursSince >= 48
-        ? `לא נשלחו התראות אוטומטיות מזה ${Math.floor(health.hoursSince / 24)} ימים`
-        : "ההתראות האוטומטיות לא נשלחות כרגע";
+    fault === "unconfigured"
+      ? "התראות אוטומטיות לא מוגדרות בשירות הזה"
+      : !sweep || sweep.state === "never"
+        ? "עדיין לא נשלחו התראות אוטומטיות"
+        : sweep.hoursSince !== null && sweep.hoursSince >= 48
+          ? `לא נשלחו התראות אוטומטיות מזה ${Math.floor(sweep.hoursSince / 24)} ימים`
+          : "ההתראות האוטומטיות לא נשלחות כרגע";
 
   return (
     <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-status-progress/30 bg-status-progress-bg/40 p-3.5">
@@ -49,8 +62,10 @@ export function DeliveryNotice({
         ) : (
           <>
             מייל, פוש ו-WhatsApp לא יוצאים כרגע. כל מה שדורש תשומת לב מחושב מחדש
-            בכל כניסה ומופיע כאן ובלוח החובות, כך שאין פה משהו חסר — אבל עד
-            שהשליחה תחזור, כדאי להיכנס ולא לחכות להתראה.
+            בכל כניסה ומופיע כאן ובלוח החובות, כך שאין פה משהו חסר —{" "}
+            {fault === "unconfigured"
+              ? "אבל אין על מה לחכות: ההתראות נמצאות כאן בלבד, וכדאי להיכנס ולבדוק."
+              : "אבל עד שהשליחה תחזור, כדאי להיכנס ולא לחכות להתראה."}
           </>
         )}
       </p>

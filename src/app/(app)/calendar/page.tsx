@@ -186,7 +186,7 @@ export default async function CalendarPage() {
 
       {/* A user who lives on this page and never opens /notifications would
           otherwise keep waiting for an email that is not coming. */}
-      {deliveryIsDown(delivery) && delivery && <DeliveryNotice health={delivery} compact />}
+      {deliveryIsDown(delivery) && <DeliveryNotice health={delivery} compact />}
 
       {/* Late first, never behind the paywall: being late is not a premium
           feature, and this is the section the whole page exists for. */}

@@ -100,6 +100,24 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // sw.js and manifest.webmanifest are PWA assets fetched with NO session
+    // cookie, so the proxy redirected both to /login. Verified live: each
+    // returned 307 -> /login while icon-192.png returned 200, because images
+    // were already excluded and these two were not.
+    //
+    // The service worker one is the expensive half. Chrome refuses a script
+    // resource behind a redirect, so registration failed with "The script
+    // resource is behind a redirect, which is disallowed" on every visit —
+    // which means the SW has NEVER registered in production, there is no
+    // offline page, and push notifications are impossible because
+    // serviceWorker.ready never resolves.
+    //
+    // Excluded from the matcher rather than added to PUBLIC_PATHS: these are
+    // static files and should not invoke middleware at all, let alone refresh
+    // a Supabase session on every service-worker fetch.
+    //
+    // Same bug class as MACHINE_PATHS above: a request with no cookie, sent
+    // to a path that never needed one.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

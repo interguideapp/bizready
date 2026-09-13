@@ -34,16 +34,40 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
       return;
     }
     let cancelled = false;
+
+    /*
+     * VISIBILITY DOES NOT WAIT ON serviceWorker.ready.
+     *
+     * It did, and that was wrong in a way only production showed. `ready`
+     * resolves when a worker is active; when registration FAILS it neither
+     * resolves nor rejects — it simply hangs. And registration was failing on
+     * every visit, because the proxy redirected /sw.js to /login and Chrome
+     * refuses a script resource behind a redirect. So neither the .then nor the
+     * .catch ever ran, "supported" stayed false, and the toggle was invisible
+     * rather than visible-but-broken: the push channel vanished from the UI
+     * entirely.
+     *
+     * "supported" means the browser has the APIs, which is already known here.
+     * Set in a microtask rather than synchronously, which is what the lint rule
+     * about cascading renders actually asks for — it objects to a synchronous
+     * setState in an effect, not to an asynchronous one.
+     */
+    Promise.resolve().then(() => {
+      if (!cancelled) setSupported(true);
+    });
+
+    // Whether this browser is already subscribed is a separate question, and
+    // the only one that needs an active worker.
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => {
-        if (cancelled) return;
-        setSupported(true);
-        setEnabled(Boolean(sub));
+        if (!cancelled) setEnabled(Boolean(sub));
       })
       .catch(() => {
-        if (!cancelled) setSupported(true);
+        // Unknown subscription state reads as "not subscribed", which is
+        // recoverable: pressing enable re-subscribes.
       });
+
     return () => {
       cancelled = true;
     };

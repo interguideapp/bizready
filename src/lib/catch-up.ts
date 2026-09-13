@@ -175,3 +175,53 @@ export function looksLikeCatchUpNeeded(args: {
   // And there has to be something the questionnaire could actually take.
   return catchUpItems(args.tasks, args.templates).length > 0;
 }
+
+/**
+ * Split the questionnaire into "commonly already handled" and the rest.
+ *
+ * Measured against the live data before building this: the two real businesses
+ * would each be offered THIRTY-NINE and FORTY rows, two buttons apiece — about
+ * eighty targets on one page. Grouping by category helps the list read like the
+ * plan, and does nothing about its length.
+ *
+ * The split reuses ALREADY_DONE_OPTIONS, the eighteen options onboarding
+ * already asks about, rather than inventing a ranking. That list IS the
+ * curated answer to "what does a business usually already have" — a domain, a
+ * website, an accountant, a separate bank account, invoicing software, a
+ * pension deposit — and it was written for exactly this question, just at a
+ * different moment.
+ *
+ * Its `entities` gating is respected, so a company is not offered the
+ * individual עוסק registration, which is the same reason the onboarding step
+ * filters it.
+ *
+ * Nothing is hidden: the rest follows, grouped as before. This only puts the
+ * high-yield rows where they are read first, which is the difference between a
+ * questionnaire someone finishes and one they abandon.
+ */
+export function splitByLikelihood(
+  items: CatchUpItem[],
+  commonIds: Set<string>
+): { likely: CatchUpItem[]; rest: CatchUpItem[] } {
+  return {
+    likely: items.filter((i) => commonIds.has(i.templateId)),
+    rest: items.filter((i) => !commonIds.has(i.templateId)),
+  };
+}
+
+/**
+ * The commonly-already-handled ids that apply to this legal structure.
+ *
+ * Takes the options rather than importing them, because lib/content is a heavy
+ * module and this file is imported by the home screen's predicate.
+ */
+export function commonlyDoneIds(
+  options: { id: string; entities?: string[] }[],
+  entityType: string | undefined
+): Set<string> {
+  return new Set(
+    options
+      .filter((o) => !o.entities || (entityType ? o.entities.includes(entityType) : false))
+      .map((o) => o.id)
+  );
+}

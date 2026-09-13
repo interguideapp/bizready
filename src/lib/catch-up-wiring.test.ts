@@ -297,3 +297,27 @@ describe("the delegation actually sticks", () => {
     expect(actions.slice(at, end)).toContain('revalidatePath("/", "layout")');
   });
 });
+
+describe("the page puts the high-yield rows first", () => {
+  const page = read("src/app/(app)/catch-up/page.tsx");
+
+  it("splits the list rather than showing forty flat rows", () => {
+    // Measured on the live data: the two real businesses would each be offered
+    // thirty-nine and forty rows, two buttons apiece.
+    expect(page).toContain("splitByLikelihood(");
+    expect(page).toContain("commonlyDoneIds(ALREADY_DONE_OPTIONS, business.entity_type)");
+  });
+
+  it("passes the entity type, so the gating is applied", () => {
+    // Without it a company would be offered the individual עוסק registration.
+    expect(page).toContain("business.entity_type");
+  });
+
+  it("still renders the rest by category, so nothing is hidden", () => {
+    expect(page).toContain("rest.filter((i) => i.categoryId === category.id)");
+  });
+
+  it("drops empty groups rather than printing bare headings", () => {
+    expect(page).toContain(".filter((g) => g.items.length > 0)");
+  });
+});

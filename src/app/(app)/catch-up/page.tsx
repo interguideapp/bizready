@@ -2,8 +2,13 @@ import { ClipboardCheck, Eye, Lock } from "lucide-react";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { requireBusinessContext, getBusinessTasks } from "@/lib/data";
 import { capabilitiesFor } from "@/lib/members";
-import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
-import { catchUpItems, statutoryHeldBack } from "@/lib/catch-up";
+import { ALREADY_DONE_OPTIONS, CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
+import {
+  catchUpItems,
+  commonlyDoneIds,
+  splitByLikelihood,
+  statutoryHeldBack,
+} from "@/lib/catch-up";
 import { CatchUpForm } from "./catch-up-form";
 
 /**
@@ -37,13 +42,34 @@ export default async function CatchUpPage() {
   const items = catchUpItems(tasks, TEMPLATES_BY_ID);
   const held = statutoryHeldBack(tasks, TEMPLATES_BY_ID);
 
-  // Grouped in the product's own category order, so the list reads like the
-  // plan rather than like a database dump.
-  const groups = CATEGORIES.map((category) => ({
-    categoryId: category.id,
-    title: category.title,
-    items: items.filter((i) => i.categoryId === category.id),
-  })).filter((g) => g.items.length > 0);
+  /*
+   * The commonly-already-handled rows first, then the rest by category.
+   *
+   * Measured against the live data before doing this: the two real businesses
+   * would each be offered thirty-nine and forty rows, two buttons apiece —
+   * about eighty targets on one page. Category grouping makes the list read
+   * like the plan and does nothing about its length, and a questionnaire
+   * nobody finishes collects nothing.
+   *
+   * The first group reuses the eighteen options onboarding already asks about,
+   * entity gating included. Nothing is hidden; the high-yield rows are simply
+   * where they are read first.
+   */
+  const { likely, rest } = splitByLikelihood(
+    items,
+    commonlyDoneIds(ALREADY_DONE_OPTIONS, business.entity_type)
+  );
+
+  const groups = [
+    ...(likely.length > 0
+      ? [{ categoryId: "__likely", title: "הדברים שעסק כבר מסדר בדרך כלל", items: likely }]
+      : []),
+    ...CATEGORIES.map((category) => ({
+      categoryId: category.id,
+      title: category.title,
+      items: rest.filter((i) => i.categoryId === category.id),
+    })),
+  ].filter((g) => g.items.length > 0);
 
   return (
     <div>

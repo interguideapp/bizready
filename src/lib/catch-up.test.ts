@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { TEMPLATES_BY_ID } from "@/lib/content";
+import { ALREADY_DONE_OPTIONS, TEMPLATES_BY_ID } from "@/lib/content";
 import {
   acceptableMarks,
   catchUpItems,
+  commonlyDoneIds,
   looksLikeCatchUpNeeded,
+  splitByLikelihood,
   statutoryHeldBack,
   type CatchUpTask,
 } from "@/lib/catch-up";
@@ -277,5 +279,66 @@ describe("the nudge survives a reopened recurring task", () => {
 
   it("treats a null timestamp as no engagement", () => {
     expect(needed([task("choose-accountant", { completed_at: null })])).toBe(true);
+  });
+});
+
+describe("the list is ordered so it can be finished", () => {
+  /**
+   * Measured against the live data before building this: the two real
+   * businesses would each be offered THIRTY-NINE and FORTY rows, two buttons
+   * apiece — about eighty targets on one page. Grouping by category makes the
+   * list read like the plan and does nothing about its length, and a
+   * questionnaire nobody finishes collects nothing.
+   *
+   * The split reuses ALREADY_DONE_OPTIONS rather than inventing a ranking:
+   * that list IS the curated answer to "what does a business usually already
+   * have", written for this exact question at a different moment.
+   */
+  it("puts the commonly-handled rows in their own group", () => {
+    const items = catchUpItems(
+      [task("choose-accountant"), task("business-license"), task("buy-domain")],
+      TEMPLATES_BY_ID
+    );
+    const common = commonlyDoneIds(ALREADY_DONE_OPTIONS, "osek_patur");
+    const { likely, rest } = splitByLikelihood(items, common);
+    expect(likely.map((i) => i.templateId).sort()).toEqual(["buy-domain", "choose-accountant"]);
+    expect(rest.map((i) => i.templateId)).toEqual(["business-license"]);
+  });
+
+  it("hides nothing — every item lands in exactly one side", () => {
+    // The point is ordering, not filtering. An item that fell out of both
+    // would be a row the user could never answer.
+    const items = catchUpItems(
+      [task("choose-accountant"), task("business-license"), task("buy-domain")],
+      TEMPLATES_BY_ID
+    );
+    const { likely, rest } = splitByLikelihood(items, commonlyDoneIds(ALREADY_DONE_OPTIONS, "osek_patur"));
+    expect(likely.length + rest.length).toBe(items.length);
+    expect(new Set([...likely, ...rest].map((i) => i.templateId)).size).toBe(items.length);
+  });
+
+  it("respects the entity gating on those options", () => {
+    // A company is not offered the individual עוסק registration, which is the
+    // same reason the onboarding step filters this list.
+    const forCompany = commonlyDoneIds(ALREADY_DONE_OPTIONS, "company");
+    const forIndividual = commonlyDoneIds(ALREADY_DONE_OPTIONS, "osek_patur");
+    expect(forCompany.has("open-vat-file")).toBe(false);
+    expect(forIndividual.has("open-vat-file")).toBe(true);
+    expect(forCompany.has("register-company")).toBe(true);
+  });
+
+  it("keeps the ungated options for everyone", () => {
+    // Options with no `entities` apply to every structure.
+    for (const entity of ["osek_patur", "osek_murshe", "company", "partnership"]) {
+      expect(commonlyDoneIds(ALREADY_DONE_OPTIONS, entity).has("invoicing-software")).toBe(true);
+    }
+  });
+
+  it("offers only the ungated ones when the entity is unknown", () => {
+    // An older row with no entity type must not be offered a registration
+    // that may not apply to it.
+    const unknown = commonlyDoneIds(ALREADY_DONE_OPTIONS, undefined);
+    expect(unknown.has("invoicing-software")).toBe(true);
+    expect(unknown.has("register-company")).toBe(false);
   });
 });

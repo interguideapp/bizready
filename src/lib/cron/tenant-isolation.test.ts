@@ -83,9 +83,19 @@ describe("the run records what happened", () => {
      * fanOutSucceeded owns that boundary and cron/outcome.test.ts exercises it
      * behaviourally, so this only has to check the route asks.
      */
-    const summaryAt = route.indexOf("const summary = {");
-    expect(summaryAt).toBeGreaterThan(-1);
-    const summary = route.slice(summaryAt, summaryAt + 900);
+    /*
+     * Sliced to the object's actual end, not a fixed character window.
+     *
+     * This took 900 characters, and a later commit's longer comment pushed the
+     * expression past it — the same fixed-window brittleness the paywall guard
+     * hit. A guard that depends on how much prose sits above the code is a
+     * guard that fails for the wrong reason.
+     */
+    const startLine = lines.findIndex((l) => l.includes("const summary = {"));
+    expect(startLine, "the summary object was not found").toBeGreaterThan(-1);
+    let endLine = startLine;
+    while (lines[endLine].trim() !== "};") endLine++;
+    const summary = lines.slice(startLine, endLine + 1).join(" ");
     expect(summary).toContain("fanOutSucceeded(businesses.length, failedBusinesses)");
     expect(summary, "the outcome is hardcoded again").not.toContain("ok: true");
   });

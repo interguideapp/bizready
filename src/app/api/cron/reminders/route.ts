@@ -106,11 +106,16 @@ export async function runRemindersSweep(): Promise<Response> {
    */
   let failedBusinesses = 0;
   /*
-   * Claims that could not be taken for a reason OTHER than "already sent".
+   * Claims that could not be taken for a reason OTHER than "already sent",
+   * and how many were attempted at all.
+   *
    * Counted because a systematic claim failure stops outbound entirely while
-   * every tenant still succeeds — see claimSend.
+   * every tenant still succeeds — see claimSend. Both numbers, because the
+   * question is the same one fanOutSucceeded already answers: some failing is
+   * a tenant problem, all of them failing is the mechanism.
    */
   let claimsUnavailable = 0;
+  let claimsAttempted = 0;
   const failures: { businessId: string; error: string }[] = [];
 
   for (const biz of businesses) {
@@ -212,6 +217,7 @@ export async function runRemindersSweep(): Promise<Response> {
       const digestKey = `digest:${todayInIsrael(today)}`;
       /** Claim, and count the one outcome that means the mechanism is broken. */
       const claim = async (channel: string) => {
+        claimsAttempted++;
         const result = await claimSend(supabase, biz.id, channel, digestKey);
         if (result === "unavailable") claimsUnavailable++;
         return result === "claimed";
@@ -303,13 +309,27 @@ export async function runRemindersSweep(): Promise<Response> {
     // would keep the job due so it retried the same failure all night. But not
     // true when the loop achieved nothing for anyone either: see
     // fanOutSucceeded, which both fan-out sweeps now share.
-    // A run that could not take a single claim sent nothing, however many
-    // businesses it walked without throwing.
-    ok: fanOutSucceeded(businesses.length, failedBusinesses) && claimsUnavailable === 0,
+    /*
+     * AN INCONSISTENCY I INTRODUCED one commit ago and am fixing here.
+     *
+     * This read `claimsUnavailable === 0`, so ONE business with an odd claim
+     * error failed the whole run — which sets `failing`, which makes
+     * jobIsDown true, which tells EVERY user that delivery is down. That is
+     * exactly the trade-off I reasoned about for per-business throws one commit
+     * earlier and deliberately refused, and then took the opposite side of in
+     * the same expression.
+     *
+     * The rule is the same either way, so it is the same function: some claims
+     * failing is a tenant problem, all of them failing is the mechanism.
+     */
+    ok:
+      fanOutSucceeded(businesses.length, failedBusinesses) &&
+      fanOutSucceeded(claimsAttempted, claimsUnavailable),
     businesses: businesses.length,
     failedBusinesses,
     failures,
     claimsUnavailable,
+    claimsAttempted,
     // In the summary so a future truncation is visible in cron_runs rather
     // than only in its absence.
     pages,

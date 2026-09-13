@@ -133,10 +133,28 @@ describe("a broken claim is distinguished from an already-sent one", () => {
     expect(shipped.slice(summaryAt, summaryAt + 500)).toContain("claimsUnavailable,");
   });
 
-  it("makes the run fail when no claim could be taken", () => {
-    // The point: walking every business without throwing is not a successful
-    // night if nothing could be sent.
-    expect(shipped).toContain("claimsUnavailable === 0");
+  it("fails the run when NO claim could be taken, by the same rule as tenants", () => {
+    /**
+     * This asserted `claimsUnavailable === 0`, and that is the assertion that
+     * caught the inconsistency: requiring zero meant ONE business with an odd
+     * claim error failed the whole run, which sets `failing`, which makes
+     * jobIsDown true, which tells EVERY user delivery is down. That is the
+     * trade-off refused one commit earlier for per-business throws and then
+     * taken the opposite way in the same expression.
+     *
+     * Some claims failing is a tenant problem; all of them failing is the
+     * mechanism. Same question, same function.
+     */
+    expect(shipped).toContain("fanOutSucceeded(claimsAttempted, claimsUnavailable)");
+    expect(shipped, "one tenant's claim error fails the whole run again").not.toContain(
+      "claimsUnavailable === 0"
+    );
+  });
+
+  it("counts the attempts, or the boundary has nothing to compare against", () => {
+    expect(shipped).toContain("claimsAttempted++");
+    const summaryAt = shipped.indexOf("const summary = {");
+    expect(shipped.slice(summaryAt, summaryAt + 600)).toContain("claimsAttempted,");
   });
 
   it("still skips quietly when the digest was genuinely already sent", () => {

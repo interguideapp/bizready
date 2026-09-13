@@ -26,9 +26,30 @@ export function NotificationList({ items }: { items: AttentionItem[] }) {
   // Only stored items can be marked read, so the bulk action is offered only
   // when there is something it would actually affect.
   const hasUnreadStored = items.some((i) => i.storedId && !i.readAt);
+  /*
+   * The dock badge counts derived items too, and nothing can mark them read:
+   * they have no stored row. So pressing "סימון הכל כנקרא" clears the stored
+   * rows, removes this button — and leaves the badge showing a number, which
+   * reads as a broken button.
+   *
+   * The count is deliberately NOT changed to exclude them. A badge that goes
+   * quiet while a filing is overdue is the failure this product exists to
+   * prevent, and clearing on read would suppress the single most important
+   * alert it can raise. So the number is right and the explanation was
+   * missing.
+   */
+  const liveRemaining = items.filter((i) => i.derived).length;
 
   return (
     <div>
+      {!hasUnreadStored && liveRemaining > 0 && (
+        <p className="mb-3 text-xs leading-relaxed text-ink-muted">
+          {liveRemaining === 1
+            ? "פריט אחד כאן עדיין דורש טיפול, ולכן הוא ממשיך להיספר בתג שליד ההתראות. הוא ייעלם מעצמו כשהחוב יטופל."
+            : `${liveRemaining} פריטים כאן עדיין דורשים טיפול, ולכן הם ממשיכים להיספר בתג שליד ההתראות. הם ייעלמו מעצמם כשהחובות יטופלו.`}
+        </p>
+      )}
+
       {hasUnreadStored && (
         <div className="mb-3 flex justify-end">
           <button

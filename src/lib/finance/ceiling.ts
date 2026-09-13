@@ -59,3 +59,37 @@ export function ceilingStanding(revenueYtd: number, ceiling: number): CeilingSta
 
   return { state, pct: Math.min(100, Math.round((revenue / ceiling) * 100)) };
 }
+
+/**
+ * Is the business on course to cross the ceiling, even though it has not yet?
+ *
+ * YTD against the ceiling is a LAGGING indicator. A עוסק פטור at 60% in June
+ * is "ok" by that measure and will cross in September at the same run rate —
+ * and crossing retroactively triggers VAT on everything above the ceiling,
+ * which is the most expensive surprise in this product's domain. The content
+ * itself says planning should start around 80%, precisely because switching
+ * takes time.
+ *
+ * computeForecast has produced exactly this projection all along, tested, and
+ * nothing ever called it. This turns it into a statement, and deliberately
+ * keeps it separate from `state`: the projection is an extrapolation and must
+ * never be reported as a breach. `state` stays the only thing that says
+ * anything happened.
+ */
+export type CeilingOutlook = "none" | "projected_cross";
+
+export function ceilingOutlook(args: {
+  state: CeilingState;
+  ceiling: number;
+  projectedYearEnd: number;
+  /** computeForecast's own guard: too early in the year to extrapolate. */
+  reliable: boolean;
+}): CeilingOutlook {
+  // Already over. The breach is a fact and outranks any forecast about it.
+  if (args.state === "crossed") return "none";
+  if (!args.reliable) return "none";
+  if (!Number.isFinite(args.ceiling) || args.ceiling <= 0) return "none";
+  if (!Number.isFinite(args.projectedYearEnd)) return "none";
+  // Strictly over, same boundary rule as an actual crossing.
+  return args.projectedYearEnd > args.ceiling ? "projected_cross" : "none";
+}

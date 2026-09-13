@@ -1,7 +1,8 @@
 import { AlertTriangle, Banknote, CalendarClock, Gauge, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui";
 import { RevenueChart, type MonthPoint } from "@/components/revenue-chart";
-import { ceilingStanding } from "@/lib/finance/ceiling";
+import { ceilingOutlook, ceilingStanding } from "@/lib/finance/ceiling";
+import { computeForecast } from "@/lib/integrations/forecast";
 import { SETASIDE_ESTIMATE_NOTE, computeSetAside } from "@/lib/finance/setaside";
 import { formatIlsRounded } from "@/lib/money";
 
@@ -26,6 +27,16 @@ export function FinancePanels({ d }: { d: FinanceData }) {
   // ₪122,833 ceiling into "you have crossed it, you must change status".
   const ceiling = ceilingStanding(d.revenueYtd, d.ceiling);
   const ceilingPct = ceiling.pct;
+  // YTD against the ceiling is a LAGGING indicator: 60% in June is "ok" and
+  // crosses in September at the same run rate. computeForecast has produced
+  // this projection all along, tested, and nothing ever called it.
+  const forecast = computeForecast(d.revenueYtd, new Date());
+  const outlook = ceilingOutlook({
+    state: ceiling.state,
+    ceiling: d.ceiling,
+    projectedYearEnd: forecast.runRateYearEnd,
+    reliable: forecast.reliable,
+  });
   const net = d.latestMonthRevenue - d.monthlyCosts;
   const setAside = computeSetAside(d.revenueYtd);
 
@@ -58,6 +69,19 @@ export function FinancePanels({ d }: { d: FinanceData }) {
                 style={{ width: `${ceilingPct}%` }}
               />
             </div>
+            {/* On course to cross, though not there yet. Stated as a
+                projection, never as a breach — ceiling.state remains the only
+                thing that says something has actually happened. */}
+            {outlook === "projected_cross" && (
+              <p className="mt-1.5 flex items-start gap-1 text-xs leading-relaxed text-status-progress">
+                <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>
+                  בקצב הנוכחי המחזור השנתי צפוי להגיע לכ-{nis(forecast.runRateYearEnd)} —
+                  מעל התקרה. זו תחזית לפי הקצב עד כה, לא קביעה; מעבר לעוסק מורשה
+                  לוקח זמן, ולכן כדאי לבדוק את זה עכשיו ולא כשהמספר בפועל יגיע.
+                </span>
+              </p>
+            )}
             {ceiling.state !== "ok" && (
               <p
                 className={`mt-1.5 flex items-center gap-1 text-xs font-medium ${

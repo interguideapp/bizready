@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { APPROACHING_FROM, ceilingStanding, crossedByPct } from "@/lib/finance/ceiling";
+import {
+  APPROACHING_FROM,
+  ceilingOutlook,
+  ceilingStanding,
+  crossedByPct,
+} from "@/lib/finance/ceiling";
 import { YEARLY_FIGURES } from "@/lib/types";
 
 /**
@@ -89,5 +94,80 @@ describe("the boundary rule is shared, not encoded twice", () => {
   it("is false at exactly 100", () => {
     expect(crossedByPct(100)).toBe(false);
     expect(crossedByPct(100.0001)).toBe(true);
+  });
+});
+
+/**
+ * On course to cross, though not there yet.
+ *
+ * YTD against the ceiling is a lagging indicator: 60% in June reads "ok" and
+ * crosses in September at the same run rate. Crossing retroactively triggers
+ * VAT on everything above the ceiling, and switching to עוסק מורשה takes time,
+ * which is why the content says planning should start around 80%.
+ *
+ * computeForecast produced exactly this projection all along, unit-tested, and
+ * nothing in the product ever called it.
+ */
+describe("the ceiling outlook, kept separate from the ceiling state", () => {
+  const base = { state: "ok" as const, ceiling: CEILING, reliable: true };
+
+  it("warns when the run rate lands above the ceiling", () => {
+    expect(ceilingOutlook({ ...base, projectedYearEnd: CEILING * 1.4 })).toBe(
+      "projected_cross"
+    );
+  });
+
+  it("stays quiet when the run rate lands below it", () => {
+    expect(ceilingOutlook({ ...base, projectedYearEnd: CEILING * 0.7 })).toBe("none");
+  });
+
+  it("uses the same strict boundary as an actual crossing", () => {
+    // Projected to land exactly on the ceiling is not projected to exceed it.
+    expect(ceilingOutlook({ ...base, projectedYearEnd: CEILING })).toBe("none");
+    expect(ceilingOutlook({ ...base, projectedYearEnd: CEILING + 1 })).toBe(
+      "projected_cross"
+    );
+  });
+
+  it("says nothing before there is enough of the year to extrapolate", () => {
+    // computeForecast's own guard. A run rate from three days of data would
+    // manufacture alarm out of noise.
+    expect(
+      ceilingOutlook({ ...base, reliable: false, projectedYearEnd: CEILING * 3 })
+    ).toBe("none");
+  });
+
+  it("defers to a real crossing rather than forecasting about it", () => {
+    // The breach is a fact and outranks a projection of the same thing.
+    expect(
+      ceilingOutlook({ ...base, state: "crossed", projectedYearEnd: CEILING * 2 })
+    ).toBe("none");
+  });
+
+  it("still warns an approaching business, which is the whole point", () => {
+    expect(
+      ceilingOutlook({ ...base, state: "approaching", projectedYearEnd: CEILING * 1.2 })
+    ).toBe("projected_cross");
+  });
+
+  it("says nothing when the figures are unusable", () => {
+    expect(ceilingOutlook({ ...base, ceiling: 0, projectedYearEnd: 999_999 })).toBe("none");
+    expect(ceilingOutlook({ ...base, projectedYearEnd: Number.NaN })).toBe("none");
+  });
+
+  it("never reports a projection as the state", () => {
+    // The separation that matters: a forecast must not be able to make
+    // ceilingStanding say "crossed".
+    const standing = ceilingStanding(CEILING * 0.6, CEILING);
+    expect(standing.state).not.toBe("crossed");
+    expect(
+      ceilingOutlook({
+        state: standing.state,
+        ceiling: CEILING,
+        projectedYearEnd: CEILING * 5,
+        reliable: true,
+      })
+    ).toBe("projected_cross");
+    expect(ceilingStanding(CEILING * 0.6, CEILING).state).toBe(standing.state);
   });
 });

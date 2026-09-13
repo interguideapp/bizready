@@ -86,3 +86,42 @@ describe("days between two dates", () => {
     expect(daysUntilIso("2026-11-01", "2026-10-01")).toBe(31);
   });
 });
+
+/**
+ * No fifth copy.
+ *
+ * This vocabulary was duplicated four times and every copy disagreed: a binary
+ * "עבר המועד" on the task-row badge, month-aware wording on the obligations
+ * board, raw day counts in insights, and a fourth on the home screen that said
+ * "באיחור 1 ימים" and called a lapsed insurance policy "באיחור". Each was found
+ * separately, by looking at a different screen. Consolidating them fixes today;
+ * this stops the next one being written.
+ */
+describe("the distance vocabulary lives in exactly one place", () => {
+  it("is never rebuilt inline anywhere else in src", async () => {
+    const { readdirSync, statSync, readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((entry) => {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) return walk(full);
+        return /\.(ts|tsx)$/.test(full) ? [full] : [];
+      });
+
+    // Interpolating a count straight into one of these nouns is the shape every
+    // copy had. The helpers own the plural and the dual; nobody else may.
+    const inlineDistance = /(?:באיחור|בעוד|פג לפני)\s*(?:\$\{|\{)/;
+    const offenders: string[] = [];
+    for (const file of walk(join(process.cwd(), "src"))) {
+      // split/join, not a character class with a backslash in it: escaping a
+      // backslash through this repo's tooling has gone wrong more than once.
+      const name = file.split("\\").join("/").split("/").pop()!;
+      // he-distance owns it; its own test quotes the strings it asserts.
+      if (name === "he-distance.ts" || name === "he-distance.test.ts") continue;
+      const src = readFileSync(file, "utf8");
+      if (inlineDistance.test(src)) offenders.push(name);
+    }
+    expect(offenders).toEqual([]);
+  });
+});

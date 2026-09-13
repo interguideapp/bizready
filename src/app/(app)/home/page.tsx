@@ -15,6 +15,7 @@ import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, filingsBlockedByDismissal } from "@/lib/compliance";
 import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
+import { distanceLabel, lapsedLabel } from "@/lib/he-distance";
 import {
   CHANGE_LABEL,
   changeBannerText,
@@ -132,15 +133,22 @@ export default async function HomePage() {
   const exposures = ranked.map((e) => ({
     title: e.title,
     href: e.templateId ? `/tasks/${e.templateId}?from=home` : "/calendar",
+    // THE FOURTH COPY of this vocabulary, and the one on the most-seen screen.
+    // It said "באיחור 1 ימים" for a single day and called a lapsed insurance
+    // policy "באיחור" — a claim that a deadline was missed, which is true of a
+    // VAT period and false of cover that simply ran out. The he-distance sweep
+    // missed it because the label is built here in the page rather than in a
+    // component. See he-distance.ts and calendar/sections.tsx.
     dueLabel:
-      e.daysUntil < 0
-        ? `באיחור ${-e.daysUntil} ימים`
-        : e.daysUntil === 0
-          ? "היום"
-          : `בעוד ${e.daysUntil} ימים`,
+      e.daysUntil < 0 && e.basis !== "statutory"
+        ? lapsedLabel(-e.daysUntil)
+        : distanceLabel(e.daysUntil),
     severityLabel: SEVERITY_LABEL[e.severity],
     consequence: e.consequence,
-    overdue: e.daysUntil < 0,
+    // Red is for a statutory deadline that has passed. A lapsed policy is
+    // serious and is not an interest-bearing debt, so it does not borrow the
+    // alarm the rest of this screen reserves for the law.
+    overdue: e.daysUntil < 0 && e.basis === "statutory",
   }));
 
   // Targeted to the templates actually in this plan — including completed

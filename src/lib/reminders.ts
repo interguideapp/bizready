@@ -10,6 +10,7 @@ import {
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { periodForDue } from "@/lib/filings";
 import { nextCycleFor, reopenedCycle } from "@/lib/cycles";
+import { aheadLabel } from "@/lib/he-distance";
 import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
 
@@ -206,10 +207,7 @@ export function computeReminders(
         if (window !== undefined) {
           notifications.push({
             type: "deadline",
-            title:
-              daysLeft === 0
-                ? `התוקף נגמר היום: ${template.title}`
-                : `תוקף נגמר בעוד ${daysLeft} ימים: ${template.title}`,
+            title: `תוקף נגמר ${aheadLabel(daysLeft)}: ${template.title}`,
             body: "לפי תאריך החידוש שרשמתם. חידוש לפני המועד מונע יום בלי כיסוי.",
             template_id: task.template_id,
             // Keyed on the date AND the window, like every other escalating
@@ -333,10 +331,7 @@ export function computeReminders(
         if (window !== undefined) {
           notifications.push({
             type: "deadline",
-            title:
-              daysLeft === 0
-                ? `להיום: ${template.title}`
-                : `בעוד ${daysLeft} ימים: ${template.title}`,
+            title: `${aheadLabel(daysLeft)}: ${template.title}`,
             body:
               window >= 14
                 ? "דדליין מתקרב — יש עוד זמן להתארגן."
@@ -378,10 +373,7 @@ export function computeReminders(
     if (window !== undefined) {
       notifications.push({
         type: "deadline",
-        title:
-          daysLeft === 0
-            ? `תוקף נגמר היום: ${doc.name}`
-            : `תוקף נגמר בעוד ${daysLeft} ימים: ${doc.name}`,
+        title: `תוקף נגמר ${aheadLabel(daysLeft)}: ${doc.name}`,
         body: "לפי תאריך התפוגה שרשמתם על המסמך בארכיון.",
         template_id: "",
         dedupe_key: `doc-expiry:${doc.name}:${doc.expires_at}:${window}`,

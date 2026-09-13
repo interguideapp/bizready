@@ -27,6 +27,8 @@ export interface ConfidenceInput {
   ceilingTaskId?: string | null;
 }
 
+import { distanceLabel } from "@/lib/he-distance";
+
 export interface Confidence {
   state: ConfidenceState;
   /** One-line status, e.g. "העסק שלך במסלול תקין". */
@@ -39,12 +41,14 @@ export interface Confidence {
   realRisks: number;
 }
 
-function daysPhrase(daysUntil: number): string {
-  if (daysUntil < 0) return "עבר המועד";
-  if (daysUntil === 0) return "היום";
-  if (daysUntil === 1) return "מחר";
-  return `בעוד ${daysUntil} ימים`;
-}
+/**
+ * The shared vocabulary, not a fifth private copy.
+ *
+ * This one also still carried the binary "עבר המועד" that the obligations board
+ * stopped using — five days late and five months late read identically on the
+ * home hero, which is the first thing anyone sees.
+ */
+const daysPhrase = distanceLabel;
 
 export function computeConfidence(input: ConfidenceInput): Confidence {
   const { overdueStatutory, urgent, next, remainingCritical, ceilingPct, ceilingTaskId } = input;

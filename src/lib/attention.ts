@@ -1,5 +1,11 @@
 import { TEMPLATES_BY_ID } from "@/lib/content";
-import { getBusinessTasks, getDocuments, getFiledPeriods, getNotifications } from "@/lib/data";
+import {
+  NOTIFICATIONS_PAGE_SIZE,
+  getBusinessTasks,
+  getDocuments,
+  getFiledPeriods,
+  getNotifications,
+} from "@/lib/data";
 import { computeReminders } from "@/lib/reminders";
 import { mergeAttention, unreadCount, type AttentionItem } from "@/lib/live-attention";
 import { isPro } from "@/lib/subscription";
@@ -19,12 +25,29 @@ import type { BusinessRow } from "@/lib/data";
  * query, not two.
  */
 export async function loadAttention(business: BusinessRow): Promise<AttentionItem[]> {
-  const [stored, tasks, filedPeriods, documents] = await Promise.all([
+  return (await loadAttentionPage(business)).items;
+}
+
+/**
+ * The same list, plus whether older stored rows were left off.
+ *
+ * getNotifications fetches one more than it shows so this can tell "exactly
+ * the limit" from "more than the limit". Truncating an alerts list in silence
+ * is the same defect as an obligations board that shows eight rows and does
+ * not mention the ninth.
+ */
+export async function loadAttentionPage(
+  business: BusinessRow
+): Promise<{ items: AttentionItem[]; truncated: boolean }> {
+  const [storedRaw, tasks, filedPeriods, documents] = await Promise.all([
     getNotifications(business.id),
     getBusinessTasks(business.id),
     getFiledPeriods(business.id),
     getDocuments(business.id),
   ]);
+
+  const truncated = storedRaw.length > NOTIFICATIONS_PAGE_SIZE;
+  const stored = truncated ? storedRaw.slice(0, NOTIFICATIONS_PAGE_SIZE) : storedRaw;
 
   // Deliberately the STORED rows, not the cycle-projected ones from
   // loadLiveTasks. This list is "what the sweep would have sent", so it has to
@@ -53,7 +76,7 @@ export async function loadAttention(business: BusinessRow): Promise<AttentionIte
     documents.map((d) => ({ name: d.name, expires_at: d.expires_at }))
   );
 
-  return mergeAttention(stored, drafts);
+  return { items: mergeAttention(stored, drafts), truncated };
 }
 
 /** What the dock badge should show. */

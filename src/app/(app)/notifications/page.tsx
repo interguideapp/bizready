@@ -1,12 +1,13 @@
 import { BellOff } from "lucide-react";
 import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { requireBusiness } from "@/lib/data";
-import { loadAttention } from "@/lib/attention";
+import { loadAttentionPage } from "@/lib/attention";
 import { derivedCount, isGenuinelyCalm } from "@/lib/live-attention";
 import { NotificationList } from "./notification-list";
 import { SweepNotice } from "./sweep-notice";
 import { DeliveryNotice } from "@/components/delivery-notice";
 import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
+import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/data";
 
 /**
  * התראות — derived live, not just read back.
@@ -26,10 +27,11 @@ import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
  */
 export default async function NotificationsPage() {
   const business = await requireBusiness();
-  const [items, delivery] = await Promise.all([
-    loadAttention(business),
+  const [page, delivery] = await Promise.all([
+    loadAttentionPage(business),
     loadDeliveryHealth(),
   ]);
+  const { items, truncated } = page;
   const unsent = derivedCount(items);
   const down = deliveryIsDown(delivery);
 
@@ -50,6 +52,19 @@ export default async function NotificationsPage() {
         <DeliveryNotice health={delivery} />
       ) : (
         unsent > 0 && <SweepNotice count={unsent} />
+      )}
+
+      {/* Say when older rows were left off. The cap used to take the fifty most
+          RECENT and mention nothing, so an unread overdue from two months ago
+          was dropped to make room for recent nudges. Unread now sorts first, so
+          this line only ever means "older read history is not shown" — but it
+          still has to be said, on the one screen whose job is that nothing gets
+          missed. */}
+      {truncated && (
+        <p className="mb-4 rounded-xl border border-edge bg-surface/60 p-3 text-xs leading-relaxed text-ink-muted">
+          מוצגות {NOTIFICATIONS_PAGE_SIZE} ההתראות הרלוונטיות ביותר. כל מה שלא
+          נקרא מופיע כאן — התראות ישנות שכבר קראתם אינן מוצגות.
+        </p>
       )}
 
       {isGenuinelyCalm(items) ? (

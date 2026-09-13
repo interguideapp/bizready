@@ -292,16 +292,37 @@ export interface NotificationRow {
   created_at: string;
 }
 
+/**
+ * Capped, because the table grows without bound — and the cap is why the order
+ * matters.
+ *
+ * This used to take the 50 most RECENT rows and say nothing about the rest. So
+ * an overdue notification from two months ago, still unread and still
+ * unaddressed, was dropped to make room for fifty recent deadline nudges. The
+ * merge in live-attention sorts by urgency, but it can only sort what it was
+ * given, and the cap had already thrown the urgent one away. On the one screen
+ * whose whole job is that nothing gets missed.
+ *
+ * Unread first, then recent. That guarantees no unread row is ever the one cut:
+ * a read notification has already done its job and losing it costs history,
+ * not a warning.
+ */
+export const NOTIFICATIONS_PAGE_SIZE = 50;
+
 export async function getNotifications(
-  businessId: string
+  businessId: string,
+  limit = NOTIFICATIONS_PAGE_SIZE
 ): Promise<NotificationRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
     .eq("business_id", businessId)
+    .order("read_at", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false })
-    .limit(50);
+    // One extra, like getDocuments, so the caller can tell "exactly the limit"
+    // from "more than the limit" and say so instead of truncating in silence.
+    .limit(limit + 1);
   return (critical("את ההתראות", data, error) ?? []) as NotificationRow[];
 }
 

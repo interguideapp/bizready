@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fanOutSucceeded } from "@/lib/cron/outcome";
 import { fetchAllPages } from "@/lib/supabase/page-all";
 import { open } from "@/lib/crypto-box";
 import { cronAuthorized } from "@/lib/cron-auth";
@@ -110,7 +111,12 @@ export async function runSyncSweep(): Promise<Response> {
     }
   }
 
-  const summary = { ok: true, synced, failed };
-  await endCronRun(supabase, run, true, summary);
+  // ok was hardcoded true, so a night where EVERY connection failed was
+  // recorded as a healthy run — and the integrations screen now reports this
+  // job's health, so it would have said the nightly sync was running while
+  // nothing synced at all.
+  const ok = fanOutSucceeded(connections.length, failed);
+  const summary = { ok, synced, failed, connections: connections.length };
+  await endCronRun(supabase, run, ok, summary);
   return NextResponse.json(summary);
 }

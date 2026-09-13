@@ -70,16 +70,24 @@ describe("the run records what happened", () => {
     expect(route).toContain("failures,");
   });
 
-  it("still reports the run as completed", () => {
+  it("derives the outcome instead of asserting one", () => {
     /**
-     * Deliberate. A red heartbeat would tell EVERY user that delivery is down
-     * because one other account has bad data, and would keep the job due so it
-     * retried the same failure all night. "ok" here means the sweep ran to
-     * completion and attempted every business, which it did.
+     * This asserted the literal "ok: true", and it broke when the outcome
+     * became derived — correctly, which is the point of having it.
+     *
+     * The intent it was protecting still holds and is unchanged: a few tenants
+     * throwing must NOT mark the run failed, because a red heartbeat would tell
+     * every user that delivery is down over one other account's bad data, and
+     * would keep the job due so it retried that failure all night. What changed
+     * is that "all of them threw" is now distinguished from "some did —
+     * fanOutSucceeded owns that boundary and cron/outcome.test.ts exercises it
+     * behaviourally, so this only has to check the route asks.
      */
     const summaryAt = route.indexOf("const summary = {");
     expect(summaryAt).toBeGreaterThan(-1);
-    expect(route.slice(summaryAt, summaryAt + 700)).toContain("ok: true");
+    const summary = route.slice(summaryAt, summaryAt + 900);
+    expect(summary).toContain("fanOutSucceeded(businesses.length, failedBusinesses)");
+    expect(summary, "the outcome is hardcoded again").not.toContain("ok: true");
   });
 
   it("caps the recorded ids, so one broken deploy cannot bloat the row", () => {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fanOutSucceeded } from "@/lib/cron/outcome";
 import { fetchAllPages } from "@/lib/supabase/page-all";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { TEMPLATES_BY_ID } from "@/lib/content";
@@ -266,13 +267,12 @@ export async function runRemindersSweep(): Promise<Response> {
   }
 
   const summary = {
-    // The sweep ran to completion, which is what "ok" means here: every
-    // business was attempted. Deliberately not false when a few tenants threw
-    // — a red heartbeat would tell EVERY user that delivery is down because one
-    // other account has bad data, and would keep the job due so it retried the
-    // same failure all night. The count is what an operator needs, and it is
-    // right here in cron_runs.
-    ok: true,
+    // Not false when a few tenants threw — a red heartbeat would tell EVERY
+    // user that delivery is down because one other account has bad data, and
+    // would keep the job due so it retried the same failure all night. But not
+    // true when the loop achieved nothing for anyone either: see
+    // fanOutSucceeded, which both fan-out sweeps now share.
+    ok: fanOutSucceeded(businesses.length, failedBusinesses),
     businesses: businesses.length,
     failedBusinesses,
     failures,
@@ -285,7 +285,9 @@ export async function runRemindersSweep(): Promise<Response> {
     whatsappSent,
     pushSent,
   };
-  await endCronRun(supabase, run, true, summary);
+  // The recorded outcome must be the one the summary states, or the heartbeat
+  // and the row disagree about the same run. retention already did this.
+  await endCronRun(supabase, run, summary.ok, summary);
   return NextResponse.json(summary);
 }
 

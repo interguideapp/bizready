@@ -315,10 +315,3 @@ export function projectCycles<T extends CycleTask>(
     };
   });
 }
-
-/** How the reopening reads on screen. */
-export const CYCLE_REASON_TEXT: Record<CycleReason, string> = {
-  period: "נפתחה תקופת דיווח חדשה",
-  renewal: "הגיע מועד החידוש",
-  habit: "חזר לפי המחזוריות שהוגדרה",
-};

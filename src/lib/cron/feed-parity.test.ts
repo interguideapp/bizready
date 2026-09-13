@@ -90,3 +90,49 @@ describe("the engine's inputs are all actually supplied", () => {
     }
   });
 });
+
+/**
+ * One implementation of the connection lifecycle, not two.
+ *
+ * integration-actions.ts held a second createConnection / disconnectConnection
+ * / syncNow / importCsv, reachable only from an orphaned component, while the
+ * live UI called the copies in actions.ts. The audit named it and asked for the
+ * deletion; it survived anyway.
+ *
+ * That path seals integration credentials and mints the webhook signing
+ * secret, so a duplicate is not untidiness — the next person to change it had
+ * even odds of editing the copy nobody runs, and would have believed the change
+ * had shipped.
+ */
+describe("the connection lifecycle exists once", () => {
+  const libFiles = ["src/lib/actions.ts", "src/lib/integration-actions.ts"];
+
+  function countAcrossLib(pattern: RegExp): number {
+    return libFiles.reduce((n, rel) => {
+      const src = readFileSync(join(root, rel), "utf8");
+      return n + [...src.matchAll(pattern)].length;
+    }, 0);
+  }
+
+  it("declares createConnection exactly once", () => {
+    expect(countAcrossLib(/export async function createConnection\b/g)).toBe(1);
+  });
+
+  it("declares disconnectConnection exactly once", () => {
+    expect(countAcrossLib(/export async function disconnectConnection\b/g)).toBe(1);
+  });
+
+  it("has no second sync entry point", () => {
+    // syncConnectionNow is the live one; syncNow was the orphan.
+    expect(countAcrossLib(/export async function syncNow\b/g)).toBe(0);
+    expect(countAcrossLib(/export async function syncConnectionNow\b/g)).toBe(1);
+  });
+
+  it("still mints a webhook signing secret on the surviving path", () => {
+    // The reason the duplicate mattered. /api/hooks/[token] rejects any
+    // connection without one, so a connect path that forgot it would create
+    // connections whose webhooks could never be delivered.
+    const live = readFileSync(join(root, "src/lib/actions.ts"), "utf8");
+    expect(live).toMatch(/webhook_secret: randomBytes\(/);
+  });
+});

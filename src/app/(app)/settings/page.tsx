@@ -5,7 +5,8 @@ import { PageTitle } from "@/components/ui";
 import { getMembers, isAdmin, requireBusinessContext } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
-import { isPro } from "@/lib/subscription";
+import { isPro, subscriptionStanding } from "@/lib/subscription";
+import { SubscriptionLapsed } from "@/components/subscription-lapsed";
 import { capabilitiesFor } from "@/lib/members";
 import type { OnboardingAnswers } from "@/lib/types";
 import { NotificationPrefs } from "./notification-prefs";
@@ -27,6 +28,7 @@ export default async function SettingsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const standing = subscriptionStanding(business);
   return (
     <div>
       <PageTitle
@@ -34,8 +36,22 @@ export default async function SettingsPage() {
         subtitle="השתנה משהו בעסק? עדכנו את הפרטים וראו בדיוק איך התכנית מתכיילת — לפני שמאשרים"
       />
       <div className="mb-5">
-        {isPro(business) ? (
-          <SubscriptionBlock until={business.subscription_until} />
+        {/*
+          Three states, not two. A lapsed subscriber used to get the same pitch
+          as a new user, so a failed card was indistinguishable from never
+          having subscribed — see SubscriptionLapsed.
+        */}
+        {standing.state === "lapsed" && standing.untilIso ? (
+          <SubscriptionLapsed
+            untilIso={standing.untilIso}
+            daysAgo={standing.daysLeft === null ? 0 : Math.abs(standing.daysLeft)}
+          />
+        ) : isPro(business) ? (
+          <SubscriptionBlock
+            until={business.subscription_until}
+            state={standing.state}
+            daysLeft={standing.daysLeft}
+          />
         ) : (
           <UpgradeCta compact />
         )}

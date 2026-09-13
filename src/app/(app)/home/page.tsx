@@ -256,7 +256,17 @@ export default async function HomePage() {
 
   // next statutory deadline
   const nextDeadline = actionable.length > 0
-    ? { title: actionable[0].title, date: formatHeDate(actionable[0].dueDate), daysUntil: actionable[0].daysUntil }
+    ? {
+        title: actionable[0].title,
+        date: formatHeDate(actionable[0].dueDate),
+        daysUntil: actionable[0].daysUntil,
+        // The tile claimed "חובות סטטוטוריים בלבד נספרים כאן" while this is the
+        // earliest of ALL obligations, renewals and document expiries
+        // included. Narrowing it to statutory would be worse — it would hide a
+        // policy lapsing in three days behind a filing forty days out — so the
+        // tile says which kind it is instead of asserting something false.
+        basis: actionable[0].basis,
+      }
     : null;
 
   // recent activity — what you updated/uploaded

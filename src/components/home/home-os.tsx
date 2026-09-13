@@ -60,7 +60,12 @@ export interface HomeOSData {
   }[];
   quickWins: QuickWin[];
   completeness: { percent: number; missing: { label: string; href: string }[] };
-  nextDeadline: { title: string; date: string; daysUntil: number } | null;
+  nextDeadline: {
+    title: string;
+    date: string;
+    daysUntil: number;
+    basis: "statutory" | "renewal";
+  } | null;
   /**
    * Statutory filings whose dates we cannot compute because the user set the
    * unlocking task aside as "not relevant". Gating them is the safe behaviour,
@@ -552,7 +557,12 @@ export function HomeOS({ data }: { data: HomeOSData }) {
               value={data.nextDeadline ? daysShort(data.nextDeadline.daysUntil) : "—"}
               detail={
                 data.nextDeadline ? (
-                  <>{data.nextDeadline.title} · {data.nextDeadline.date}. חובות סטטוטוריים בלבד נספרים כאן.</>
+                  <>
+                    {data.nextDeadline.title} · {data.nextDeadline.date}.{" "}
+                    {data.nextDeadline.basis === "statutory"
+                      ? "חובה סטטוטורית — לאיחור יש קנס."
+                      : "חידוש או תפוגה — אין קנס, אבל אין כיסוי."}
+                  </>
                 ) : (
                   <>אין מועד דחוף באופק הקרוב.</>
                 )
@@ -672,9 +682,17 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
+/**
+ * Terse enough for a tile value, and still correct in Hebrew.
+ *
+ * Returned "2 ימים" for two days out. A numeral 2 beside a plural noun is the
+ * same calque the lateness vocabulary was consolidated to fix; this copy sat
+ * outside that sweep because it is a private helper.
+ */
 function daysShort(d: number): string {
   if (d < 0) return "עבר";
   if (d === 0) return "היום";
   if (d === 1) return "מחר";
+  if (d === 2) return "יומיים";
   return `${d} ימים`;
 }

@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import {
   AlertTriangle,
   ArrowLeft,
+  ClipboardCheck,
   BadgeCheck,
   BatteryFull,
   CalendarClock,
@@ -73,6 +74,14 @@ export interface HomeOSData {
    * one — so the home screen says so, and names what to undo.
    */
   blockedFilings: { title: string; blockedByTitle: string; href: string }[];
+  /**
+   * The owner said the business is already active and not one task has ever
+   * been closed — see looksLikeCatchUpNeeded. Shown as a QUESTION, because the
+   * inference can be wrong: a genuinely new owner who called themselves active
+   * has done nothing yet, and telling them their records are stale would be
+   * false.
+   */
+  suggestCatchUp: boolean;
   /**
    * Obligations ranked by what ignoring them will actually cost — severity x
    * proximity x certainty — rather than by how soon they fall due. The score
@@ -381,6 +390,36 @@ export function HomeOS({ data }: { data: HomeOSData }) {
         )}
 
         {/* ===== statutory dates we deliberately stopped computing ===== */}
+        {data.suggestCatchUp && (
+          <FadeUp delay={0.1}>
+            <div className="os-card rounded-3xl border border-brand-edge p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <ClipboardCheck className="h-4.5 w-4.5 text-brand-400" aria-hidden />
+                <h2 className="text-section text-ink">כבר טיפלתם בחלק מזה?</h2>
+              </div>
+              <p className="mb-3 text-sm leading-relaxed text-ink-muted">
+                {/*
+                  A question, not a statement. The product knows the business is
+                  marked active with nothing ever closed, which usually means
+                  the work happened and was never recorded — but "usually" is
+                  not "certainly", and asserting stale records to someone who
+                  genuinely just started would be false.
+                */}
+                העסק מוגדר כפעיל, ועדיין לא סומנה אף משימה כבוצעה. אם חלק מזה
+                כבר מסודר — סמנו והציון, הדדליינים וההתראות יחושבו מחדש לפי
+                המצב האמיתי.
+              </p>
+              <Link
+                href="/catch-up"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                מה כבר קיים בעסק
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+          </FadeUp>
+        )}
+
         {data.blockedFilings.length > 0 && (
           <FadeUp delay={0.1}>
             <div className="os-card rounded-3xl border border-status-overdue/25 p-5">

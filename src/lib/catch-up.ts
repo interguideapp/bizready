@@ -114,3 +114,46 @@ export function acceptableMarks(
     return true;
   });
 }
+
+/**
+ * Does this business look like it needs a catch-up pass?
+ *
+ * The questionnaire exists, and it is linked from settings and from
+ * /plan-ready. Neither is a place someone returns to, so an owner who signed
+ * up months ago will not find it — and the product can usually TELL, which
+ * makes staying quiet a choice rather than a limitation.
+ *
+ * The signal is deliberately narrow: the owner said the business is already
+ * ACTIVE, and not one task has ever been closed. For a business genuinely
+ * trading, having done none of its own setup work is not plausible — far more
+ * likely the work happened and was never recorded, which means the readiness
+ * score, the exposure ranking and every alert are being computed from a
+ * picture the product has reason to doubt.
+ *
+ * Why not "many open tasks": a new business has many open tasks too, and that
+ * is the normal state this product is built for. Nudging on that would fire
+ * for everyone and become wallpaper — the failure mode every notice in this
+ * codebase is written to avoid.
+ *
+ * Why not "signed up a while ago": someone can deliberate for months without
+ * their plan being wrong. Elapsed time says nothing about accuracy.
+ *
+ * It is phrased as a QUESTION wherever it is shown, because the inference can
+ * be wrong: a genuinely new owner who described themselves as active has done
+ * nothing yet, and telling them their records are stale would be false.
+ */
+export function looksLikeCatchUpNeeded(args: {
+  stage: string | undefined;
+  tasks: CatchUpTask[];
+  templates: Map<string, TaskTemplate>;
+}): boolean {
+  if (args.stage !== "active") return false;
+  // Any close at all — done, or dismissed as handled elsewhere — means the
+  // owner has engaged with the plan and is keeping it current.
+  const everClosed = args.tasks.some(
+    (t) => t.status === "done" || t.status === "not_relevant"
+  );
+  if (everClosed) return false;
+  // And there has to be something the questionnaire could actually take.
+  return catchUpItems(args.tasks, args.templates).length > 0;
+}

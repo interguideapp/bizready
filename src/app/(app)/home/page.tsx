@@ -1,4 +1,5 @@
 import { formatHeDate, formatHeDayMonth, todayInIsrael } from "@/lib/dates";
+import { looksLikeCatchUpNeeded } from "@/lib/catch-up";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { positionOf } from "@/lib/content/milestones";
@@ -317,6 +318,13 @@ export default async function HomePage() {
     completeness,
     nextDeadline,
     blockedFilings,
+    // The product can tell when its own picture is probably stale: marked
+    // active, nothing ever closed. Asked rather than asserted.
+    suggestCatchUp: looksLikeCatchUpNeeded({
+      stage: answers?.stage,
+      tasks,
+      templates: TEMPLATES_BY_ID,
+    }),
     ruleChanges,
     ruleChangesBanner: changeBannerText(ruleChangeList),
     exposures,

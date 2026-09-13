@@ -142,3 +142,48 @@ describe("a refused write is reported as refused", () => {
     expect(form).toMatch(/העדכון נדחה/);
   });
 });
+
+describe("the product offers the pass instead of waiting to be found", () => {
+  /**
+   * Settings and /plan-ready are both places nobody returns to, so an owner who
+   * signed up months ago would never find the questionnaire — while the product
+   * could usually tell it was needed. Staying quiet was a choice, not a limit.
+   */
+  it("home asks the question when the picture is probably stale", () => {
+    /*
+     * The exact assignment, not the presence of the name. My first version
+     * asserted both separately and PASSED against a planted
+     * `suggestCatchUp: false && looksLikeCatchUpNeeded({...})` — the same hole
+     * a `autoSyncRunning = true` plant found earlier today. The presence of a
+     * call says nothing about whether its answer is used.
+     */
+    const page = read("src/app/(app)/home/page.tsx");
+    expect(page).toContain("suggestCatchUp: looksLikeCatchUpNeeded({");
+  });
+
+  it("and the card links to the questionnaire", () => {
+    const os = read("src/components/home/home-os.tsx");
+    expect(os).toContain("data.suggestCatchUp &&");
+    expect(os).toContain('href="/catch-up"');
+  });
+
+  it("phrases it as a question, not as an assertion about their records", () => {
+    /**
+     * The inference can be wrong: a genuinely new owner who described the
+     * business as active has simply done nothing yet, and telling them their
+     * records are stale would be false. Every other notice in this codebase
+     * earned its wording the same way.
+     */
+    const os = read("src/components/home/home-os.tsx");
+    expect(os).toContain("כבר טיפלתם בחלק מזה?");
+    expect(os).toMatch(/אם חלק מזה/);
+    // It must not claim they HAVE done things, only ask.
+    expect(os).not.toMatch(/הרשומות שלכם לא מעודכנות|כבר עשיתם/);
+  });
+
+  it("states the ground it stands on, so the ask is checkable", () => {
+    // "marked active, nothing closed" is a fact the reader can verify, which
+    // is what keeps a guess from reading like a guess.
+    expect(read("src/components/home/home-os.tsx")).toMatch(/מוגדר כפעיל/);
+  });
+});

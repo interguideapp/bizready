@@ -3,6 +3,7 @@ import { TEMPLATES_BY_ID } from "@/lib/content";
 import {
   acceptableMarks,
   catchUpItems,
+  looksLikeCatchUpNeeded,
   statutoryHeldBack,
   type CatchUpTask,
 } from "@/lib/catch-up";
@@ -175,5 +176,68 @@ describe("what the server will accept", () => {
       TEMPLATES_BY_ID
     );
     expect(marks).toEqual([{ templateId: "choose-accountant", mark: "done" }]);
+  });
+});
+
+describe("noticing that a catch-up is probably needed", () => {
+  /**
+   * The questionnaire is linked from settings and /plan-ready, and neither is
+   * somewhere people return to — so an owner who signed up months ago will
+   * never find it. The product can usually tell, which makes staying quiet a
+   * choice rather than a limitation.
+   *
+   * The signal is narrow on purpose, and what it REFUSES to use matters as
+   * much as what it uses.
+   */
+  const needed = (stage: string | undefined, tasks: CatchUpTask[]) =>
+    looksLikeCatchUpNeeded({ stage, tasks, templates: TEMPLATES_BY_ID });
+
+  it("fires for an active business that has never closed anything", () => {
+    // Trading, yet none of its own setup work recorded: far more likely the
+    // work happened and was never entered.
+    expect(needed("active", [task("open-vat-file"), task("choose-accountant")])).toBe(true);
+  });
+
+  it("stays quiet once anything has been closed", () => {
+    // One close means the owner is engaging with the plan and keeping it
+    // current; the product has no reason to doubt the picture.
+    expect(
+      needed("active", [task("open-vat-file", { status: "done" }), task("choose-accountant")])
+    ).toBe(false);
+  });
+
+  it("counts a dismissal as engagement too", () => {
+    // Saying "this does not apply to me" is also keeping the plan current.
+    expect(
+      needed("active", [
+        task("open-vat-file", { status: "not_relevant" }),
+        task("choose-accountant"),
+      ])
+    ).toBe(false);
+  });
+
+  it("never fires for a business that is still being set up", () => {
+    // Having open setup tasks IS the normal state there, and that is the
+    // product's whole purpose.
+    expect(needed("setting_up", [task("open-vat-file")])).toBe(false);
+    expect(needed("idea", [task("open-vat-file")])).toBe(false);
+  });
+
+  it("does not fire on a missing stage answer", () => {
+    // An older row with no stage is not evidence of anything.
+    expect(needed(undefined, [task("open-vat-file")])).toBe(false);
+  });
+
+  it("does not fire when the questionnaire would have nothing to offer", () => {
+    // Only statutory filings open: those cannot be ticked there, so pointing
+    // at an empty form would be worse than silence.
+    expect(needed("active", [task("vat-reporting")])).toBe(false);
+  });
+
+  it("does not use 'many open tasks', which would fire for everyone", () => {
+    // The distinguishing fact is zero closes, not volume. A new business has
+    // many open tasks too, and nudging on that becomes wallpaper.
+    const many = Array.from({ length: 30 }, () => task("choose-accountant"));
+    expect(needed("setting_up", many)).toBe(false);
   });
 });

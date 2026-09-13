@@ -18,6 +18,7 @@ import { requireBusinessContext, getDocuments, getFiledPeriods } from "@/lib/dat
 import { capabilitiesFor } from "@/lib/members";
 import {
   computeUpcomingObligations,
+  overdueStatutory,
   filingsAwaitingPrerequisite,
   filingsBlockedByDismissal,
   type Obligation,
@@ -98,7 +99,7 @@ export default async function CalendarPage() {
   // so the two kinds of late are separated by basis and each gets the
   // consequence that is actually its own.
   const pastDue = obligations.filter((o) => o.daysUntil < 0);
-  const overdue = pastDue.filter((o) => o.basis === "statutory");
+  const overdue = overdueStatutory(obligations);
   const lapsed = pastDue.filter((o) => o.basis !== "statutory");
   const upcoming = obligations.filter((o) => o.daysUntil >= 0);
 

@@ -21,7 +21,7 @@ import {
 } from "@/lib/data";
 import { computeScore } from "@/lib/rules-engine";
 import { computeProfileCompleteness } from "@/lib/profile-score";
-import { computeUpcomingObligations } from "@/lib/compliance";
+import { computeUpcomingObligations, overdueStatutory } from "@/lib/compliance";
 import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
 import { ReadinessByCategory } from "@/components/insights/readiness";
@@ -98,9 +98,7 @@ export default async function InsightsPage() {
   // Same engines as home, deliberately: one ranking of consequence in the
   // product, not one per page.
   const actionable = obligations.filter((o) => o.templateId !== null || o.kind === "document_expiry");
-  const overdueStatutory = actionable.filter(
-    (o) => o.basis === "statutory" && o.daysUntil < 0
-  );
+  const overdue = overdueStatutory(obligations);
   const topExposures = rankByExposure(actionable)
     .filter((e) => e.daysUntil <= 30)
     .slice(0, 3);
@@ -183,7 +181,7 @@ export default async function InsightsPage() {
           email that is not coming. */}
       {deliveryIsDown(delivery) && <DeliveryNotice health={delivery} compact />}
 
-      <OverdueBanner count={overdueStatutory.length} />
+      <OverdueBanner count={overdue.length} />
 
       <FadeIn>
         <TopExposures

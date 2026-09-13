@@ -13,7 +13,7 @@ import {
 } from "@/lib/data";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
-import { computeUpcomingObligations, filingsBlockedByDismissal } from "@/lib/compliance";
+import { computeUpcomingObligations, filingsBlockedByDismissal, overdueStatutory } from "@/lib/compliance";
 import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
 import { distanceLabel, lapsedLabel } from "@/lib/he-distance";
 import {
@@ -120,9 +120,12 @@ export default async function HomePage() {
   // stale due_date column with no gate, so a brand-new עוסק מורשה was shown a red
   // "יש חוב אחד באיחור" for an obligation that did not legally exist, while the
   // calendar simultaneously showed nothing due.
-  const overdueCount = actionable.filter(
-    (o) => o.basis === "statutory" && o.daysUntil < 0
-  ).length;
+  // overdueStatutory, on the engine's own output rather than the
+  // locked-filtered list: /insights and /calendar count from the full set, and
+  // three hand-written filters over one legal fact is how A9 happened. The
+  // locked filter stays where it means something — the exposure ranking and
+  // the next-deadline line, which are about what you can act on now.
+  const overdueCount = overdueStatutory(obligations).length;
   const dueByTemplate = new Map(tasks.map((t) => [t.template_id, t.due_date]));
   const attention = computeAttention(
     actionable.map((o) => ({ templateId: o.templateId, title: o.title, dueDate: o.dueDate, daysUntil: o.daysUntil, basis: o.basis, periodLabel: o.periodLabel })),

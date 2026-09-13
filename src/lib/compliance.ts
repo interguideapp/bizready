@@ -650,6 +650,36 @@ export function computeUpcomingObligations(
 }
 
 /**
+ * The statutory filings that are past their date — the product's one count of
+ * "you are late", for every surface that shows one.
+ *
+ * Home, /insights and /calendar each filtered computeUpcomingObligations with
+ * their own expression, and they were not the same expression: Home first
+ * removed journey-LOCKED templates, /insights first kept only rows with a
+ * templateId or a document expiry, /calendar filtered nothing. They agreed,
+ * because compliance's prereqsMet and journey's "locked" both call
+ * satisfiesDependency with the same statutory flag, so a statutory obligation
+ * this engine emits can never be locked — and because a statutory obligation
+ * always carries a templateId. Both are real arguments rather than obvious
+ * ones, and neither was written down.
+ *
+ * Three hand-maintained expressions over one legal fact is exactly how A9
+ * happened: two places computed overdue from different inputs and the wrong one
+ * invented statutory debts, showing a new עוסק מורשה a red "יש חוב אחד באיחור"
+ * for a duty that did not legally exist while the calendar showed nothing due.
+ * Agreement that has to be argued is agreement that will break, so there is now
+ * one expression instead of three.
+ *
+ * The prerequisite gate is already applied upstream, inside
+ * computeUpcomingObligations: a duty that has not started is not in the input.
+ */
+export function overdueStatutory<T extends { basis: string; daysUntil: number }>(
+  obligations: T[]
+): T[] {
+  return obligations.filter((o) => o.basis === "statutory" && o.daysUntil < 0);
+}
+
+/**
  * Escalating reminder windows. Free plan only gets the 7-day nudge; Pro gets
  * the full runway so nothing is ever a surprise.
  */

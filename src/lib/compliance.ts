@@ -1,4 +1,5 @@
 import { todayInIsrael, israelParts } from "@/lib/dates";
+import { openRenewalOf } from "@/lib/renewals";
 import { dismissalOf, satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import {
   DATED_FILING_IDS,
@@ -76,6 +77,16 @@ export interface ComplianceTask {
   template_id: string;
   status: string;
   is_relevant: boolean;
+  /**
+   * When the task was last finished. Needed by openRenewalOf to tell a renewal
+   * the user has already handled from one that is genuinely open.
+   *
+   * REQUIRED, not optional. Every caller hand-maps a field subset, and while
+   * this was optional all five of them omitted it, so the rule compiled,
+   * shipped and did nothing at all. The typechecker is the only thing that
+   * reliably reaches the next call site somebody writes.
+   */
+  completed_at: string | null;
   /** not_applicable / handled_externally. null on rows predating the split. */
   dismissal?: Dismissal | null;
   completion_data?: Record<string, string> | null;
@@ -429,14 +440,6 @@ function occurrenceFor(
 
 // ---------- main engine ----------
 
-/** Reads a yyyy-mm-dd out of a completion field if present. */
-function renewalDate(task: ComplianceTask): string | null {
-  const raw = task.completion_data?.renewal;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : iso(d);
-}
-
 export function computeUpcomingObligations(
   tasks: ComplianceTask[],
   templates: Map<string, TaskTemplate>,
@@ -606,7 +609,10 @@ export function computeUpcomingObligations(
     }
 
     // --- renewals captured at completion (insurance / licence) ---
-    const renewal = renewalDate(task);
+    // openRenewalOf, not the raw field: a renewal the user has already
+    // re-completed is closed, and showing it as lapsed cover was an alarm they
+    // had no way to clear.
+    const renewal = openRenewalOf(task);
     if (renewal && visibleExpiry(renewal)) {
       out.push({
         id: `renewal:${template.id}:${renewal}`,

@@ -15,7 +15,7 @@ import {
 const today = new Date("2026-07-20T09:00:00Z");
 
 function task(partial: Partial<ComplianceTask> & { template_id: string }): ComplianceTask {
-  return { status: "todo", is_relevant: true, completion_data: null, ...partial };
+  return { status: "todo", is_relevant: true, completion_data: null, completed_at: null, ...partial };
 }
 
 describe("computeUpcomingObligations — real, period-accurate anchors", () => {
@@ -119,7 +119,7 @@ describe("computeUpcomingObligations — real, period-accurate anchors", () => {
       [
         task({ template_id: "annual-tax-report" }),
         task({ template_id: "vat-reporting" }),
-        task({ template_id: "bookkeeping", is_relevant: false }),
+        task({ template_id: "bookkeeping", is_relevant: false, completed_at: null }),
       ],
       TEMPLATES_BY_ID,
       [],
@@ -336,8 +336,8 @@ describe("duties that have not started yet are named, not hidden in silence", ()
   it("names a VAT duty waiting on an unopened file, and what unlocks it", () => {
     const pending = filingsAwaitingPrerequisite(
       [
-        { template_id: "open-vat-file", status: "todo", is_relevant: true },
-        { template_id: "vat-reporting", status: "todo", is_relevant: true },
+        { template_id: "open-vat-file", status: "todo", is_relevant: true, completed_at: null },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null },
       ],
       templates
     );
@@ -350,8 +350,8 @@ describe("duties that have not started yet are named, not hidden in silence", ()
   it("says nothing once the prerequisite is done — the duty is real by then", () => {
     const pending = filingsAwaitingPrerequisite(
       [
-        { template_id: "open-vat-file", status: "done", is_relevant: true },
-        { template_id: "vat-reporting", status: "todo", is_relevant: true },
+        { template_id: "open-vat-file", status: "done", is_relevant: true, completed_at: null },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null },
       ],
       templates
     );
@@ -366,10 +366,10 @@ describe("duties that have not started yet are named, not hidden in silence", ()
         {
           template_id: "open-vat-file",
           status: "not_relevant",
-          is_relevant: false,
+          is_relevant: false, completed_at: null,
           dismissal: "not_applicable",
         },
-        { template_id: "vat-reporting", status: "todo", is_relevant: true },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null },
       ],
       templates
     );
@@ -379,8 +379,8 @@ describe("duties that have not started yet are named, not hidden in silence", ()
   it("does not nag about a filing already completed", () => {
     const pending = filingsAwaitingPrerequisite(
       [
-        { template_id: "open-vat-file", status: "todo", is_relevant: true },
-        { template_id: "vat-reporting", status: "done", is_relevant: true },
+        { template_id: "open-vat-file", status: "todo", is_relevant: true, completed_at: null },
+        { template_id: "vat-reporting", status: "done", is_relevant: true, completed_at: null },
       ],
       templates
     );
@@ -392,7 +392,7 @@ describe("duties that have not started yet are named, not hidden in silence", ()
     // not in its plan. That is the alternative-prerequisite convention, and
     // reading it as a block would invent a blocker for every company.
     const pending = filingsAwaitingPrerequisite(
-      [{ template_id: "vat-reporting", status: "todo", is_relevant: true }],
+      [{ template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null }],
       templates
     );
     expect(pending).toEqual([]);
@@ -679,14 +679,26 @@ describe("more than one missed period, once the ledger knows", () => {
  * Exactly the reasoning that already exempted unfiled statutory periods.
  */
 describe("an expiry that has passed stays visible", () => {
-  const lapsedPolicy = (renewal: string) => [
-    {
-      template_id: "professional-liability-insurance",
-      status: "done",
-      is_relevant: true,
-      completion_data: { insurer: "X", renewal },
-    },
-  ];
+  /**
+   * A policy bought a year before it expires, and never renewed since.
+   *
+   * completed_at matters now: openRenewalOf treats a completion on or after the
+   * expiry as the user having renewed and said so. An annual policy taken out a
+   * year earlier is the shape of cover that genuinely lapsed with nobody acting
+   * on it, which is what these cases are about.
+   */
+  const lapsedPolicy = (renewal: string) => {
+    const boughtAt = String(Number(renewal.slice(0, 4)) - 1) + renewal.slice(4);
+    return [
+      {
+        template_id: "professional-liability-insurance",
+        status: "done",
+        is_relevant: true,
+        completed_at: boughtAt + "T09:00:00Z",
+        completion_data: { insurer: "X", renewal },
+      },
+    ];
+  };
 
   it("keeps a policy that lapsed six months ago on the board", () => {
     const obs = computeUpcomingObligations(
@@ -747,8 +759,8 @@ describe("an expiry that has passed stays visible", () => {
  */
 describe("awaiting versus blocked are disjoint", () => {
   const dismissed = (dismissal: "not_applicable" | "handled_externally") => [
-    { template_id: "open-vat-file", status: "not_relevant", is_relevant: true, dismissal },
-    { template_id: "vat-reporting", status: "todo", is_relevant: true },
+    { template_id: "open-vat-file", status: "not_relevant", is_relevant: true, dismissal, completed_at: null },
+    { template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null },
   ];
 
   it("reports a dismissed prerequisite as blocked, not as awaiting", () => {
@@ -770,8 +782,8 @@ describe("awaiting versus blocked are disjoint", () => {
   it("still reports a merely-unfinished prerequisite as awaiting", () => {
     // The case that section's wording is actually right for.
     const tasks = [
-      { template_id: "open-vat-file", status: "todo", is_relevant: true },
-      { template_id: "vat-reporting", status: "todo", is_relevant: true },
+      { template_id: "open-vat-file", status: "todo", is_relevant: true, completed_at: null },
+      { template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null },
     ];
     expect(filingsAwaitingPrerequisite(tasks, TEMPLATES_BY_ID)).toHaveLength(1);
     expect(filingsBlockedByDismissal(tasks, TEMPLATES_BY_ID)).toEqual([]);

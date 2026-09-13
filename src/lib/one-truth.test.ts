@@ -50,8 +50,8 @@ function boardSaysLate(
 ): boolean {
   const obligations = computeUpcomingObligations(
     [
-      { template_id: "open-vat-file", status: prerequisiteDone ? "done" : "todo", is_relevant: true },
-      { template_id: templateId, status: "todo", is_relevant: true, due_date: storedDue },
+      { template_id: "open-vat-file", status: prerequisiteDone ? "done" : "todo", is_relevant: true, completed_at: null },
+      { template_id: templateId, status: "todo", is_relevant: true, completed_at: null, due_date: storedDue },
     ],
     TEMPLATES_BY_ID,
     [],
@@ -162,7 +162,7 @@ describe("only things that can be late are ever called late", () => {
     const obligations = computeUpcomingObligations(
       [
         task("open-vat-file", "done"),
-        { template_id: "capital-statement-prep", status: "todo", is_relevant: true, due_date: "2026-01-01" },
+        { template_id: "capital-statement-prep", status: "todo", is_relevant: true, completed_at: null, due_date: "2026-01-01" },
       ],
       TEMPLATES_BY_ID,
       [],
@@ -181,7 +181,7 @@ describe("only things that can be late are ever called late", () => {
     const obligations = computeUpcomingObligations(
       [
         task("open-vat-file", "done"),
-        { template_id: "vat-reporting", status: "todo", is_relevant: true, due_date: "2026-09-15" },
+        { template_id: "vat-reporting", status: "todo", is_relevant: true, completed_at: null, due_date: "2026-09-15" },
       ],
       TEMPLATES_BY_ID,
       [],
@@ -196,7 +196,7 @@ describe("only things that can be late are ever called late", () => {
 });
 
 function task(template_id: string, status: string) {
-  return { template_id, status, is_relevant: true };
+  return { template_id, status, is_relevant: true, completed_at: null };
 }
 
 describe("the filing ledger does not break the agreement", () => {
@@ -232,11 +232,11 @@ describe("the filing ledger does not break the agreement", () => {
   function boardLate(filed: string[]): number {
     return computeUpcomingObligations(
       [
-        { template_id: "open-vat-file", status: "done", is_relevant: true },
+        { template_id: "open-vat-file", status: "done", is_relevant: true, completed_at: null },
         {
           template_id: "vat-reporting",
           status: "todo",
-          is_relevant: true,
+          is_relevant: true, completed_at: null,
           due_date: "2026-09-15",
           filed_periods: filed,
         },
@@ -271,11 +271,11 @@ describe("the filing ledger does not break the agreement", () => {
     // had done.
     const obs = computeUpcomingObligations(
       [
-        { template_id: "open-vat-file", status: "done", is_relevant: true },
+        { template_id: "open-vat-file", status: "done", is_relevant: true, completed_at: null },
         {
           template_id: "vat-reporting",
           status: "todo",
-          is_relevant: true,
+          is_relevant: true, completed_at: null,
           due_date: "2026-09-15",
           filed_periods: ["2026-07..2026-08"],
         },

@@ -1,4 +1,5 @@
 import { todayInIsrael } from "@/lib/dates";
+import { openRenewalOf, renewalDateOf } from "@/lib/renewals";
 import {
   isStatutoryFiling,
   nextStatutoryDueDate,
@@ -88,13 +89,6 @@ function frequencyOf(profile: ComplianceProfile): VatFrequency {
   return profile.vatFrequency ?? "bimonthly";
 }
 
-/** A yyyy-mm-dd out of the renewal completion field, or null if there isn't one. */
-export function renewalDateOf(task: CycleTask): string | null {
-  const raw = task.completion_data?.renewal;
-  if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(raw)) return null;
-  const d = new Date(raw.slice(0, 10) + "T00:00:00Z");
-  return Number.isNaN(d.getTime()) ? null : raw.slice(0, 10);
-}
 
 /**
  * The next cycle of a recurring duty, whether or not it has arrived yet.
@@ -140,7 +134,7 @@ export function nextCycleFor(args: {
   }
 
   // --- a renewal, dated by the user's own document ---
-  const renewal = renewalDateOf(task);
+  const renewal = openRenewalOf(task);
   if (renewal) {
     return {
       reason: "renewal",
@@ -254,7 +248,7 @@ export function reopenedCycle(args: {
     return { reason: "period", dueIso: nextDue, periodLabel: null, periodKey: null };
   }
 
-  const renewal = renewalDateOf(task);
+  const renewal = openRenewalOf(task);
   if (renewal) {
     // Reopened ON the renewal date, not after it: the whole point of a renewal
     // is that there must not be a single day without cover.
@@ -315,3 +309,5 @@ export function projectCycles<T extends CycleTask>(
     };
   });
 }
+
+export { openRenewalOf, renewalDateOf };

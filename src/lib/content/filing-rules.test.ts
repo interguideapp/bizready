@@ -17,7 +17,7 @@ import {
 
 const task = (partial: Partial<ComplianceTask> & { template_id: string }): ComplianceTask => ({
   status: "todo",
-  is_relevant: true,
+  is_relevant: true, completed_at: null,
   completion_data: null,
   ...partial,
 });

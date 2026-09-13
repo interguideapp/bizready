@@ -34,12 +34,15 @@ export function StatusPicker({
   steps,
   completion,
   unlocks = [],
+  previous,
   autoOpenFlow = false,
 }: {
   taskId: string;
   steps: string[];
   completion?: CompletionSpec;
   unlocks?: string[];
+  /** completion_data from the previous close, so the flow can prefill it. */
+  previous?: Record<string, string> | null;
   autoOpenFlow?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -65,6 +68,7 @@ export function StatusPicker({
         steps={steps}
         completion={completion}
         unlocks={unlocks}
+        previous={previous}
         onCancel={() => setShowFlow(false)}
       />
     );

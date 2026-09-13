@@ -415,6 +415,7 @@ function FinishPhase({
             steps={view.steps}
             completion={view.completion}
             unlocks={view.unlocks}
+            previous={view.completionData}
             autoOpenFlow={openCompletion}
           />
         </Card>

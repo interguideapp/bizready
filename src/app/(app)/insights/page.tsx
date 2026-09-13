@@ -69,6 +69,7 @@ export default async function InsightsPage() {
     tasks.map((t) => ({
         template_id: t.template_id,
         status: t.status,
+        completed_at: t.completed_at,
         is_relevant: t.is_relevant,
         dismissal: t.dismissal,
         completion_data: t.completion_data,

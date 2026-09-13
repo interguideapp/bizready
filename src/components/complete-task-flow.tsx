@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Check, CheckCircle2, Loader2, Unlock, X } from "lucide-react";
 import { completeTask } from "@/lib/actions";
+import { todayInIsrael } from "@/lib/dates";
 import { toast } from "@/components/toaster";
 import type { CompletionSpec } from "@/lib/types";
 import { DEFAULT_COMPLETION } from "@/lib/types";
@@ -16,17 +17,35 @@ export function CompleteTaskFlow({
   steps,
   completion,
   unlocks = [],
+  previous,
   onCancel,
 }: {
   taskId: string;
   steps: string[];
   completion?: CompletionSpec;
   unlocks?: string[];
+  /**
+   * Evidence from the LAST time this task was closed.
+   *
+   * A recurring task gets closed again every period, and completeTask merges
+   * this column rather than replacing it. Starting the form empty meant a
+   * renewal date typed a year ago stayed in the database, invisible here, and
+   * every engine went on reading it as the current expiry. Prefilling is what
+   * puts the stale value in front of the person who can correct it.
+   */
+  previous?: Record<string, string> | null;
   onCancel: () => void;
 }) {
   const spec = completion ?? DEFAULT_COMPLETION;
   const [checked, setChecked] = useState<boolean[]>(() => steps.map(() => false));
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const seed: Record<string, string> = {};
+    for (const field of (completion ?? DEFAULT_COMPLETION).fields ?? []) {
+      const was = previous?.[field.key];
+      if (typeof was === "string" && was) seed[field.key] = was;
+    }
+    return seed;
+  });
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -39,7 +58,20 @@ export function CompleteTaskFlow({
         .every((f) => (values[f.key] ?? "").trim().length > 0),
     [spec.fields, values]
   );
-  const canSubmit = allStepsDone && confirmed && requiredFilled;
+  /**
+   * A renewal date is an expiry: "valid until". A past one is either a typo or
+   * the previous period's date left in the prefill, and accepting it is how the
+   * product ended up insisting cover had lapsed the day after someone renewed
+   * it. Refusing here is also the only way the NEXT expiry gets recorded at
+   * all — without it the product falls back to guessing a year from today.
+   */
+  const staleRenewal = useMemo(() => {
+    const raw = (values.renewal ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return false;
+    return raw <= todayInIsrael();
+  }, [values.renewal]);
+
+  const canSubmit = allStepsDone && confirmed && requiredFilled && !staleRenewal;
 
   function submit() {
     if (!canSubmit) return;
@@ -155,8 +187,32 @@ export function CompleteTaskFlow({
                   onChange={(e) =>
                     setValues((v) => ({ ...v, [field.key]: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+                  aria-invalid={field.key === "renewal" && staleRenewal ? true : undefined}
+                  aria-describedby={
+                    field.key === "renewal" && staleRenewal ? "renewal-stale" : undefined
+                  }
+                  className={`w-full rounded-xl border bg-card px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge ${
+                    field.key === "renewal" && staleRenewal
+                      ? "border-status-overdue"
+                      : "border-edge"
+                  }`}
                 />
+                {field.key === "renewal" && staleRenewal && (
+                  /*
+                   * Said out loud, because the alternative is a disabled button
+                   * with no reason. This is also the moment the prefilled date
+                   * from the previous period gets corrected — the one chance to
+                   * record the real next expiry instead of guessing a year.
+                   */
+                  <p
+                    id="renewal-stale"
+                    role="alert"
+                    className="mt-1 text-xs text-status-overdue"
+                  >
+                    התאריך הזה כבר עבר. עדכנו לתאריך התוקף החדש, כדי שנוכל להזכיר
+                    לכם לפני שהוא פג.
+                  </p>
+                )}
               </label>
             ))}
           </div>
@@ -197,11 +253,20 @@ export function CompleteTaskFlow({
         </button>
         {!canSubmit && (
           <span className="text-xs text-ink-muted">
+            {/*
+              staleRenewal comes first, and it is the reason this chain needs
+              care: the three original clauses are exhaustive over the three
+              original conditions, so adding a fourth without a clause here left
+              the hint telling someone to confirm a declaration they had already
+              ticked. A wrong reason is worse than none.
+            */}
             {!allStepsDone
               ? "סמנו את כל הצעדים"
               : !requiredFilled
                 ? "מלאו את שדות החובה"
-                : "אשרו את ההצהרה"}
+                : staleRenewal
+                  ? "עדכנו את תאריך התוקף"
+                  : "אשרו את ההצהרה"}
           </span>
         )}
       </div>

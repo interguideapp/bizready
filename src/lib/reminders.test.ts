@@ -140,15 +140,51 @@ describe("computeReminders", () => {
   });
 
   it("Pro gets an earlier (30-day) reminder that free does not", () => {
-    // 21 days out → within Pro's 30 window, outside free's 7
+    /**
+     * On a STATUTORY filing, which is where the escalating runway applies.
+     *
+     * This used open-vat-file — a recommended setup task — and broke when
+     * recommendations narrowed to a single nudge. The tier difference it was
+     * checking is unchanged and real; the fixture was simply demonstrating it
+     * on the one kind of task that no longer escalates.
+     */
     const mkTasks = () => [
-      task({ template_id: "open-vat-file", due_date: "2026-08-10" }),
+      task({ template_id: "open-vat-file", status: "done" }),
+      task({ template_id: "vat-reporting", due_date: "2026-08-10" }),
     ];
     const free = computeReminders(mkTasks(), TEMPLATES_BY_ID, today, false);
     const pro = computeReminders(mkTasks(), TEMPLATES_BY_ID, today, true);
-    expect(free.notifications).toHaveLength(0);
-    expect(pro.notifications).toHaveLength(1);
-    expect(pro.notifications[0].dedupe_key).toBe("deadline:open-vat-file:2026-08-10:30");
+    const deadlines = (r: ReturnType<typeof computeReminders>) =>
+      r.notifications.filter((n) => n.template_id === "vat-reporting" && n.type === "deadline");
+    expect(deadlines(free)).toHaveLength(0);
+    expect(deadlines(pro)).toHaveLength(1);
+    expect(deadlines(pro)[0].dedupe_key).toBe("deadline:vat-reporting:2026-08-10:30");
+  });
+
+  it("a RECOMMENDED task gets one nudge, not the escalating runway", () => {
+    /**
+     * Measured on the live database: thirteen of thirteen alerts either real
+     * business had received were recommended setup tasks, six of them sharing
+     * one signup-anchored date. Four nudges per recommendation across forty
+     * tasks is how an alerts list becomes something people stop opening, and
+     * then the penalty-bearing filing arrives as one row among dozens.
+     *
+     * It also contradicted the product's own position: a recommendation past
+     * its suggested date produces no overdue alert at all.
+     */
+    const at = (dueDate: string) =>
+      computeReminders(
+        [task({ template_id: "open-vat-file", due_date: dueDate })],
+        TEMPLATES_BY_ID,
+        today,
+        true
+      ).notifications;
+
+    // 21 days out: inside the old 30-day window, and now silent.
+    expect(at("2026-08-10")).toHaveLength(0);
+    // 5 days out: the single nudge it does get.
+    expect(at("2026-07-25")).toHaveLength(1);
+    expect(at("2026-07-25")[0].dedupe_key).toBe("deadline:open-vat-file:2026-07-25:7");
   });
 
   it("raises an overdue notification only for a statutory filing past its date", () => {

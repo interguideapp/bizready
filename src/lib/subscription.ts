@@ -25,7 +25,11 @@ export function isPro(
 /** What Pro unlocks — shown on the paywall. */
 export const PRO_FEATURES = [
   "לוח שנה מלא של כל החובות והחידושים העתידיים",
-  "תזכורות מסלימות: 30 / 14 / 7 יום ויום לפני — בכל הערוצים",
+  // Says what the runway applies to. Recommendations get a single nudge, so
+  // "every deadline" would have overclaimed once that narrowed — and the
+  // reason it narrowed was that four nudges per suggestion buried the filings
+  // this list is selling.
+  "תזכורות מסלימות על חובות והגשות: 30 / 14 / 7 יום ויום לפני — בכל הערוצים",
   "מחולל מסמכים: מדיניות פרטיות, הסכמים, הצהרת נגישות ועוד — מוכן להורדה",
   "מעקב תפוגת מסמכים וחידושי ביטוח/רישיון אוטומטי",
   "התראה חיה על התקרבות לתקרת עוסק פטור",

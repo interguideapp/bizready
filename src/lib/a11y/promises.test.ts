@@ -194,3 +194,46 @@ describe("nothing new promises a reminder without being able to keep it", () => 
     expect(stale).toEqual([]);
   });
 });
+
+describe("the escalation is promised only where it applies", () => {
+  /**
+   * Recommendations get a single nudge; only statutory filings, renewals and
+   * document expiries get the 30/14/7/1 runway. That narrowing was measured —
+   * thirteen of thirteen alerts on the live database were recommended setup
+   * tasks, six sharing one signup-anchored date, and four nudges per
+   * suggestion across forty tasks is how an alerts list becomes something
+   * people stop opening.
+   *
+   * Which means the copy selling the runway had to narrow with it. I planted
+   * the overclaim back and nothing failed, because a claim is only as good as
+   * the assertion under it — the lesson of this entire session, arriving one
+   * more time in the feature I had just changed.
+   */
+  it("the paywall list scopes the runway to obligations and filings", () => {
+    const subscription = read("src/lib/subscription.ts");
+    expect(subscription).toContain("תזכורות מסלימות על חובות והגשות");
+    // "every deadline" is what it must not say: a recommendation is dated and
+    // is not one.
+    expect(subscription).not.toMatch(/מסלימות על כל דדליין|לפני כל דדליין/);
+  });
+
+  it("the board's active banner scopes it the same way", () => {
+    const board = read("src/app/(app)/calendar/page.tsx");
+    expect(board).toMatch(/לפני כל חובה/);
+    expect(board).not.toMatch(/לפני כל דדליין/);
+  });
+
+  it("and so does the board's upsell", () => {
+    // Two places on one screen said it; both had to move together, or the
+    // page would sell one promise and assert another.
+    const board = read("src/app/(app)/calendar/page.tsx");
+    expect(board).not.toMatch(/לפני כל מועד\./);
+  });
+
+  it("the windows the copy describes are the windows the engine uses", () => {
+    // The numbers in the sentence are the constant, not a retyped guess.
+    const compliance = readFileSync(join(root, "src/lib/compliance.ts"), "utf8");
+    expect(compliance).toContain("REMINDER_WINDOWS_PRO = [30, 14, 7, 1]");
+    expect(compliance).toContain("REMINDER_WINDOWS_RECOMMENDED = [7]");
+  });
+});

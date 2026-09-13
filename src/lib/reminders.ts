@@ -3,6 +3,7 @@ import {
   isStatutoryFiling,
   REMINDER_WINDOWS_FREE,
   REMINDER_WINDOWS_PRO,
+  REMINDER_WINDOWS_RECOMMENDED,
   tightestWindow,
   type ComplianceProfile,
 } from "@/lib/compliance";
@@ -332,7 +333,26 @@ export function computeReminders(
         // embeds the window, so a Pro user got one reminder in the whole run-up
         // and nothing at 14, 7 or 1 day — the comment above described the
         // intended behaviour and the code did the opposite of it.
-        const window = tightestWindow(daysLeft, windows);
+        /*
+         * A recommendation gets ONE nudge; only a statutory filing gets the
+         * escalating runway.
+         *
+         * Measured on the live database: thirteen of thirteen alerts either
+         * real business had received were recommended setup tasks, six of them
+         * sharing a single signup-anchored date. Four nudges per
+         * recommendation across forty tasks is how an alerts list becomes
+         * something people stop opening — and then the penalty-bearing filing
+         * arrives as one row among dozens.
+         *
+         * It also contradicted the product's own position: a recommendation
+         * past its suggested date produces no overdue alert at all. Renewals
+         * and document expiries keep their escalation, because cover actually
+         * lapsing is a consequence rather than advice.
+         */
+        const window = tightestWindow(
+          daysLeft,
+          statutory ? windows : REMINDER_WINDOWS_RECOMMENDED
+        );
         if (window !== undefined) {
           notifications.push({
             type: "deadline",

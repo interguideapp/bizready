@@ -235,7 +235,8 @@ export default async function CalendarPage() {
             <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-done/30 bg-status-done-bg/40 px-4 py-2.5 text-sm text-status-done">
               <ShieldCheck className="h-4.5 w-4.5" aria-hidden />
               <span className="font-medium">
-                שומר הדדליינים פעיל — נזכיר לכם 30, 14, 7 ויום לפני כל דדליין
+                שומר הדדליינים פעיל — נזכיר לכם 30, 14, 7 ויום לפני כל חובה
+                והגשה
               </span>
             </div>
           )}
@@ -273,7 +274,7 @@ export default async function CalendarPage() {
               </p>
               <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-ink-muted">
                 התכנית החינמית מציגה את החודש הקרוב. עם Pro רואים את כל הלוח
-                קדימה, עם תזכורות 30, 14, 7 ויום לפני כל מועד.
+                קדימה, עם תזכורות 30, 14, 7 ויום לפני כל חובה והגשה.
               </p>
               <div className="mt-4">
                 <UpgradeCta compact />

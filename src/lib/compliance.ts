@@ -686,6 +686,34 @@ export function overdueStatutory<T extends { basis: string; daysUntil: number }>
 export const REMINDER_WINDOWS_FREE = [7] as const;
 export const REMINDER_WINDOWS_PRO = [30, 14, 7, 1] as const;
 
+/**
+ * One nudge for a RECOMMENDATION, not a runway.
+ *
+ * Measured on the live database: every alert either real business had ever
+ * received — thirteen of thirteen — was a recommended setup task, six of them
+ * landing on the same day because they share a signup-anchored date. Not one
+ * was a statutory filing.
+ *
+ * The escalating windows were applied to both kinds, so "consider professional
+ * liability insurance" nudged at 30, 14, 7 and 1 day exactly as loudly and as
+ * often as a VAT return that carries a penalty. Four alerts per recommendation
+ * across forty tasks is how an alerts list becomes something people stop
+ * opening — and then the statutory one arrives as a row among dozens.
+ *
+ * This is also the position the product already takes everywhere else: a
+ * recommendation that slips past its suggested date produces no overdue alert
+ * at all ("never an איחור — we stay quiet"), the exposure model derives
+ * severity from legal basis, and the obligations board separates OverdueSection
+ * from LapsedSection. Escalating advice four times contradicted all three.
+ *
+ * Seven days, because that is enough warning to act on a suggestion and it is
+ * the single window a free plan already gets — so nothing changes for free
+ * users, and Pro stops paying for its escalation with dilution. Renewals and
+ * document expiries keep the full runway: cover actually lapsing is a
+ * consequence rather than advice.
+ */
+export const REMINDER_WINDOWS_RECOMMENDED = [7] as const;
+
 /** Which windows (in days-before) have been crossed for a due date today. */
 export function crossedWindows(
   daysUntil: number,

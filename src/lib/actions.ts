@@ -105,6 +105,39 @@ export async function completeOnboarding(
   );
   if (tasksError) throw new Error(tasksError.message);
 
+  /*
+   * The audit trail has to explain every completion, including these.
+   *
+   * Measured on the live database: four tasks were `done` and the trail held
+   * exactly ONE `completed` event. buildPlan marks every already_done template
+   * done and this insert sets completed_at, and nothing was ever written to
+   * task_events — so three of four completions had no entry saying when or how
+   * they came to be closed.
+   *
+   * That matters because the trail is what "can this business prove
+   * compliance?" rests on, and it is the hash-chained record. A status column
+   * asserting done with nothing behind it is exactly the shape the audit
+   * called out about the trail being incomplete and unattributed.
+   *
+   * `via: "onboarding"` rather than nothing, and deliberately the same shape
+   * applyCatchUp writes: both are the owner saying work was already handled,
+   * which is a weaker claim than completeTask's flow, where evidence was
+   * captured at the time. The trail should be able to tell those apart.
+   */
+  const preMarked = plan.filter((t) => t.status === "done");
+  if (preMarked.length > 0) {
+    await supabase.from("task_events").insert(
+      preMarked.map((t) => ({
+        business_id: business.id,
+        template_id: t.template_id,
+        kind: "completed",
+        from_status: "todo",
+        to_status: "done",
+        detail: { via: "onboarding", note: "סומן כבר־בוצע בשאלון הפתיחה" },
+      }))
+    );
+  }
+
   redirect("/plan-ready");
 }
 

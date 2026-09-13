@@ -183,3 +183,54 @@ describe("the recalibration applies it", () => {
     expect(actions).toContain('key === "" ? null : key');
   });
 });
+
+describe("a save that changes nothing changes nothing", () => {
+  /**
+   * A regression I introduced and measured before fixing.
+   *
+   * buildPlan dates a non-statutory task as addDays(TODAY, deadline_days), and
+   * updateAnswers passes new Date(). The first version of this compared the
+   * dates themselves, so a no-op settings save three months after signup
+   * proposed re-dating FIFTEEN tasks — open-vat-file moving from 2026-06-14 to
+   * 2026-09-14. Every recommended deadline would have slid forward on every
+   * visit to settings, and an overdue recommendation would have quietly become
+   * "due today": the product rewriting its own history to look current.
+   *
+   * The correction this exists for is the stage transition, which is precisely
+   * the dated/undated flip. Drift from a different "today" is not a correction.
+   */
+  const SIGNUP = new Date("2026-06-14T09:00:00Z");
+  const MONTHS_LATER = new Date("2026-09-14T09:00:00Z");
+
+  function storedAt(when: Date, answers: OnboardingAnswers = base) {
+    return reconcilePlan(answers, TASK_TEMPLATES, [], when).toAdd.map((t) => ({
+      template_id: t.template_id,
+      is_relevant: true,
+      status: "todo",
+      due_date: t.due_date,
+    }));
+  }
+
+  it("proposes nothing when only the clock moved", () => {
+    const stored = storedAt(SIGNUP);
+    const { toRedate } = reconcilePlan(base, TASK_TEMPLATES, stored, MONTHS_LATER);
+    expect(toRedate).toEqual([]);
+  });
+
+  it("really would have moved them, so the case above is not vacuous", () => {
+    // The premise: these tasks ARE dated and the two dates DO differ.
+    const atSignup = storedAt(SIGNUP).find((t) => t.template_id === "open-vat-file");
+    const atLater = storedAt(MONTHS_LATER).find((t) => t.template_id === "open-vat-file");
+    expect(atSignup?.due_date).toBeTruthy();
+    expect(atLater?.due_date).not.toBe(atSignup?.due_date);
+  });
+
+  it("still clears them when the stage actually changes, months later", () => {
+    // The narrowing must not cost the feature: the flip is still detected
+    // however stale the stored dates are.
+    const stored = storedAt(SIGNUP);
+    const { toRedate } = reconcilePlan(active, TASK_TEMPLATES, stored, MONTHS_LATER);
+    expect(toRedate.length).toBeGreaterThan(3);
+    expect(toRedate.every((t) => t.due_date === null)).toBe(true);
+  });
+});

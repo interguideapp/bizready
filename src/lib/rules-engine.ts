@@ -230,9 +230,25 @@ export function reconcilePlan(
       if (t.status === "done") return false;
       if (isStatutoryFiling(t.template_id)) return false;
       if (!applicableIds.has(t.template_id)) return false;
+      /*
+       * Only when the ANSWER changed whether there is a date at all — never
+       * when both are dates.
+       *
+       * This compared the dates themselves, and that was a regression I
+       * introduced and measured: buildPlan dates a non-statutory task as
+       * addDays(TODAY, deadline_days), and updateAnswers passes new Date(). So
+       * a no-op settings save three months after signup proposed re-dating
+       * FIFTEEN tasks, pushing open-vat-file from 2026-06-14 to 2026-09-14 —
+       * every recommended deadline sliding forward on every save, and an
+       * overdue recommendation quietly becoming "due today".
+       *
+       * The correction this exists for is the stage transition, which is
+       * exactly the dated/undated flip. Arithmetic drift from a different
+       * "today" is not a correction and must not be treated as one.
+       */
       const planned = plannedDate.get(t.template_id) ?? null;
       const stored = t.due_date ?? null;
-      return planned !== stored;
+      return (planned === null) !== (stored === null);
     })
     .map((t) => ({
       template_id: t.template_id,

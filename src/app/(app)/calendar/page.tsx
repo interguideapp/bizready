@@ -5,6 +5,7 @@ import { loadLiveTasks } from "@/lib/tasks-live";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import {
   ObligationRow,
+  BlockedFilingsSection,
   hiddenObligationsText,
   LapsedSection,
   OverdueSection,
@@ -18,6 +19,7 @@ import { capabilitiesFor } from "@/lib/members";
 import {
   computeUpcomingObligations,
   filingsAwaitingPrerequisite,
+  filingsBlockedByDismissal,
   type Obligation,
   type PendingFiling,
 } from "@/lib/compliance";
@@ -102,6 +104,22 @@ export default async function CalendarPage() {
   // Statutory duties this business has but that have not started, because the
   // setup task unlocking them is unfinished. Without these the board can show
   // nothing at all to a new עוסק and read as "you have no obligations".
+  // Statutory duties whose prerequisite the user set aside. Named on the board
+  // too, not only on Home: fixing the message these used to get must not turn
+  // into silence about the duty itself.
+  const blockedFilings = filingsBlockedByDismissal(
+    tasks.map((t) => ({
+      template_id: t.template_id,
+      status: t.status,
+      is_relevant: t.is_relevant,
+      dismissal: t.dismissal,
+      completion_data: t.completion_data,
+      due_date: t.due_date,
+      filed_periods: filedPeriods.get(t.template_id) ?? [],
+    })),
+    TEMPLATES_BY_ID
+  );
+
   const pendingFilings = filingsAwaitingPrerequisite(
     tasks.map((t) => ({
       template_id: t.template_id,
@@ -173,6 +191,15 @@ export default async function CalendarPage() {
 
       {/* Cover that has run out — a different consequence, said differently. */}
       <LapsedSection lapsed={lapsed} />
+
+      <BlockedFilingsSection
+        blocked={blockedFilings.map((f) => ({
+          templateId: f.templateId,
+          title: TEMPLATES_BY_ID.get(f.templateId)?.title ?? f.templateId,
+          blockedById: f.blockedBy,
+          blockedByTitle: TEMPLATES_BY_ID.get(f.blockedBy)?.title ?? f.blockedBy,
+        }))}
+      />
 
       <PendingFilingsSection
         pending={pendingFilings.map((f: PendingFiling) => ({

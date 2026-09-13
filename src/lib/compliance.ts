@@ -726,8 +726,24 @@ export function filingsAwaitingPrerequisite(
       // Absent from the plan is the alternative-prerequisite convention (a
       // company opens files as a legal person, not as an עוסק), not a block.
       if (!dt) continue;
-      // A dismissed prerequisite is the other function's story.
-      if (!dt.is_relevant) continue;
+      // A dismissed prerequisite is the other function's story — and this
+      // guard did not enforce that. It tested is_relevant, which is the "still
+      // in the plan" flag; a DISMISSED task keeps is_relevant true and carries
+      // status "not_relevant" instead. So a dismissed prerequisite fell through
+      // and the duty was reported as merely "waiting to start", while
+      // filingsBlockedByDismissal reported the same duty for the same reason
+      // elsewhere. Two surfaces, two messages, and the wrong instruction on
+      // this one: "finish the task that unlocks it" is not something to tell
+      // someone who has just said that task does not apply to them.
+      if (
+        dismissalOf({
+          status: dt.status as TaskStatus,
+          is_relevant: dt.is_relevant,
+          dismissal: dt.dismissal,
+        })
+      ) {
+        continue;
+      }
       const met = satisfiesDependency(
         { status: dt.status as TaskStatus, is_relevant: dt.is_relevant, dismissal: dt.dismissal },
         { statutory: true }

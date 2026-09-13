@@ -5,6 +5,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Obligation } from "@/lib/compliance";
 import {
+  BlockedFilingsSection,
   hiddenObligationsText,
   LapsedSection,
   ObligationRow,
@@ -364,5 +365,42 @@ describe("the active-guard claim is conditional on delivery working", () => {
 
   it("still renders the delivery notice that explains the other case", () => {
     expect(page).toContain("<DeliveryNotice health={delivery} compact />");
+  });
+});
+
+describe("duties we decline to date, because the user set the prerequisite aside", () => {
+  const blocked = [
+    {
+      templateId: "vat-reporting",
+      title: 'דיווח מע"מ תקופתי',
+      blockedById: "open-vat-file",
+      blockedByTitle: 'פתיחת תיק עוסק במע"מ',
+    },
+  ];
+
+  it("names the duty and what was dismissed, both linked", () => {
+    render(<BlockedFilingsSection blocked={blocked} />);
+    expect(screen.getByRole("link", { name: 'דיווח מע"מ תקופתי' })).toBeDefined();
+    expect(screen.getByRole("link", { name: 'פתיחת תיק עוסק במע"מ' })).toBeDefined();
+  });
+
+  it("does NOT tell the user to finish a task they said is irrelevant", () => {
+    // The wording that used to be applied to these, because the guard meant to
+    // separate them tested the wrong field.
+    render(<BlockedFilingsSection blocked={blocked} />);
+    expect(screen.queryByText(/ברגע שתסיימו את המשימה/)).toBeNull();
+  });
+
+  it("says why there is no date, and leaves the claim to the user", () => {
+    // The product cannot verify "this does not apply to me", so it neither
+    // argues nor invents a deadline — it explains and leaves the door open.
+    render(<BlockedFilingsSection blocked={blocked} />);
+    expect(screen.getByText(/לא נמציא להן תאריך/)).toBeDefined();
+    expect(screen.getByText(/אם היא כן רלוונטית/)).toBeDefined();
+  });
+
+  it("disappears when there are none", () => {
+    const { container } = render(<BlockedFilingsSection blocked={[]} />);
+    expect(container.firstChild).toBeNull();
   });
 });

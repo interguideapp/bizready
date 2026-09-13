@@ -732,3 +732,56 @@ describe("an expiry that has passed stays visible", () => {
     expect(obs.some((o) => o.kind === "renewal")).toBe(false);
   });
 });
+
+/**
+ * A dismissed prerequisite belongs to exactly one of the two functions.
+ *
+ * filingsAwaitingPrerequisite's own comment says "a dismissed prerequisite is
+ * the other function's story", and the guard did not enforce it: it tested
+ * is_relevant, the still-in-the-plan flag, while a DISMISSED task keeps
+ * is_relevant true and carries status "not_relevant". So the same duty came
+ * back from both functions — and the board's wording for the awaiting case,
+ * "ברגע שתסיימו את המשימה שפותחת אותן", is the wrong thing to tell someone who
+ * has just said that task does not apply to them, while Home described the
+ * identical duty correctly. One duty, two surfaces, two answers.
+ */
+describe("awaiting versus blocked are disjoint", () => {
+  const dismissed = (dismissal: "not_applicable" | "handled_externally") => [
+    { template_id: "open-vat-file", status: "not_relevant", is_relevant: true, dismissal },
+    { template_id: "vat-reporting", status: "todo", is_relevant: true },
+  ];
+
+  it("reports a dismissed prerequisite as blocked, not as awaiting", () => {
+    const tasks = dismissed("not_applicable");
+    expect(filingsAwaitingPrerequisite(tasks, TEMPLATES_BY_ID)).toEqual([]);
+    expect(filingsBlockedByDismissal(tasks, TEMPLATES_BY_ID)).toHaveLength(1);
+  });
+
+  it("never reports the same duty from both", () => {
+    for (const d of ["not_applicable", "handled_externally"] as const) {
+      const tasks = dismissed(d);
+      const a = new Set(filingsAwaitingPrerequisite(tasks, TEMPLATES_BY_ID).map((f) => f.templateId));
+      const b = new Set(filingsBlockedByDismissal(tasks, TEMPLATES_BY_ID).map((f) => f.templateId));
+      const both = [...a].filter((id) => b.has(id));
+      expect(both, d).toEqual([]);
+    }
+  });
+
+  it("still reports a merely-unfinished prerequisite as awaiting", () => {
+    // The case that section's wording is actually right for.
+    const tasks = [
+      { template_id: "open-vat-file", status: "todo", is_relevant: true },
+      { template_id: "vat-reporting", status: "todo", is_relevant: true },
+    ];
+    expect(filingsAwaitingPrerequisite(tasks, TEMPLATES_BY_ID)).toHaveLength(1);
+    expect(filingsBlockedByDismissal(tasks, TEMPLATES_BY_ID)).toEqual([]);
+  });
+
+  it("treats handled_externally as satisfying, so it is neither", () => {
+    // The whole reason B6 split the two dismissals: "I did this elsewhere"
+    // genuinely meets a statutory prerequisite, so the duty is dated normally.
+    const tasks = dismissed("handled_externally");
+    expect(filingsAwaitingPrerequisite(tasks, TEMPLATES_BY_ID)).toEqual([]);
+    expect(filingsBlockedByDismissal(tasks, TEMPLATES_BY_ID)).toEqual([]);
+  });
+});

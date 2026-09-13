@@ -271,6 +271,66 @@ export function hiddenObligationsText(
   return `${what} ${when}`;
 }
 
+export interface BlockedFilingView {
+  templateId: string;
+  title: string;
+  blockedById: string;
+  blockedByTitle: string;
+}
+
+/**
+ * Statutory duties whose prerequisite the user set aside.
+ *
+ * Separate from PendingFilingsSection, and the separation is the point. That
+ * section says "ברגע שתסיימו את המשימה שפותחת אותן" — finish the unlocking
+ * task — which is the right instruction for a prerequisite merely unfinished
+ * and the wrong one for a prerequisite the user has just declared irrelevant
+ * to them. Both landed in that one section, because the guard meant to split
+ * them tested is_relevant (still-in-the-plan) instead of the dismissal, so the
+ * board gave one of the two the other's advice while Home described the same
+ * duty correctly. One duty, two surfaces, two answers.
+ *
+ * The product cannot verify a claim that a legal prerequisite does not apply,
+ * so it does not argue with it — it declines to invent a date and says exactly
+ * why, which leaves the user able to undo it if the claim was wrong.
+ */
+export function BlockedFilingsSection({ blocked }: { blocked: BlockedFilingView[] }) {
+  if (blocked.length === 0) return null;
+  return (
+    <Card className="mb-5 p-4">
+      <h2 className="mb-1 flex items-start gap-2 text-section text-ink">
+        <HelpCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-status-progress" aria-hidden />
+        חובות שאין לנו איך לתארך
+      </h2>
+      <p className="mb-3 text-xs leading-relaxed text-ink-soft">
+        סימנתם שהמשימה שפותחת אותן לא רלוונטית לכם, ולכן לא נמציא להן תאריך —
+        אבל אם היא כן רלוונטית, אלה חובות חוקיות עם מועדים. כדאי לבדוק.
+      </p>
+      <ul className="flex flex-col gap-2">
+        {blocked.map((f) => (
+          <li key={f.templateId} className="text-sm">
+            <Link
+              href={`/tasks/${f.templateId}?from=calendar`}
+              className="font-medium text-ink hover:text-brand-strong"
+            >
+              {f.title}
+            </Link>
+            <span className="text-ink-muted">
+              {" — סומן שלא רלוונטי: "}
+              <Link
+                href={`/tasks/${f.blockedById}?from=calendar`}
+                className="font-medium text-brand-strong hover:underline"
+              >
+                {f.blockedByTitle}
+              </Link>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export interface PendingFilingView {
   templateId: string;
   title: string;

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -335,5 +337,32 @@ describe("what the free plan is not showing", () => {
         expect(text, `${c}/${m}`).not.toMatch(/\b1 חובות|ב-1 |ב-2 /);
       }
     }
+  });
+});
+
+/**
+ * The board must not claim the deadline guard is running while telling the
+ * reader it is not.
+ *
+ * A contradiction I created: DeliveryNotice sits at the top of the obligations
+ * board when outbound is down, and the Pro banner sat below it claiming
+ * "שומר הדדליינים פעיל — נזכיר לכם 30, 14, 7 ויום לפני כל דדליין". Two
+ * statements about one mechanism, opposite, on one screen.
+ *
+ * Asserted against the page source, because the banner is inline in a server
+ * component and the condition is what matters.
+ */
+describe("the active-guard claim is conditional on delivery working", () => {
+  const page = readFileSync(
+    join(process.cwd(), "src/app/(app)/calendar/page.tsx"),
+    "utf8"
+  );
+
+  it("only promises the escalating reminders when delivery is up", () => {
+    expect(page).toContain("pro && !deliveryIsDown(delivery) &&");
+  });
+
+  it("still renders the delivery notice that explains the other case", () => {
+    expect(page).toContain("<DeliveryNotice health={delivery} compact />");
   });
 });

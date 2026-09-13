@@ -195,7 +195,12 @@ export default async function CalendarPage() {
         </Card>
       ) : (
         <>
-          {pro && (
+          {/* A CONTRADICTION I CREATED. DeliveryNotice sits at the top of this
+              page when outbound is down, and this banner sat below it claiming
+              "שומר הדדליינים פעיל" — two statements about the same mechanism,
+              opposite, on one screen. The claim is only true while the sweep
+              is actually running, so it is made only then. */}
+          {pro && !deliveryIsDown(delivery) && (
             <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-done/30 bg-status-done-bg/40 px-4 py-2.5 text-sm text-status-done">
               <ShieldCheck className="h-4.5 w-4.5" aria-hidden />
               <span className="font-medium">

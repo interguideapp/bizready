@@ -18,7 +18,11 @@ export function SubscriptionBlock({
         BizReady Pro פעיל
       </h2>
       <p className="mb-3 text-sm text-ink-muted">
-        שומר הדדליינים עובד בשבילכם.
+        {/* Describes what the subscription INCLUDES, not what is running right
+            now. "עובד בשבילכם" is a claim about the sweep, and this block has
+            no idea whether the sweep is running — the obligations board and the
+            notifications page do, and they say so there. */}
+        שומר הדדליינים כלול במנוי שלכם.
         {until &&
           ` הניסיון בתוקף עד ${new Date(until).toLocaleDateString("he-IL")}.`}
       </p>

@@ -13,7 +13,25 @@ import { formatIlsRounded } from "@/lib/money";
 // these are aggregates and chart labels, where agorot are noise.
 const nis = formatIlsRounded;
 
-export function CostsManager({ costs }: { costs: CostRow[] }) {
+/**
+ * The canEdit prop exists because /insights had no role check at all.
+ *
+ * business_costs is owner-write and member-read, so an accountant saw the add
+ * form and the delete buttons and could use neither — and pressing save hit
+ * requireBusinessId, which looks the business up by owner_id and redirected
+ * them into the onboarding wizard for a business that is not theirs.
+ *
+ * A read-only accountant still needs the FIGURES: the fixed-cost total feeds
+ * the net-margin line they are there to look at. So the table stays and the
+ * controls go, rather than hiding the panel.
+ */
+export function CostsManager({
+  costs,
+  canEdit = true,
+}: {
+  costs: CostRow[];
+  canEdit?: boolean;
+}) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [cadence, setCadence] = useState<Cadence>("monthly");
@@ -83,22 +101,26 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
                 sortValue: (c) => c.amount,
                 cell: (c) => <span className="font-semibold text-ink">{nis(c.amount)}</span>,
               },
-              {
-                id: "actions",
-                header: "פעולות",
-                headerHidden: true,
-                className: "w-14",
-                cell: (c) => (
-                  <button
-                    onClick={() => startTransition(() => deleteCost(c.id))}
-                    aria-label={`מחיקת ${c.name}`}
-                    // 44px target, up from 26px, on a destructive control.
-                    className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface-2 hover:text-status-overdue"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </button>
-                ),
-              },
+              ...(canEdit
+                ? [
+                    {
+                      id: "actions",
+                      header: "פעולות",
+                      headerHidden: true,
+                      className: "w-14",
+                      cell: (c: CostRow) => (
+                        <button
+                          onClick={() => startTransition(() => deleteCost(c.id))}
+                          aria-label={`מחיקת ${c.name}`}
+                          // 44px target, up from 26px, on a destructive control.
+                          className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface-2 hover:text-status-overdue"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
             rows={costs}
             rowKey={(c) => c.id}
@@ -106,6 +128,7 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
         </div>
       )}
 
+      {canEdit && (
       <form onSubmit={add} className="flex flex-wrap items-end gap-2">
         <label className="min-w-0 basis-full sm:basis-0 sm:flex-1">
           <span className="mb-1 block text-xs font-medium text-ink-muted">על מה (כלי / שירות)</span>
@@ -143,6 +166,7 @@ export function CostsManager({ costs }: { costs: CostRow[] }) {
           הוספה
         </Button>
       </form>
+      )}
 
       {costs.length === 0 && (
         <p className="mt-2 text-xs text-ink-faint">

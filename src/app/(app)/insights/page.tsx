@@ -16,7 +16,7 @@ import {
 import type { MonthPoint } from "@/components/revenue-chart";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
-  requireBusiness,
+  requireBusinessContext,
   getCosts,
   getDocuments,
   getMetrics,
@@ -33,6 +33,7 @@ import {
   stillAhead,
 } from "@/lib/compliance";
 import { boardWindow } from "@/lib/board-window";
+import { capabilitiesFor } from "@/lib/members";
 import { isPro } from "@/lib/subscription";
 import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
@@ -51,7 +52,23 @@ import { YEARLY_FIGURES, type OnboardingAnswers } from "@/lib/types";
 const STAGE_OF = new Map(CATEGORIES.map((c) => [c.id, c.stage]));
 
 export default async function InsightsPage() {
-  const business = await requireBusiness();
+  const { business, role } = await requireBusinessContext();
+  /*
+   * WHAT THIS READER MAY ACTUALLY CHANGE.
+   *
+   * This page rendered the income logger and the cost manager to everyone,
+   * with no role check anywhere on it — while the obligations board gates its
+   * one mutating control. business_costs and sync_metrics are owner-write and
+   * member-read, so an accountant could not save either; pressing save hit
+   * requireBusinessId, which looks the business up by owner_id, found none,
+   * and redirected them into the ONBOARDING WIZARD for a business that is not
+   * theirs.
+   *
+   * So the gate is the same one the database applies, and the money panels
+   * stay visible: an accountant needs to SEE the figures, they just do not
+   * rewrite them.
+   */
+  const canEditFinancials = capabilitiesFor(role).editFinancials;
   const [tasks, filedPeriods, documents, costs, products, events, delivery] = await Promise.all([
     loadLiveTasks(business),
     getFiledPeriods(business.id),
@@ -289,13 +306,17 @@ export default async function InsightsPage() {
         </div>
 
         {/* manual income — makes the money picture work without an integration */}
-        <FadeIn><IncomeLogger months={incomeMonths} synced={hasSynced} /></FadeIn>
+        {canEditFinancials && (
+          <FadeIn><IncomeLogger months={incomeMonths} synced={hasSynced} /></FadeIn>
+        )}
 
         {/* finance panels (appear once there's any revenue, synced or logged) */}
         {financeData && <FadeIn><FinancePanels d={financeData} /></FadeIn>}
 
         {/* costs */}
-        <FadeIn><CostsManager costs={costs} /></FadeIn>
+        {/* The table stays for a read-only accountant — the fixed-cost total
+            feeds the net line they came to look at — and the controls go. */}
+        <FadeIn><CostsManager costs={costs} canEdit={canEditFinancials} /></FadeIn>
 
         {/* compliance timeline */}
         {timeline.length > 0 && (

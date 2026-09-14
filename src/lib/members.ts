@@ -75,6 +75,25 @@ export interface Capabilities {
   completeTasks: boolean;
   /** Edit the business card: tax file numbers, bank details, accountant contact. */
   editBusinessCard: boolean;
+  /**
+   * Log revenue by hand and edit the fixed-cost list.
+   *
+   * Owner only, and not because of a policy decision here: business_costs and
+   * sync_metrics grant writes to the OWNER of the business, with members
+   * holding SELECT alone. This capability exists so the UI agrees with that.
+   *
+   * It could not be folded into completeTasks, which an accountant HAS — so
+   * /insights rendered the income logger and the cost manager to an accountant
+   * who could not use either. Pressing save then hit requireBusinessId, which
+   * looks the business up by owner_id, found none, and redirected them into
+   * the ONBOARDING WIZARD for a business that is not theirs — exactly what
+   * getBusinessContext's docstring calls absurd.
+   *
+   * Not editBusinessCard either, even though that is also owner-only: these
+   * are the owner's books, not their identity details, and a capability whose
+   * name does not describe what it gates is the next person's bug.
+   */
+  editFinancials: boolean;
   /** Change answers and recalibrate the plan. */
   recalibrate: boolean;
   /** Invite, revoke, change roles. */
@@ -92,6 +111,7 @@ export function capabilitiesFor(role: EffectiveRole): Capabilities {
         read: true,
         completeTasks: true,
         editBusinessCard: true,
+        editFinancials: true,
         recalibrate: true,
         manageMembers: true,
         manageBilling: true,
@@ -104,6 +124,10 @@ export function capabilitiesFor(role: EffectiveRole): Capabilities {
         // The business card holds the bank account. An accountant reads it —
         // they need it — but changing it is the owner's decision.
         editBusinessCard: false,
+        // Matching the database: business_costs and sync_metrics are
+        // owner-write, member-read. An accountant sees the money picture and
+        // does not rewrite it.
+        editFinancials: false,
         // Recalibrating rewrites the whole plan. That is a decision about the
         // business, not a filing action.
         recalibrate: false,
@@ -118,6 +142,7 @@ export function capabilitiesFor(role: EffectiveRole): Capabilities {
         read: true,
         completeTasks: false,
         editBusinessCard: false,
+        editFinancials: false,
         recalibrate: false,
         manageMembers: false,
         manageBilling: false,

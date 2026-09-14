@@ -1082,6 +1082,27 @@ export async function cancelPro() {
 
 // ---------- cost ledger ----------
 
+/**
+ * The caller's OWN business, for writes the database grants only to an owner.
+ *
+ * business_costs and sync_metrics are owner-write and member-read, so this
+ * deliberately looks the business up by owner_id and the actions below are
+ * owner-only by design.
+ *
+ * WHAT WAS WRONG was the failure branch. "No owned business" was treated as
+ * "not onboarded yet" and redirected to /onboarding — which is right for a
+ * new signup and absurd for a collaborator: an accountant pressing save on the
+ * income logger was dropped into a twelve-question wizard about a business
+ * that is not theirs. getBusinessContext's own docstring names that outcome as
+ * the thing to avoid, and this function did it anyway.
+ *
+ * The two cases are distinguishable: a collaborator has an accepted
+ * business_members row. So a genuine new signup still goes to onboarding, and
+ * a collaborator gets a refusal that says why.
+ *
+ * This is not the security boundary — RLS is, independently. It is what makes
+ * the refusal legible instead of surreal.
+ */
 async function requireBusinessId() {
   const { supabase, user } = await requireUser();
   const { data } = await supabase
@@ -1089,7 +1110,20 @@ async function requireBusinessId() {
     .select("id")
     .eq("owner_id", user.id)
     .single();
-  if (!data) redirect("/onboarding");
+  if (!data) {
+    const { data: membership } = await supabase
+      .from("business_members")
+      .select("business_id")
+      .eq("user_id", user.id)
+      .not("accepted_at", "is", null)
+      .is("revoked_at", null)
+      .limit(1)
+      .maybeSingle();
+    if (membership) {
+      throw new Error("הפעולה הזו זמינה לבעל העסק בלבד.");
+    }
+    redirect("/onboarding");
+  }
   return { supabase, businessId: data.id as string };
 }
 

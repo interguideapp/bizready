@@ -44,7 +44,7 @@ export async function loadAttention(business: BusinessRow): Promise<AttentionIte
  */
 export async function loadAttentionPage(
   business: BusinessRow
-): Promise<{ items: AttentionItem[]; truncated: boolean }> {
+): Promise<{ items: AttentionItem[]; truncated: boolean; unreadTruncated: boolean }> {
   const [storedRaw, tasks, filedPeriods, documents, syncErrors] = await Promise.all([
     getNotifications(business.id),
     getBusinessTasks(business.id),
@@ -55,6 +55,20 @@ export async function loadAttentionPage(
 
   const truncated = storedRaw.length > NOTIFICATIONS_PAGE_SIZE;
   const stored = truncated ? storedRaw.slice(0, NOTIFICATIONS_PAGE_SIZE) : storedRaw;
+  /*
+   * DID THE CUT REACH THE UNREAD ROWS?
+   *
+   * getNotifications orders unread first, so a read row is always dropped
+   * before an unread one — but past fifty unread the cut lands inside them,
+   * and the page said "כל מה שלא נקרא מופיע כאן" regardless. False precisely
+   * when the list is at its most overwhelming, on the screen whose whole job
+   * is that nothing gets missed.
+   *
+   * Derived from the order rather than from a second count: if every row we
+   * kept is unread and there was at least one more, that next row is unread
+   * too.
+   */
+  const unreadTruncated = truncated && stored.every((s) => !s.read_at);
 
   // Deliberately the STORED rows, not the cycle-projected ones from
   // loadLiveTasks. This list is "what the sweep would have sent", so it has to
@@ -86,6 +100,7 @@ export async function loadAttentionPage(
   return {
     items: mergeAttention(stored, [...drafts, ...syncErrorDrafts(syncErrors)]),
     truncated,
+    unreadTruncated,
   };
 }
 

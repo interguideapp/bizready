@@ -303,9 +303,16 @@ export interface NotificationRow {
  * given, and the cap had already thrown the urgent one away. On the one screen
  * whose whole job is that nothing gets missed.
  *
- * Unread first, then recent. That guarantees no unread row is ever the one cut:
- * a read notification has already done its job and losing it costs history,
- * not a warning.
+ * Unread first, then recent. That guarantees a READ row is always cut before
+ * an unread one — a read notification has already done its job, and losing it
+ * costs history rather than a warning.
+ *
+ * It does NOT guarantee that every unread row fits. Past fifty unread the cut
+ * lands inside the unread block, and the page's copy asserted the opposite in
+ * so many words: "כל מה שלא נקרא מופיע כאן". True until it is not, and false
+ * exactly when the list is at its most overwhelming. loadAttentionPage
+ * therefore reports whether the cut reached the unread rows, so the sentence
+ * can stop making a promise it cannot keep.
  */
 export const NOTIFICATIONS_PAGE_SIZE = 50;
 

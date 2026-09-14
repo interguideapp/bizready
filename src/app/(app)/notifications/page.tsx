@@ -34,7 +34,7 @@ export default async function NotificationsPage() {
     loadAttentionPage(business),
     loadDeliveryHealth(),
   ]);
-  const { items, truncated } = page;
+  const { items, truncated, unreadTruncated } = page;
   const unsent = derivedCount(items);
   const down = deliveryIsDown(delivery);
   /*
@@ -85,8 +85,23 @@ export default async function NotificationsPage() {
           missed. */}
       {truncated && (
         <p className="mb-4 rounded-xl border border-edge bg-surface/60 p-3 text-xs leading-relaxed text-ink-muted">
-          מוצגות {NOTIFICATIONS_PAGE_SIZE} ההתראות הרלוונטיות ביותר. כל מה שלא
-          נקרא מופיע כאן — התראות ישנות שכבר קראתם אינן מוצגות.
+          {unreadTruncated ? (
+            /* The promise below is only true while the unread rows fit. Unread
+               sort first, so a read row is always cut before an unread one —
+               but past the page size the cut lands inside the unread block,
+               and saying "everything unread is here" is then false exactly
+               when the list is at its most overwhelming. */
+            <>
+              יש יותר מ-{NOTIFICATIONS_PAGE_SIZE} התראות שלא נקראו — מוצגות{" "}
+              {NOTIFICATIONS_PAGE_SIZE} העדכניות מביניהן. סימון כנקרא יפנה מקום
+              לשאר, ולוח החובות מציג בכל מקרה כל חובה עם תאריך.
+            </>
+          ) : (
+            <>
+              מוצגות {NOTIFICATIONS_PAGE_SIZE} ההתראות הרלוונטיות ביותר. כל מה
+              שלא נקרא מופיע כאן — התראות ישנות שכבר קראתם אינן מוצגות.
+            </>
+          )}
         </p>
       )}
 

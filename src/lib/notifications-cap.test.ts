@@ -58,8 +58,22 @@ describe("the page says when it left rows out", () => {
     expect(page).toContain("truncated &&");
   });
 
-  it("states that nothing unread is hidden, which is the reassurance that is true", () => {
-    expect(page).toContain("כל מה שלא");
+  it("gives the unread reassurance only when it is actually true", () => {
+    /*
+     * THIS ASSERTED THE REASSURANCE UNCONDITIONALLY, and called it "the one
+     * that is true". It is true only while the unread rows FIT.
+     *
+     * The ordering guarantees a read row is cut before an unread one, which is
+     * what this guard was written for. Past the page size the cut lands inside
+     * the unread block, and "כל מה שלא נקרא מופיע כאן" is then false —
+     * precisely when the list is at its most overwhelming.
+     *
+     * So the reassurance must be behind the condition, and the other branch
+     * must exist. Details in lib/unread-truncation.test.ts.
+     */
+    expect(page).toContain("unreadTruncated ? (");
+    expect(page.replace(new RegExp("\\s+", "g"), " ")).toContain("כל מה שלא נקרא מופיע כאן");
+    expect(page.replace(new RegExp("\\s+", "g"), " ")).toMatch(/התראות שלא נקראו/);
   });
 
   it("uses the shared page size rather than a second hardcoded number", () => {

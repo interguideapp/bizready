@@ -1,5 +1,6 @@
 import type { NotificationDraft } from "@/lib/reminders";
 import { DOCUMENT_EXPIRY_HREF, SYNC_ERROR_HREF } from "@/lib/destinations";
+import { legalBasisOf } from "@/lib/content/legal-basis";
 
 /**
  * What needs attention right now, whether or not the nightly sweep ran.
@@ -44,6 +45,8 @@ export interface AttentionItem {
   templateId: string | null;
   /** What the sweep would key this on. Decides where an item leads. */
   dedupeKey: string | null;
+  /** Days to the date this is about; null when there is no date. */
+  daysUntil: number | null;
   /** Null for a derived item — it has never been stored, so it is unread. */
   storedId: string | null;
   readAt: string | null;
@@ -112,6 +115,9 @@ export function syncErrorDrafts(
   const newest = errors[0];
   return [
     {
+      // No date to be near or past: a broken connection is about now and stays
+      // about now until someone fixes it.
+      days_until: null,
       type: "sync",
       title:
         errors.length === 1
@@ -141,6 +147,36 @@ function rank(type: string): number {
 }
 
 /**
+ * CONSEQUENCE, INSIDE A TYPE — which this list had no way to see.
+ *
+ * An expired DOCUMENT emits type "overdue", the top rank, indistinguishable
+ * from a missed statutory filing with penalty and interest accruing. The
+ * obligations board separates those deliberately — OverdueSection versus
+ * LapsedSection, because "a lapsed cover is not an interest-bearing debt" —
+ * and this list ranked them as the same thing.
+ *
+ * The fix reuses the SAME authority for legal weight that the rest of the
+ * product uses: legalBasisOf, the registry that already decides which
+ * templates may be called critical. Not a second opinion about consequence;
+ * there are enough of those in this codebase's history.
+ *
+ * An item with no template (a document expiry, a sync failure) is advisory by
+ * construction: there is no obligation behind it, only the user's own record.
+ */
+function consequenceRank(templateId: string | null): number {
+  if (!templateId) return 1;
+  return legalBasisOf(templateId) === "statute" ? 0 : 1;
+}
+
+/** Nulls last: an item with no date cannot be nearer than one that has a date. */
+function byDate(a: number | null, b: number | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a - b;
+}
+
+/**
  * Merge what the sweep stored with what is true right now.
  *
  * A draft whose dedupe key is already stored is dropped: the stored row is the
@@ -162,6 +198,10 @@ export function mergeAttention(
     body: s.body,
     templateId: s.template_id,
     dedupeKey: s.dedupe_key,
+    // A stored row records no days-left, and reconstructing one from
+    // created_at would be a guess. It still ranks by type and by consequence;
+    // derived items, current by definition, sort above it.
+    daysUntil: null,
     storedId: s.id,
     readAt: s.read_at,
     createdAt: s.created_at,
@@ -177,6 +217,7 @@ export function mergeAttention(
       body: d.body,
       templateId: d.template_id,
       dedupeKey: d.dedupe_key,
+      daysUntil: d.days_until,
       storedId: null,
       readAt: null,
       createdAt: null,
@@ -187,6 +228,19 @@ export function mergeAttention(
   return items.sort((a, b) => {
     const byType = rank(a.type) - rank(b.type);
     if (byType !== 0) return byType;
+    // A statutory filing before advice, inside the same type. This is what
+    // stops an expired certificate outranking a missed VAT period.
+    const byConsequence = consequenceRank(a.templateId) - consequenceRank(b.templateId);
+    if (byConsequence !== 0) return byConsequence;
+    /*
+     * Then by how near the date is — which this list could not see at all
+     * until the draft started carrying it. Within "deadline" the comparator
+     * fell straight through to createdAt, and every derived item has a null
+     * createdAt, so it returned 0 for every pair: the order was whatever
+     * computeReminders happened to emit.
+     */
+    const byNearness = byDate(a.daysUntil, b.daysUntil);
+    if (byNearness !== 0) return byNearness;
     // An unread item outranks a read one of the same urgency.
     const aRead = a.readAt ? 1 : 0;
     const bRead = b.readAt ? 1 : 0;

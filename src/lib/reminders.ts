@@ -50,6 +50,25 @@ export interface NotificationDraft {
   body: string | null;
   template_id: string;
   dedupe_key: string;
+  /**
+   * Days to the date this is about — negative when already past.
+   *
+   * ADDED BECAUSE THE ALERTS LIST COULD NOT ORDER ITSELF. mergeAttention sorts
+   * by type and then by recency, and a draft carried neither a date nor a
+   * basis — so WITHIN a type there was no urgency order at all. Every derived
+   * item has a null created_at, so the comparator fell through to 0 and the
+   * list came out in whatever order the loop below happened to emit: a
+   * recommendation seven days out could sit above a VAT filing twenty days
+   * out, and nothing could tell them apart.
+   *
+   * /home had the same defect and was fixed with rankByExposure ("a harmless
+   * task due today outranked a VAT filing that had been accruing a penalty for
+   * a week"). The alerts list — the screen whose entire job is that nothing
+   * gets missed — kept ranking by type and insertion order.
+   *
+   * Null only where there genuinely is no date: a sync failure.
+   */
+  days_until: number | null;
 }
 
 /** A document in the archive, for the expiry watch. */
@@ -172,6 +191,9 @@ export function computeReminders(
           newDueDate: cycle.dueIso,
         });
         notifications.push({
+          // A period that has just opened, or a renewal that has come round:
+          // the date it is about is today.
+          days_until: 0,
           type: "recurring",
           title:
             cycle.reason === "renewal"
@@ -212,6 +234,7 @@ export function computeReminders(
         const window = tightestWindow(daysLeft, windows);
         if (window !== undefined) {
           notifications.push({
+            days_until: daysLeft,
             type: "deadline",
             title: `תוקף נגמר ${aheadLabel(daysLeft)}: ${template.title}`,
             body: "לפי תאריך החידוש שרשמתם. חידוש לפני המועד מונע יום בלי כיסוי.",
@@ -229,6 +252,8 @@ export function computeReminders(
     if (task.status === "waiting") {
       if (task.follow_up_date && daysBetween(task.follow_up_date, today) <= 0) {
         notifications.push({
+          // The follow-up date the user set has arrived.
+          days_until: 0,
           type: "deadline",
           title: `זמן לבדוק: ${template.title}`,
           body: task.waiting_for
@@ -313,6 +338,11 @@ export function computeReminders(
               ? periodForDue(lateDue, profile.vatFrequency ?? "bimonthly")
               : null;
           notifications.push({
+            // daysLate IS days-until: daysBetween returns negative for a past
+            // date, which is why the branch above tests `daysLate < 0`. Negating
+            // it would have made every overdue filing read as the most distant
+            // future item on the list — the exact inversion of its urgency.
+            days_until: daysLate,
             type: "overdue",
             title: period
               ? "באיחור: " + template.title + " (" + period.label + ")"
@@ -355,6 +385,7 @@ export function computeReminders(
         );
         if (window !== undefined) {
           notifications.push({
+            days_until: daysLeft,
             type: "deadline",
             title: `${aheadLabel(daysLeft)}: ${template.title}`,
             body:
@@ -384,6 +415,7 @@ export function computeReminders(
     const daysLeft = daysBetween(doc.expires_at, today);
     if (daysLeft < 0) {
       notifications.push({
+        days_until: daysLeft,
         type: "overdue",
         title: `פג תוקף: ${doc.name}`,
         body: "המסמך אינו בתוקף לפי התאריך שרשמתם. כדאי לחדש ולהעלות גרסה מעודכנת.",
@@ -397,6 +429,7 @@ export function computeReminders(
     const window = tightestWindow(daysLeft, windows);
     if (window !== undefined) {
       notifications.push({
+        days_until: daysLeft,
         type: "deadline",
         title: `תוקף נגמר ${aheadLabel(daysLeft)}: ${doc.name}`,
         body: "לפי תאריך התפוגה שרשמתם על המסמך בארכיון.",

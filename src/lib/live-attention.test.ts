@@ -33,6 +33,7 @@ function draft(over: Partial<NotificationDraft> = {}): NotificationDraft {
     body: null,
     template_id: "vat-reporting",
     dedupe_key: "deadline:vat-reporting:2026-11-15:7",
+    days_until: 7,
     ...over,
   };
 }
@@ -281,6 +282,7 @@ describe("open sync failures reach the attention list", () => {
       [
         ...syncErrorDrafts([err()]),
         {
+          days_until: -3,
           type: "overdue",
           title: 'באיחור: דיווח מע״מ',
           body: null,

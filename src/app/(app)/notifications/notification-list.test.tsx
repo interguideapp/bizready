@@ -33,6 +33,7 @@ function item(over: Partial<AttentionItem> = {}): AttentionItem {
     body: null,
     templateId: "vat-reporting",
     dedupeKey: "deadline:vat-reporting:2026-09-15:30",
+    daysUntil: 30,
     storedId: null,
     readAt: null,
     createdAt: null,

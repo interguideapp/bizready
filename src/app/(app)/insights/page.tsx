@@ -27,10 +27,13 @@ import {
 import { computeScore } from "@/lib/rules-engine";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import {
+  alreadyPast,
   computeUpcomingObligations,
   overdueStatutory,
   stillAhead,
 } from "@/lib/compliance";
+import { boardWindow } from "@/lib/board-window";
+import { isPro } from "@/lib/subscription";
 import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
 import { ReadinessByCategory } from "@/components/insights/readiness";
@@ -108,6 +111,25 @@ export default async function InsightsPage() {
   // Same engines as home, deliberately: one ranking of consequence in the
   // product, not one per page.
   const actionable = obligations.filter((o) => o.templateId !== null || o.kind === "document_expiry");
+  /*
+   * THE SAME PAYWALL THE BOARD APPLIES, because this page was bypassing it.
+   *
+   * The board gates the forward list to the nearest month on the SERVER — the
+   * rest never reaches the browser, which is what made that fix real rather
+   * than a CSS blur. This page then rendered its own forward timeline over the
+   * whole list, up to eight entries, across any month, with no tier check at
+   * all: the gated data leaving by a second door.
+   *
+   * Its footer made it worse by saying "עוד N בלוח החובות המלא" — a link that
+   * for a free user leads to a board showing one month. The page advertised
+   * what its own target withholds.
+   *
+   * boardWindow is the single decision now. Past-due items are NOT gated and
+   * never were: being late is not a premium feature, which is the same rule
+   * the board's overdue section follows.
+   */
+  const timelineWindow = boardWindow(stillAhead(obligations), isPro(business));
+  const timeline = [...alreadyPast(obligations), ...timelineWindow.visible];
   const overdue = overdueStatutory(obligations);
   const topExposures = rankByExposure(actionable)
     .filter((e) => e.daysUntil <= 30)
@@ -276,14 +298,14 @@ export default async function InsightsPage() {
         <FadeIn><CostsManager costs={costs} /></FadeIn>
 
         {/* compliance timeline */}
-        {obligations.length > 0 && (
+        {timeline.length > 0 && (
           <FadeIn>
             <Card className="h-full p-5">
               <h2 className="mb-3 flex items-center gap-2 text-section text-ink"><CalendarClock className="h-4.5 w-4.5 text-brand-400" aria-hidden />מה מתי — ציר המועדים</h2>
               <div className="relative ps-4">
                 <span className="absolute bottom-1 right-[7px] top-1 w-px bg-edge" aria-hidden />
                 <div className="flex flex-col gap-3">
-                  {obligations.slice(0, 8).map((o) => (
+                  {timeline.slice(0, 8).map((o) => (
                     <div key={o.id} className="relative flex items-center gap-3">
                       <span className={`absolute right-[-4px] h-2.5 w-2.5 rounded-full led ${o.daysUntil < 0 && o.basis === "statutory" ? "text-status-overdue bg-status-overdue" : o.daysUntil < 0 || o.daysUntil <= 7 ? "text-status-progress bg-status-progress" : "text-brand-400 bg-brand-400"}`} />
                       <div className="ms-4 flex min-w-0 flex-1 items-center justify-between gap-3">
@@ -297,8 +319,8 @@ export default async function InsightsPage() {
               {/* It used to slice to 8 and say nothing, so obligations nine
                   onward simply were not there. */}
               <Link href="/calendar" className="mt-3 inline-block text-xs font-medium text-brand-strong hover:opacity-80">
-                {obligations.length > 8
-                  ? `עוד ${obligations.length - 8} בלוח החובות המלא ←`
+                {timeline.length > 8
+                  ? `עוד ${timeline.length - 8} בלוח החובות המלא ←`
                   : "ללוח החובות המלא ←"}
               </Link>
             </Card>

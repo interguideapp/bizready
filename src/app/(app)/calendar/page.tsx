@@ -29,10 +29,10 @@ import {
   filingsAwaitingPrerequisite,
   filingsBlockedByDismissal,
   stillAhead,
-  type Obligation,
   type PendingFiling,
 } from "@/lib/compliance";
 import { isPro } from "@/lib/subscription";
+import { boardWindow } from "@/lib/board-window";
 import type { OnboardingAnswers } from "@/lib/types";
 
 const MONTHS = [
@@ -162,26 +162,19 @@ export default async function CalendarPage() {
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // group the FUTURE by month for the timeline
-  const byMonth = new Map<string, Obligation[]>();
-  for (const ob of upcoming) {
-    const d = new Date(ob.dueDate + "T00:00:00Z");
-    const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
-    const list = byMonth.get(key) ?? [];
-    list.push(ob);
-    byMonth.set(key, list);
-  }
-
-  // The paywall is decided HERE, on the server, before anything is serialised.
-  // A free plan gets the nearest month; the rest never reaches the browser, so
-  // there is no class to delete and nothing for a screen reader to leak.
-  const allMonths = [...byMonth.entries()];
-  const visibleMonths = pro ? allMonths : allMonths.slice(0, 1);
-  const visibleCount = visibleMonths.reduce((n, [, list]) => n + list.length, 0);
-  // The old copy advertised obligations.length — the TOTAL, including the month
-  // the user could already see.
-  const hiddenCount = upcoming.length - visibleCount;
-  const hiddenMonthCount = allMonths.length - visibleMonths.length;
+  // The paywall is decided on the SERVER, before anything is serialised: a
+  // free plan gets the nearest month and the rest never reaches the browser,
+  // so there is no class to delete and nothing for a screen reader to leak.
+  //
+  // Moved into lib/board-window.ts because /insights was rendering the same
+  // obligations, across any month, with no tier check at all — the gated data
+  // leaving by a second door, which made this gate theatre. One decision, two
+  // callers.
+  const window = boardWindow(upcoming, pro);
+  const visibleMonths = window.months;
+  // Never obligations.length: the month the user can already see is not hidden.
+  const hiddenCount = window.hiddenCount;
+  const hiddenMonthCount = window.hiddenMonthCount;
 
   return (
     <div>
@@ -268,26 +261,25 @@ export default async function CalendarPage() {
           {deliveryFault(delivery) === "opted-out" && <ChannelsOffNotice compact />}
 
           <div className="flex flex-col gap-6">
-            {visibleMonths.map(([key, list]) => {
-              const [, month] = key.split("-").map(Number);
-              const year = Number(key.split("-")[0]);
-              return (
-                <FadeIn key={key} whenInView>
-                  <section>
-                    <h2 className="mb-2.5 flex items-center gap-2 text-sm font-bold text-ink-soft">
-                      <span className="rounded-lg bg-brand-tint px-2.5 py-1 text-brand-strong">
-                        {MONTHS[month]} {year}
-                      </span>
-                    </h2>
-                    <Card className="divide-y divide-edge-soft">
-                      {list.map((ob) => (
-                        <ObligationRow key={ob.id} ob={ob} />
-                      ))}
-                    </Card>
-                  </section>
-                </FadeIn>
-              );
-            })}
+            {/* year and month come off the group, not off a re-parsed key
+                string — the key was 0-based and unpadded, so any future sort
+                of these entries would have ordered October before September. */}
+            {visibleMonths.map((group) => (
+              <FadeIn key={group.key} whenInView>
+                <section>
+                  <h2 className="mb-2.5 flex items-center gap-2 text-sm font-bold text-ink-soft">
+                    <span className="rounded-lg bg-brand-tint px-2.5 py-1 text-brand-strong">
+                      {MONTHS[group.month]} {group.year}
+                    </span>
+                  </h2>
+                  <Card className="divide-y divide-edge-soft">
+                    {group.items.map((ob) => (
+                      <ObligationRow key={ob.id} ob={ob} />
+                    ))}
+                  </Card>
+                </section>
+              </FadeIn>
+            ))}
           </div>
 
           {/* A real paywall: the gated obligations were never serialised, so

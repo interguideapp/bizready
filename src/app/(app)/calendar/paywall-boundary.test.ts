@@ -74,7 +74,20 @@ describe("the paywall narrows the future timeline, and nothing else", () => {
   });
 
   it("slices only the month grouping", () => {
-    expect(page).toContain("pro ? allMonths : allMonths.slice(0, 1)");
+    /*
+     * The gate moved into lib/board-window.ts, and this assertion correctly
+     * failed when it did — which is the good outcome of a source-level guard
+     * and not a reason to weaken it.
+     *
+     * Why it moved: /insights rendered its own forward timeline over the whole
+     * obligation list, across any month, with no tier check at all. The board
+     * gated on the server and the same data left by a second door, which made
+     * this gate theatre. One decision, asked by both pages.
+     *
+     * So this now pins the call, and board-window.test.ts pins what the call
+     * DOES — including that a free plan gets exactly the nearest month.
+     */
+    expect(page).toContain("boardWindow(upcoming, pro)");
     for (const name of [
       "overdue",
       "lapsed",

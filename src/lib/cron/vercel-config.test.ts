@@ -27,7 +27,10 @@ const HOBBY_MAX_DURATION_SECONDS = 60;
 
 const root = process.cwd();
 
-function vercelConfig(): { crons?: { path: string; schedule: string }[] } {
+function vercelConfig(): {
+  crons?: { path: string; schedule: string }[];
+  regions?: string[];
+} {
   return JSON.parse(readFileSync(join(root, "vercel.json"), "utf8"));
 }
 
@@ -87,5 +90,49 @@ describe("every cron route fits the plan's execution limit", () => {
       const src = readFileSync(join(root, "src/app/api/cron", job, "route.ts"), "utf8");
       expect(src, job).toContain("cronAuthorized(request)");
     }
+  });
+});
+
+describe("the functions run where the database is", () => {
+  /**
+   * THE PAGES WERE SLOW BECAUSE EVERY QUERY CROSSED THE ATLANTIC.
+   *
+   * The Supabase project is in eu-central-1 (Frankfurt). Vercel had been
+   * deploying the functions to iad1 (Washington), which is the default for the
+   * account rather than a decision anyone made. So every one of the six to
+   * eight queries a navigation makes went Washington → Frankfurt → Washington,
+   * roughly 100ms of pure network each, before any of them did any work.
+   *
+   * The user reported it plainly: "מעבר בין דפים איטי". Reading the code found
+   * nothing wrong with the queries — they are batched and request-cached. The
+   * cause was geography, and it is one line of configuration.
+   *
+   * fra1 is also nearer the people using this product: Israel to Frankfurt is
+   * a fraction of Israel to Washington, so the page HTML arrives sooner too.
+   *
+   * This is pinned because it is invisible. Nothing fails if it drifts back to
+   * the default; the product just gets slower, which is the kind of regression
+   * that gets attributed to "it always felt like that".
+   */
+  const DB_REGION = "eu-central-1";
+  const FUNCTION_REGION = "fra1";
+
+  it("declares a region at all, rather than taking the account default", () => {
+    expect(vercelConfig().regions, "vercel.json sets no regions").toBeDefined();
+    expect(Array.isArray(vercelConfig().regions)).toBe(true);
+  });
+
+  it("declares exactly the region the database is in", () => {
+    // fra1 IS eu-central-1; Vercel and AWS name it differently, which is
+    // exactly why the pairing deserves to be written down.
+    expect(vercelConfig().regions).toEqual([FUNCTION_REGION]);
+    expect(DB_REGION).toBe("eu-central-1");
+  });
+
+  it("names one region, not a list", () => {
+    // Several regions would mean some requests are the fast ones and the rest
+    // are the transatlantic ones, which is harder to diagnose than uniformly
+    // slow.
+    expect(vercelConfig().regions).toHaveLength(1);
   });
 });

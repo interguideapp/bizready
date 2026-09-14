@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Check, Copy, Pencil, X } from "lucide-react";
 import { updateBusinessCard } from "@/lib/actions";
 import { toast } from "@/components/toaster";
@@ -28,6 +28,28 @@ type EditableFields = {
   accountant_phone: string;
   accountant_email: string;
 };
+
+/**
+ * The card's own column names, as a set the hash handler can validate against.
+ *
+ * `satisfies Record<keyof EditableFields, true>` is the point: add a field to
+ * EditableFields and forget it here and the build fails, so a new field
+ * cannot silently become an anchor that does nothing -- which is the exact
+ * defect this whole change is fixing.
+ */
+const FIELD_KEYS = {
+  name: true,
+  dealer_number: true,
+  vat_file: true,
+  income_tax_file: true,
+  bituach_leumi_file: true,
+  bank_name: true,
+  bank_branch: true,
+  bank_account: true,
+  accountant_name: true,
+  accountant_phone: true,
+  accountant_email: true,
+} satisfies Record<keyof EditableFields, true>;
 
 const SECTIONS: { title: string; fields: FieldDef[] }[] = [
   {
@@ -94,6 +116,48 @@ export function BusinessCard({
   const [values, setValues] = useState(initial);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  /*
+   * ARRIVING FROM "מה חסר ל-100%?" HAS TO LAND YOU ON THE FIELD, READY TO TYPE.
+   *
+   * Seven of that card's ten items linked to "/business" -- the page they are
+   * already on -- so clicking them did nothing at all, under a line promising
+   * to take you "ישר למקום שבו משלימים אותו". Each now links to
+   * #field-<column>, and every row carries that id.
+   *
+   * An anchor alone would still only scroll you to a READ-ONLY row, and the
+   * promise would still not be kept: you would have to find "עריכת פרטים"
+   * yourself. So the hash also opens edit mode and focuses that input.
+   *
+   * Both mount AND hashchange, because clicking one of those links while
+   * already on this page changes only the hash -- React does not remount, so a
+   * mount-only effect would fire for the first click and never again.
+   *
+   * canEdit is respected: a collaborator gets the scroll and no edit mode,
+   * which matches what the database would allow anyway.
+   */
+  useEffect(() => {
+    if (!canEdit) return;
+    const columns = new Set(Object.keys(FIELD_KEYS));
+
+    function openFromHash() {
+      const key = window.location.hash.replace("#field-", "");
+      if (!key || !columns.has(key)) return;
+      setEditing(true);
+      // After the inputs render. requestAnimationFrame rather than a timeout
+      // guess, so this follows the paint instead of racing it.
+      requestAnimationFrame(() => {
+        const row = document.getElementById("field-" + key);
+        row?.scrollIntoView({ block: "center", behavior: "smooth" });
+        row?.querySelector("input")?.focus();
+      });
+    }
+
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    return () => window.removeEventListener("hashchange", openFromHash);
+    // FIELD_KEYS is a module constant; canEdit does not change within a mount.
+  }, [canEdit]);
 
   function save() {
     setSaveError(null);
@@ -167,6 +231,7 @@ export function BusinessCard({
               {section.fields.map((field) => (
                 <FieldRow
                   key={field.key}
+                  fieldKey={field.key}
                   label={field.label}
                   dir={field.dir}
                   value={values[field.key]}
@@ -190,12 +255,14 @@ export function BusinessCard({
 }
 
 function FieldRow({
+  fieldKey,
   label,
   value,
   dir,
   editing,
   onChange,
 }: {
+  fieldKey: string;
   label: string;
   value: string;
   dir?: "ltr";
@@ -216,7 +283,7 @@ function FieldRow({
   // bank account.
   if (editing) {
     return (
-      <div className="px-5 py-3">
+      <div id={"field-" + fieldKey} className="scroll-mt-28 px-5 py-3">
         <Field label={label} className="sm:flex-row sm:items-center sm:gap-3">
           <Input
             value={value}
@@ -232,7 +299,10 @@ function FieldRow({
   }
 
   return (
-    <div className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:gap-3">
+    <div
+      id={"field-" + fieldKey}
+      className="scroll-mt-28 flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:gap-3"
+    >
       <span className="text-sm text-ink-muted sm:w-32 sm:shrink-0">{label}</span>
       <span
         dir={dir}

@@ -11,10 +11,10 @@ import { Dock } from "@/components/dock";
 
 export function AppShell({
   children,
-  unreadCount = 0,
+  notificationsBadge,
 }: {
   children: React.ReactNode;
-  unreadCount?: number;
+  notificationsBadge?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const fullBleed = pathname === "/home";
@@ -66,7 +66,7 @@ export function AppShell({
       </main>
 
       {/* the dock — global bottom navigation */}
-      <Dock unreadCount={unreadCount} />
+      <Dock notificationsBadge={notificationsBadge} />
     </div>
   );
 }

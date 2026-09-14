@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { AppShell } from "@/components/app-shell";
+import { AttentionBadge } from "@/components/attention-badge";
 import { getBusiness } from "@/lib/data";
-import { loadAttentionCount } from "@/lib/attention";
 import { sweepIfScheduleIsDead } from "@/lib/cron/lazy-sweep";
 
 export default async function AppLayout({
@@ -12,11 +13,21 @@ export default async function AppLayout({
 }) {
   const business = await getBusiness();
   if (!business?.onboarding_completed_at) redirect("/onboarding");
-  // Not the stored unread count. That read the notifications table alone, so a
-  // sweep that had stopped running showed a badge of zero with a statutory
-  // filing overdue — and no badge means no reason to open the page that would
-  // have said so. This counts what is true now, stored or derived.
-  const unread = await loadAttentionCount(business);
+  /*
+   * THE BADGE IS NO LONGER AWAITED HERE, and that is the whole of the
+   * navigation fix.
+   *
+   * It still counts what is true NOW rather than the stored notifications
+   * table — a sweep that had stopped running used to show a badge of zero with
+   * a statutory filing overdue, and no badge means no reason to open the page
+   * that would have said so. That reasoning is unchanged and lives in
+   * AttentionBadge.
+   *
+   * What changed is when. loadAttentionCount is five Supabase queries plus a
+   * reminders computation over every task, and awaiting it here made EVERY
+   * navigation in the product wait for one digit on one icon. Behind Suspense
+   * the page arrives first and the number follows.
+   */
 
   // THE OUTBOUND FALLBACK.
   //
@@ -31,5 +42,15 @@ export default async function AppLayout({
   // deliberately does NOT solve.
   after(sweepIfScheduleIsDead);
 
-  return <AppShell unreadCount={unread}>{children}</AppShell>;
+  return (
+    <AppShell
+      notificationsBadge={
+        <Suspense fallback={null}>
+          <AttentionBadge />
+        </Suspense>
+      }
+    >
+      {children}
+    </AppShell>
+  );
 }

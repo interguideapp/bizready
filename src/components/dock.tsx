@@ -47,7 +47,24 @@ const SECONDARY: Item[] = [
 ];
 
 /** macOS-style dock: pointer magnification, spring physics, a breathing halo. */
-export function Dock({ unreadCount = 0 }: { unreadCount?: number }) {
+/**
+ * The notifications badge arrives as a NODE, not a number, and that is the point.
+ *
+ * The layout used to await loadAttentionCount(business) before rendering
+ * anything, so every navigation in the product waited on five Supabase queries
+ * and a full reminders computation -- to decide one digit on one icon. With the
+ * database in eu-central-1 and the functions in iad1, each of those queries was
+ * a transatlantic round trip.
+ *
+ * Passing the badge in as server-rendered markup lets the layout put it behind
+ * a Suspense boundary: the page arrives, and the number appears when it is
+ * ready. Nobody is waiting to read a badge.
+ */
+export function Dock({
+  notificationsBadge,
+}: {
+  notificationsBadge?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const mouseX = useMotionValue(Infinity);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -122,7 +139,7 @@ export function Dock({ unreadCount = 0 }: { unreadCount?: number }) {
           mouseX={mouseX}
           item={{ href: "/notifications", label: "התראות", icon: Bell }}
           active={isActive("/notifications")}
-          badge={unreadCount}
+          badge={notificationsBadge}
         />
 
         {/* divider */}
@@ -149,14 +166,14 @@ function DockButton({
   mouseX,
   item,
   active,
-  badge = 0,
+  badge,
   onClick,
   expanded,
 }: {
   mouseX: MotionValue<number>;
   item: Item;
   active: boolean;
-  badge?: number;
+  badge?: React.ReactNode;
   onClick?: () => void;
   /** Only for the overflow trigger, which is a menu button rather than a link. */
   expanded?: boolean;
@@ -204,11 +221,7 @@ function DockButton({
         <Icon className="h-full w-full" />
       </motion.span>
 
-      {badge > 0 && (
-        <span className="absolute start-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-overdue px-1 text-xs font-bold text-white">
-          {badge > 9 ? "9+" : badge}
-        </span>
-      )}
+      {badge}
 
       {/* active dot */}
       {active && (

@@ -9,7 +9,7 @@ import {
 } from "@/lib/compliance";
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { periodForDue } from "@/lib/filings";
-import { nextCycleFor, reopenedCycle } from "@/lib/cycles";
+import { nextCycleFor, nextOccurrence, reopenedCycle } from "@/lib/cycles";
 import { aheadLabel } from "@/lib/he-distance";
 import { satisfiesDependency, type Dismissal } from "@/lib/task-status";
 import type { Recurrence, TaskStatus, TaskTemplate } from "@/lib/types";
@@ -83,33 +83,39 @@ export interface RecurringReset {
   newDueDate: string;
 }
 
-function isoDay(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 /** Delegates to lib/dates -- see the note there on why there was a second copy. */
 function daysBetween(fromIso: string, to: Date): number {
   return daysUntilInIsrael(fromIso, to);
 }
 
-function addRecurrence(fromIso: string, recurrence: Recurrence): string {
-  const d = new Date(fromIso.slice(0, 10) + "T00:00:00Z");
-  if (recurrence === "monthly") d.setUTCMonth(d.getUTCMonth() + 1);
-  else if (recurrence === "bimonthly") d.setUTCMonth(d.getUTCMonth() + 2);
-  else if (recurrence === "yearly") d.setUTCFullYear(d.getUTCFullYear() + 1);
-  return isoDay(d);
-}
+/*
+ * addRecurrence lived here too, and the two copies disagreed about a null
+ * recurrence: cycles.ts advanced it by a year, this one by nothing -- which
+ * inside rollForward's loop means 240 wasted iterations and a stale date
+ * handed back. Both call sites guarded null by convention; nextOccurrence
+ * takes NonNullable so the compiler holds that guard instead.
+ */
 
 /**
  * Advance a stale date by whole cycles until it is no longer in the past.
  * Used to keep a recurring habit nudging: a monthly task that was never
  * completed used to keep its original due_date forever.
  */
-function rollForward(fromIso: string, recurrence: Recurrence, today: Date): string {
+function rollForward(
+  fromIso: string,
+  // NonNullable, propagated from nextOccurrence: the sole caller already
+  // guards with "template.recurrence &&", and letting the type say so is what
+  // turns that convention into something the compiler holds. With null the
+  // loop below could not advance at all, so it would spin its full 240
+  // iterations and return the stale date it started from.
+  recurrence: NonNullable<Recurrence>,
+  today: Date
+): string {
   let next = fromIso.slice(0, 10);
   // guard against a pathological loop on bad data (20 years of monthly cycles)
   for (let i = 0; i < 240 && daysBetween(next, today) < 0; i++) {
-    next = addRecurrence(next, recurrence);
+    next = nextOccurrence(next, recurrence);
   }
   return next;
 }

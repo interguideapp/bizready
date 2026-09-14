@@ -72,7 +72,31 @@ export interface NextCycle {
   open: boolean;
 }
 
-function addRecurrence(fromIso: string, recurrence: Recurrence): string {
+/**
+ * One cycle forward from a date. The authority for recurrence arithmetic.
+ *
+ * THERE WERE TWO COPIES AND THEY DID NOT AGREE. reminders.ts held the other,
+ * and the fallback branch differed: this one sent anything that was not
+ * monthly or bimonthly forward by a YEAR, and the other advanced it by nothing
+ * at all. Recurrence is monthly | bimonthly | yearly | null, so the value they
+ * disagreed about is null -- for which one path invents an annual cycle and
+ * the other returns the same date, which in reminders.ts sits inside a loop
+ * that would then spin its full 240 iterations and hand back a stale date.
+ *
+ * No live divergence: both call sites guard with "template.recurrence &&".
+ * That guard is convention, held separately in two modules, protecting the
+ * highest-stakes arithmetic in the product -- which recurring statutory filing
+ * is due when. So the parameter is NonNullable and the compiler refuses null
+ * at the boundary instead. The branch they disagreed about no longer exists.
+ *
+ * UTC in, UTC out, deliberately: the operand is built at UTC midnight and read
+ * back with getUTC*, so no ambient zone can enter and the returned value is
+ * exactly the calendar date intended.
+ */
+export function nextOccurrence(
+  fromIso: string,
+  recurrence: NonNullable<Recurrence>
+): string {
   const d = new Date(fromIso.slice(0, 10) + "T00:00:00Z");
   if (recurrence === "monthly") d.setUTCMonth(d.getUTCMonth() + 1);
   else if (recurrence === "bimonthly") d.setUTCMonth(d.getUTCMonth() + 2);
@@ -147,7 +171,7 @@ export function nextCycleFor(args: {
 
   // --- a habit ---
   if (template.recurrence && task.completed_at) {
-    const dueIso = addRecurrence(task.completed_at, template.recurrence);
+    const dueIso = nextOccurrence(task.completed_at, template.recurrence);
     return {
       reason: "habit",
       dueIso,
@@ -258,7 +282,7 @@ export function reopenedCycle(args: {
   }
 
   if (template.recurrence && task.completed_at) {
-    const dueIso = addRecurrence(task.completed_at, template.recurrence);
+    const dueIso = nextOccurrence(task.completed_at, template.recurrence);
     return dueIso <= todayIso
       ? { reason: "habit", dueIso, periodLabel: null, periodKey: null }
       : null;

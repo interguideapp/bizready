@@ -271,8 +271,43 @@ describe("filingsBlockedByDismissal", () => {
       TEMPLATES_BY_ID
     );
     expect(blocked).toEqual([
-      { templateId: "vat-reporting", blockedBy: "open-vat-file", dismissal: "not_applicable" },
+      {
+        templateId: "vat-reporting",
+        blockedBy: "open-vat-file",
+        dismissal: "not_applicable",
+        // Explicitly chosen, so there is nothing to clarify.
+        unclarified: false,
+      },
     ]);
+  });
+
+  it("flags a dismissal the user never actually chose a kind for", () => {
+    /*
+     * dismissalOf reads a bare not_relevant row as not_applicable — the
+     * reading that claims least, and the right default for gating. But it
+     * erases the difference between "this genuinely does not apply to me" and
+     * "I never answered that question", and only the second has a fix the user
+     * would want: saying they handled it elsewhere reopens the duty with a
+     * real date.
+     *
+     * needsDismissalClarification has existed since the split shipped, with a
+     * docstring insisting that surfacing this is "not optional" because
+     * silently gating a duty replaces a fabricated deadline with a missing
+     * one. Nothing called it, so the board gated the duty and offered no way
+     * out.
+     */
+    const blocked = filingsBlockedByDismissal(
+      [
+        task({ template_id: "open-vat-file", status: "not_relevant", dismissal: null }),
+        task({ template_id: "vat-reporting" }),
+      ],
+      TEMPLATES_BY_ID
+    );
+    expect(blocked).toHaveLength(1);
+    expect(blocked[0].unclarified).toBe(true);
+    // Still gated, and still read as the claim-least kind: the default is not
+    // what was wrong, the silence was.
+    expect(blocked[0].dismissal).toBe("not_applicable");
   });
 
   it("says nothing when the prerequisite is merely unfinished", () => {

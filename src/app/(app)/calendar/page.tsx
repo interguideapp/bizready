@@ -206,6 +206,7 @@ export default async function CalendarPage() {
           title: TEMPLATES_BY_ID.get(f.templateId)?.title ?? f.templateId,
           blockedById: f.blockedBy,
           blockedByTitle: TEMPLATES_BY_ID.get(f.blockedBy)?.title ?? f.blockedBy,
+          unclarified: f.unclarified,
         }))}
       />
 

@@ -486,3 +486,49 @@ describe("every row that can be acted on leads somewhere", () => {
     expect(screen.queryByRole("link", { name: /חידוש כלשהו/ })).toBeNull();
   });
 });
+
+describe("a gated duty offers a way out when there is one", () => {
+  /**
+   * needsDismissalClarification shipped with the not_relevant split and its
+   * docstring insists that surfacing it is "not optional", because silently
+   * gating a duty replaces a fabricated deadline with a missing one. Nothing
+   * called it: the board named the duty as blocked and said nothing about how
+   * to unblock it.
+   *
+   * The distinction is real. A bare not_relevant row is read as "does not
+   * apply", which is the right default for gating, and it hides the difference
+   * between "genuinely not mine" and "I never answered that". Only the second
+   * has a fix the user wants — saying they handled it elsewhere gives the duty
+   * a real date back.
+   */
+  const blocked = (unclarified: boolean) => [
+    {
+      templateId: "vat-reporting",
+      title: 'דיווח מע״מ תקופתי',
+      blockedById: "open-vat-file",
+      blockedByTitle: 'פתיחת תיק עוסק במע״מ',
+      unclarified,
+    },
+  ];
+
+  it("tells the user their answer was ambiguous, and what fixes it", () => {
+    render(<BlockedFilingsSection blocked={blocked(true)} />);
+    const text = document.body.textContent ?? "";
+    expect(text).toMatch(/לא נאמר איזה סוג/);
+    expect(text).toMatch(/מחוץ למערכת/);
+  });
+
+  it("says nothing extra when the user did choose", () => {
+    // An explicit "does not apply to me" is an answer, not an omission, and
+    // second-guessing it on every render is how a screen becomes nagging.
+    render(<BlockedFilingsSection blocked={blocked(false)} />);
+    expect(document.body.textContent ?? "").not.toMatch(/לא נאמר איזה סוג/);
+  });
+
+  it("still names the duty and the prerequisite either way", () => {
+    // The line is an addition, not a replacement.
+    render(<BlockedFilingsSection blocked={blocked(true)} />);
+    expect(screen.getByRole("link", { name: /דיווח מע״מ תקופתי/ })).toBeDefined();
+    expect(screen.getByRole("link", { name: /פתיחת תיק/ })).toBeDefined();
+  });
+});

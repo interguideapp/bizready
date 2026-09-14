@@ -1,6 +1,11 @@
 import { todayInIsrael, israelParts } from "@/lib/dates";
 import { openRenewalOf } from "@/lib/renewals";
-import { dismissalOf, satisfiesDependency, type Dismissal } from "@/lib/task-status";
+import {
+  dismissalOf,
+  needsDismissalClarification,
+  satisfiesDependency,
+  type Dismissal,
+} from "@/lib/task-status";
 import {
   DATED_FILING_IDS,
   announcedDateFor,
@@ -794,6 +799,22 @@ export interface BlockedFiling {
   blockedBy: string;
   /** Which kind of dismissal it was. */
   dismissal: Dismissal;
+  /**
+   * The user never said WHICH kind of "not relevant" they meant.
+   *
+   * dismissalOf reads a bare not_relevant row as not_applicable, which is the
+   * reading that claims least and is the right default for gating. But it
+   * erases the difference between "this genuinely does not apply to me" and
+   * "I never answered that question", and only the second one has a fix the
+   * user would want: saying they handled it elsewhere reopens the duty with a
+   * real date.
+   *
+   * task-status.ts has had needsDismissalClarification since the split
+   * shipped, with a docstring insisting that surfacing this is "not optional"
+   * because silently gating a duty replaces a fabricated deadline with a
+   * missing one. Nothing called it. This is the field that lets the board.
+   */
+  unclarified: boolean;
 }
 
 export interface PendingFiling {
@@ -909,7 +930,18 @@ export function filingsBlockedByDismissal(
         { status: dt.status as TaskStatus, is_relevant: dt.is_relevant, dismissal: dt.dismissal },
         { statutory: true }
       )) continue;
-      out.push({ templateId: task.template_id, blockedBy: dep, dismissal });
+      out.push({
+        templateId: task.template_id,
+        blockedBy: dep,
+        dismissal,
+        // The RAW column, not the defaulted reading: that is the only place
+        // the distinction still exists.
+        unclarified: needsDismissalClarification({
+          status: dt.status as TaskStatus,
+          is_relevant: dt.is_relevant,
+          dismissal: dt.dismissal,
+        }),
+      });
     }
   }
   return out;

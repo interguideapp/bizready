@@ -295,6 +295,8 @@ export function hiddenObligationsText(
 }
 
 export interface BlockedFilingView {
+  /** The user never said which kind of "not relevant" they meant. */
+  unclarified?: boolean;
   templateId: string;
   title: string;
   blockedById: string;
@@ -347,6 +349,22 @@ export function BlockedFilingsSection({ blocked }: { blocked: BlockedFilingView[
                 {f.blockedByTitle}
               </Link>
             </span>
+            {/* THE ONE-TAP FIX, for the rows that have one.
+                A bare not_relevant row is read as "does not apply", which is
+                the right default for gating and erases the difference between
+                "genuinely not mine" and "I never answered that". Only the
+                second has a fix the user wants — saying they handled it
+                elsewhere reopens the duty with a real date — and without this
+                line the duty is simply gated with no way out.
+                needsDismissalClarification has existed since the split
+                shipped, insisting in its own docstring that surfacing this is
+                not optional. Nothing called it. */}
+            {f.unclarified && (
+              <p className="mt-0.5 text-xs text-ink-faint">
+                לא נאמר איזה סוג של ״לא רלוונטי״ — אם בפועל טיפלתם בזה מחוץ
+                למערכת, עדכון בדף המשימה יחזיר לחובה הזו תאריך אמיתי.
+              </p>
+            )}
           </li>
         ))}
       </ul>

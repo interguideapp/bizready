@@ -7,6 +7,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import { getBusiness, getBusinessTasks } from "@/lib/data";
 import { computeScore } from "@/lib/rules-engine";
+import { TASK_FORMS, countLabel } from "@/lib/he-distance";
 
 /**
  * How long after onboarding this page is still the right thing to show.
@@ -54,8 +55,14 @@ export default async function PlanReadyPage() {
 
         <p className="mx-auto mt-6 max-w-sm leading-relaxed text-ink-soft">
           בנינו לכם תכנית אישית עם{" "}
-          <b className="text-ink">{activeTasks.length} משימות</b> ב-
-          {byCategory.size} תחומים — כל אחת עם הסבר, צעדים וקישורים רשמיים.
+          <b className="text-ink">{countLabel(activeTasks.length, TASK_FORMS)}</b>{" "}
+          ב-
+          {countLabel(byCategory.size, {
+            one: "תחום אחד",
+            two: "שני תחומים",
+            many: "תחומים",
+          })}{" "}
+          — כל אחת עם הסבר, צעדים וקישורים רשמיים.
         </p>
 
         <div className="mt-8 grid grid-cols-2 gap-2.5 text-start">
@@ -70,7 +77,9 @@ export default async function PlanReadyPage() {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-ink">{c.title}</p>
-                <p className="text-xs text-ink-muted">{byCategory.get(c.id)} משימות</p>
+                <p className="text-xs text-ink-muted">
+                  {countLabel(byCategory.get(c.id) ?? 0, TASK_FORMS)}
+                </p>
               </div>
             </div>
           ))}

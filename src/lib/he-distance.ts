@@ -108,3 +108,41 @@ export function horizonLabel(days: number): string {
   if (days >= 90 && days % 30 === 0) return `ב-${days / 30} החודשים הקרובים`;
   return `ב-${days} הימים הקרובים`;
 }
+
+/**
+ * A COUNT WITH ITS NOUN, in a form Hebrew actually uses.
+ *
+ * Hebrew has a dual, and a numeral 1 beside a plural noun is simply wrong:
+ * "1 משימות" reads like a machine wrote it, and "2 ימים" should be "יומיים".
+ * durationLabel above has handled that for time spans since it was written —
+ * and nothing outside this module ever called it, while the home screen's
+ * streak tile rendered "1 ימים ברצף" to the most-read surface in the product.
+ *
+ * Six noun pairs were fixed one at a time in this file. This is the seventh
+ * arriving, which is the point at which a helper beats another fix: the caller
+ * supplies the three forms and cannot forget that there are three.
+ *
+ * `many` is the bare plural noun, since it is the only form that takes the
+ * numeral in front of it.
+ */
+export interface CountForms {
+  /** Exactly one, numeral spelled out: "משימה אחת". */
+  one: string;
+  /** Exactly two, the dual: "שתי משימות", "יומיים". */
+  two: string;
+  /** Three or more — the bare plural, which gets the numeral prefixed. */
+  many: string;
+}
+
+export function countLabel(n: number, forms: CountForms): string {
+  if (n === 1) return forms.one;
+  if (n === 2) return forms.two;
+  return `${n} ${forms.many}`;
+}
+
+/** The three forms for a count of tasks, which several surfaces need. */
+export const TASK_FORMS: CountForms = {
+  one: "משימה אחת",
+  two: "שתי משימות",
+  many: "משימות",
+};

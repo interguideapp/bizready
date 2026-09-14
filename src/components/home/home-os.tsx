@@ -32,6 +32,7 @@ import { SETASIDE_ESTIMATE_NOTE } from "@/lib/finance/setaside";
 import { greetingFor, type QuickWin } from "@/lib/home";
 import type { ConfidenceState } from "@/lib/confidence";
 import { formatIlsRounded } from "@/lib/money";
+import { durationLabel } from "@/lib/he-distance";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Wallet, UserRound, FolderOpen, Store, Zap, FileCheck2, CheckCircle2, Flame,
@@ -556,10 +557,16 @@ export function HomeOS({ data }: { data: HomeOSData }) {
               icon={<Flame className={`h-4.5 w-4.5 ${data.tiles.streak > 0 ? "text-status-progress" : "text-ink-faint"}`} />}
               label="רצף פעילות"
               value={`${data.tiles.streak}`}
-              suffix=" ימים"
+              // "1" + " ימים" is the defect this product has fixed six times
+              // in he-distance. A tile is a numeral plus a unit, so the unit
+              // has to agree with the numeral shown beside it.
+              suffix={data.tiles.streak === 1 ? " יום" : " ימים"}
               detail={
                 data.tiles.streak > 0 ? (
-                  <>{data.tiles.streak} ימים ברצף. פעולה אחת היום שומרת על הרצף — אפילו רישום הכנסה או השלמת פרט.</>
+                  <>
+                    {durationLabel(data.tiles.streak)} ברצף. פעולה אחת היום
+                    שומרת על הרצף — אפילו רישום הכנסה או השלמת פרט.
+                  </>
                 ) : (
                   <>התחילו רצף היום — כל פעולה קטנה נספרת.</>
                 )

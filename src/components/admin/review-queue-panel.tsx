@@ -1,5 +1,6 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, ExternalLink } from "lucide-react";
 import { BASIS_LABEL } from "@/lib/content/legal-basis";
+import { countLabel } from "@/lib/he-distance";
 import {
   URGENCY_LABEL,
   reviewQueueSummary,
@@ -96,11 +97,24 @@ export function ReviewQueuePanel({
           <p className="mb-3 text-sm text-ink-muted">
             {summary.unsourcedStatuteClaims > 0 ? (
               <>
-                <b className="text-ink">{summary.unsourcedStatuteClaims}</b> טענות
+                <b className="text-ink">
+                  {countLabel(summary.unsourcedStatuteClaims, {
+                    one: "טענה אחת",
+                    two: "שתי טענות",
+                    many: "טענות",
+                  })}
+                </b>
                 שמוצגות למשתמשים כחובה חוקית לא נבדקו מול המקור מעל שנה.
               </>
             ) : (
-              <>{summary.total} פריטים ממתינים לבדיקה תקופתית. אין טענה חוקית באיחור.</>
+              <>
+                {countLabel(summary.total, {
+                  one: "פריט אחד",
+                  two: "שני פריטים",
+                  many: "פריטים",
+                })}{" "}
+                ממתינים לבדיקה תקופתית. אין טענה חוקית באיחור.
+              </>
             )}
           </p>
 

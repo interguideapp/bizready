@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { BellOff, CalendarClock, ShieldCheck } from "lucide-react";
+import { CalendarClock, ShieldCheck } from "lucide-react";
+import { ChannelsOffNotice } from "@/components/channels-off-notice";
 import { DeliveryNotice } from "@/components/delivery-notice";
 import {
   deliveryFault,
@@ -265,21 +265,7 @@ export default async function CalendarPage() {
               someone who turned email off months ago has no way to know the
               reminders they are counting on are not coming. One line, with the
               switch one tap away. */}
-          {deliveryFault(delivery) === "opted-out" && (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-edge-soft bg-surface-2/60 px-4 py-2.5 text-sm text-ink-soft">
-              <BellOff className="mt-0.5 h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
-              <span>
-                התזכורות החוצה כבויות — החובות כאן מעודכנות בכל כניסה, אבל לא
-                תגיע הודעה לפני מועד.{" "}
-                <Link
-                  href="/settings"
-                  className="font-medium text-brand-strong hover:underline"
-                >
-                  להפעיל תזכורות
-                </Link>
-              </span>
-            </div>
-          )}
+          {deliveryFault(delivery) === "opted-out" && <ChannelsOffNotice compact />}
 
           <div className="flex flex-col gap-6">
             {visibleMonths.map(([key, list]) => {

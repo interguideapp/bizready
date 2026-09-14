@@ -35,7 +35,8 @@ import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
 import { ReadinessByCategory } from "@/components/insights/readiness";
 import { DeliveryNotice } from "@/components/delivery-notice";
-import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
+import { deliveryFault, deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
+import { ChannelsOffNotice } from "@/components/channels-off-notice";
 import {
   computeBadges,
   computeStreak,
@@ -200,6 +201,7 @@ export default async function InsightsPage() {
       {/* A user who lives on this page would otherwise keep waiting for an
           email that is not coming. */}
       {deliveryIsDown(delivery) && <DeliveryNotice health={delivery} compact />}
+      {deliveryFault(delivery) === "opted-out" && <ChannelsOffNotice compact />}
 
       <OverdueBanner count={overdue.length} />
 

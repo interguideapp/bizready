@@ -6,7 +6,8 @@ import { derivedCount, isGenuinelyCalm } from "@/lib/live-attention";
 import { NotificationList } from "./notification-list";
 import { SweepNotice } from "./sweep-notice";
 import { DeliveryNotice } from "@/components/delivery-notice";
-import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
+import { deliveryFault, deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
+import { ChannelsOffNotice } from "@/components/channels-off-notice";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/data";
 import { isPro } from "@/lib/subscription";
 import { REMINDER_WINDOWS_FREE, REMINDER_WINDOWS_PRO } from "@/lib/compliance";
@@ -64,8 +65,16 @@ export default async function NotificationsPage() {
           be outstanding and had to hedge about whether sending worked. When the
           heartbeat says nothing is wrong, the derived-items line still has a
           job: those specific items were never sent. */}
+      {/* THREE DIFFERENT FACTS, AND SWEEPNOTICE WAS ANSWERING TWO OF THEM.
+          Its copy ends "כדאי להיכנס לכאן מדי פעם עד שנוודא שהשליחה האוטומטית
+          עובדת" — which is right during an outage and wrong for someone who
+          switched their own channels off: sending works, and telling them we
+          have machinery to verify sends them to wait for a fix that is not
+          coming. The fault names which of the three it is. */}
       {down && delivery ? (
         <DeliveryNotice health={delivery} />
+      ) : deliveryFault(delivery) === "opted-out" ? (
+        <ChannelsOffNotice />
       ) : (
         unsent > 0 && <SweepNotice count={unsent} />
       )}

@@ -178,3 +178,19 @@ export function formatHeMomentLongMonth(iso: string | null | undefined): string 
   if (Number.isNaN(d.getTime())) return iso;
   return heMomentLongMonth.format(d);
 }
+
+/**
+ * The shape of a date-only ISO string, as a source pattern with no escapes.
+ *
+ * setTaskDueDate validated its input with a literal whose digit classes had
+ * lost their backslash level, so it read as four literal letter-d characters.
+ * It rejected "2026-09-15" and every other real date, and threw
+ * "invalid date" on every call -- which means the personal-deadline feature
+ * (migration 028) could never store a date at all. Measured on the live
+ * database: 87 tasks, ZERO with a personal_due_date.
+ *
+ * The product promises to remind you about a personal target, and the target
+ * could not be set. Character classes rather than escapes, so no editing
+ * route can eat a backslash again.
+ */
+export const ISO_DATE_SHAPE = "[0-9]{4}-[0-9]{2}-[0-9]{2}";

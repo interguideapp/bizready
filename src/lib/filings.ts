@@ -290,3 +290,28 @@ export function ledgerPeriodFor(args: {
       return null;
   }
 }
+
+/**
+ * The shape of a ledger period key, as a source string rather than a literal.
+ *
+ * THE LITERAL WAS DEAD. markPeriodFiled validated the key with a pattern
+ * whose digit classes had lost their backslash level, so each one read as the
+ * literal letter d. It matched only "dddd-dd..dddd-dd" and rejected
+ * "2026-07..2026-08", so EVERY real period key failed validation and the
+ * action threw "invalid period" on every single call.
+ *
+ * The broken pattern is described here rather than quoted, because a
+ * docstring holding the mangled form is exactly what makes a mechanical guard
+ * flag its own explanation -- the trap the promises sweep already hit once.
+ *
+ * What that switched off matters: the board offers "mark this period filed"
+ * precisely because a named missed period must be clearable -- its own comment
+ * says an alarm with no off switch is worse than not raising it. The off
+ * switch had never worked once.
+ *
+ * Written with character classes, not escapes: a bracketed [0-9] and [.] cannot
+ * lose a backslash level however this file is edited. Exported so it can be
+ * tested against real keys instead of only read.
+ */
+export const PERIOD_KEY_SHAPE =
+  "[0-9]{4}-[0-9]{2}[.][.][0-9]{4}-[0-9]{2}";

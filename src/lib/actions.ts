@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { seal, open, sealingAvailable } from "@/lib/crypto-box";
 import { sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
 
-import { todayInIsrael } from "@/lib/dates";
+import { ISO_DATE_SHAPE, todayInIsrael } from "@/lib/dates";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -24,7 +24,7 @@ import {
   statusForStage,
   terminalStageFor,
 } from "@/lib/content/milestones";
-import { ledgerPeriodFor } from "@/lib/filings";
+import { PERIOD_KEY_SHAPE, ledgerPeriodFor } from "@/lib/filings";
 import { acceptableMarks, type CatchUpMark } from "@/lib/catch-up";
 import type { BusinessStage } from "@/lib/types";
 import { filingRuleFor } from "@/lib/content/filing-rules";
@@ -675,7 +675,7 @@ export async function markPeriodFiled(templateId: string, periodKey: string) {
 
   // Both arrive from a Server Action, which is a public POST endpoint.
   if (!isStatutoryFiling(templateId)) throw new Error("not a statutory filing");
-  if (!/^d{4}-d{2}..d{4}-d{2}$/.test(periodKey)) {
+  if (!new RegExp("^"+PERIOD_KEY_SHAPE+"$").test(periodKey)) {
     throw new Error("invalid period");
   }
 
@@ -721,7 +721,7 @@ export async function setTaskDueDate(taskId: string, dueDate: string | null) {
 
   // Rejecting a malformed date here rather than letting Postgres decide: this
   // arrives from a Server Action, which is a public POST endpoint.
-  if (dueDate !== null && !/^d{4}-d{2}-d{2}$/.test(dueDate)) {
+  if (dueDate !== null && !new RegExp("^" + ISO_DATE_SHAPE + "$").test(dueDate)) {
     throw new Error("invalid date");
   }
 

@@ -97,3 +97,81 @@ export function verifyChain(events: EvidenceEvent[]): ChainReport {
     method,
   };
 }
+
+/**
+ * THE CONTENT CHECK THE PACK WAS ALREADY CLAIMING.
+ *
+ * verifyChain above checks LINKAGE — every row carries its predecessor's hash
+ * — which detects removal, reordering and insertion. Its own docstring then
+ * said content-level tampering "is what the stored hash itself protects
+ * against; recomputing that is done in the database, where the canonical
+ * expression lives", and the pack told the reader that a שינוי in a signed row
+ * would break the chain.
+ *
+ * Nothing recomputed it. There was no database function, nothing called one,
+ * and the claim pointed at a mechanism that had never been built — in the one
+ * document whose entire purpose is provability. A disclosure that defers to
+ * something absent is worse than none, because the reader stops looking.
+ *
+ * Worth being precise about the exposure. task_events has only INSERT and
+ * SELECT policies — no UPDATE, no DELETE — so no session can alter a row, and
+ * linkage already covered insertion and removal. What was unchecked is
+ * tampering through the service role or direct database access, which is
+ * exactly the threat a content hash exists for.
+ *
+ * Migration 032 adds task_events_content_ok, which re-derives every signed
+ * row's hash from its stored content through the SAME payload expression the
+ * writing trigger uses — one expression, so the verifier cannot drift from the
+ * writer and accuse an untouched row, which on this feature is the worst
+ * possible failure.
+ */
+export interface ContentCounts {
+  checked: number;
+  mismatched: number;
+  firstBadSeq: number | null;
+  unsigned: number;
+}
+
+export type ContentVerdict = "intact" | "tampered" | "nothing_signed" | "unavailable";
+
+export interface ContentReport {
+  verdict: ContentVerdict;
+  checked: number;
+  mismatched: number;
+  firstBadSeq: number | null;
+  /** What this check proves, in plain language, for the pack's method line. */
+  method: string;
+}
+
+/**
+ * Turn the database counts into a verdict.
+ *
+ * `null` counts mean the read failed or the caller may not see the business,
+ * and that is "unavailable" — never "intact". An integrity report that reads a
+ * failure as a pass is the single worst thing this file could do.
+ */
+export function contentReport(counts: ContentCounts | null): ContentReport {
+  const method =
+    "content: every signed row's hash is re-derived from its stored fields in " +
+    "the database, through the same expression that wrote it. Detects an " +
+    "in-place edit, which the linkage check cannot.";
+  if (!counts) {
+    return { verdict: "unavailable", checked: 0, mismatched: 0, firstBadSeq: null, method };
+  }
+  if (counts.checked === 0) {
+    return {
+      verdict: "nothing_signed",
+      checked: 0,
+      mismatched: 0,
+      firstBadSeq: null,
+      method,
+    };
+  }
+  return {
+    verdict: counts.mismatched > 0 ? "tampered" : "intact",
+    checked: counts.checked,
+    mismatched: counts.mismatched,
+    firstBadSeq: counts.firstBadSeq,
+    method,
+  };
+}

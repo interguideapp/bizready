@@ -104,18 +104,51 @@ describe("every migration is structurally sound", () => {
   });
 
   it("dollar-quoted blocks are balanced", () => {
-    // `do $$ ... end $$;` — an odd count means one got truncated to `$`, which
-    // is a syntax error at apply time and invisible on review.
+    /*
+     * A LOST `$` IS A SYNTAX ERROR AT APPLY TIME AND INVISIBLE ON REVIEW.
+     *
+     * The first version of this assumed dollar-quoting is always `$$`, so it
+     * read the perfectly valid named tag `end $fn$;` as a mangled `$$` and
+     * flagged migration 032 -- the first file in the repo to combine plpgsql
+     * (which has an `end` keyword) with a named tag. A guard that blocks
+     * correct SQL gets deleted by the next person in a hurry, which costs
+     * more than the bug it was catching.
+     *
+     * So both forms are understood: `$$` must balance, and a lone `$` after
+     * `do`/`end` is mangled ONLY when what follows is not a named tag.
+     */
     const bad: string[] = [];
+    const DOUBLE = new RegExp("\\$\\$", "g");
+    // end/do, whitespace, `$`, then NOT another `$` and NOT `word$`.
+    const MANGLED = new RegExp("^\\s*(do|end)\\s+\\$(?![\\$A-Za-z_])", "gm");
+    const NAMED = new RegExp("^\\s*(do|end)\\s+\\$[A-Za-z_][A-Za-z0-9_]*\\$", "gm");
     for (const { name, sql } of migrations()) {
-      const opens = (sql.match(/\$\$/g) ?? []).length;
+      const opens = (sql.match(DOUBLE) ?? []).length;
       if (opens % 2 !== 0) bad.push(`${name}: ${opens} occurrences of $$ (odd)`);
-      // A lone `$` immediately after `do` or `end` is the mangled form.
-      for (const m of sql.matchAll(/^\s*(do|end)\s+\$(?!\$)/gm)) {
+      for (const m of sql.matchAll(MANGLED)) {
         bad.push(`${name}: "${m[1]} $" — dollar quoting lost a character`);
+      }
+      // A named tag must also be balanced within its own function body.
+      for (const m of sql.matchAll(NAMED)) {
+        const tag = m[0].trim().split(/s+/)[1];
+        const count = sql.split(tag).length - 1;
+        if (count % 2 !== 0) {
+          bad.push(`${name}: ${count} occurrences of ${tag} (odd)`);
+        }
       }
     }
     expect(bad).toEqual([]);
+  });
+
+  it("the detector knows a named tag from a mangled one", () => {
+    // The premise. Without this the sweep above could stop matching and
+    // report an all-clear it never checked for.
+    const MANGLED = new RegExp("^\\s*(do|end)\\s+\\$(?![\\$A-Za-z_])", "gm");
+    expect(MANGLED.test("end $;")).toBe(true);
+    MANGLED.lastIndex = 0;
+    expect(MANGLED.test("end $$;")).toBe(false);
+    MANGLED.lastIndex = 0;
+    expect(MANGLED.test("end $fn$;")).toBe(false);
   });
 
   it("every migration is wrapped in a transaction", () => {

@@ -3,7 +3,13 @@ import { getBusiness } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { ENTITY_LABELS } from "@/lib/types";
-import { verifyChain, type ChainReport, type EvidenceEvent } from "@/lib/evidence";
+import {
+  contentReport,
+  verifyChain,
+  type ChainReport,
+  type ContentReport,
+  type EvidenceEvent,
+} from "@/lib/evidence";
 import { isStatutoryFiling } from "@/lib/compliance";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +46,32 @@ function partiallySignedNote(chain: ChainReport): string {
  * completeness is worse than one that admits a gap, because whoever is
  * checking it can discover the gap themselves.
  */
+/**
+ * What the content re-derivation found, in the reader's language.
+ *
+ * Four states and no merging. "unavailable" exists because the check can fail
+ * — and an integrity document that treats its own blind spot as a clean result
+ * is the failure this whole feature is supposed to be immune to.
+ */
+function contentNote(content: ContentReport): string {
+  switch (content.verdict) {
+    case "tampered":
+      return (
+        `תוכן של ${content.mismatched} רשומות ביומן אינו תואם את החתימה שלהן. ` +
+        "המשמעות היא שהרשומות שונו לאחר שנכתבו — אין להסתמך על המסמך הזה לפני בדיקה."
+      );
+    case "intact":
+      return (
+        `תוכן ${content.checked} הרשומות החתומות נבדק מחדש מול החתימה שלהן והוא תואם, ` +
+        "כך ששינוי של רשומה לאחר כתיבתה היה מזוהה."
+      );
+    case "nothing_signed":
+      return "אין רשומות חתומות שניתן לבדוק את תוכנן.";
+    default:
+      return "לא הצלחנו לאמת את תוכן הרשומות כרגע — נבדקה רק רציפות השרשרת.";
+  }
+}
+
 function integrityNote(chain: ChainReport): string {
   if (!chain.verifiable) return UNSIGNED_NOTE;
   if (!chain.linked) return BROKEN_NOTE;
@@ -79,6 +111,35 @@ export async function GET(request: Request) {
 
   const events = (rawEvents ?? []) as EvidenceEvent[];
   const chain = verifyChain(events);
+
+  /*
+   * The content check the pack was already claiming (migration 032).
+   *
+   * verifyChain proves LINKAGE. partiallySignedNote told the reader that a
+   * שינוי in a signed row would break the chain, and verifyChain's method line
+   * said content edits were "covered by the stored hash itself, recomputed in
+   * the database" -- where no such function existed. The claim pointed at a
+   * mechanism that had never been built, in the document whose whole purpose
+   * is provability.
+   *
+   * A failed read is reported as unavailable, never as intact: an integrity
+   * report that reads its own failure as a pass is the worst thing this route
+   * could emit.
+   */
+  const { data: contentRows } = await supabase.rpc("task_events_content_ok", {
+    target: business.id,
+  });
+  const row = Array.isArray(contentRows) ? contentRows[0] : null;
+  const content = contentReport(
+    row
+      ? {
+          checked: Number(row.checked ?? 0),
+          mismatched: Number(row.mismatched ?? 0),
+          firstBadSeq: row.first_bad_seq == null ? null : Number(row.first_bad_seq),
+          unsigned: Number(row.unsigned ?? 0),
+        }
+      : null
+  );
 
   const { data: tasks } = await supabase
     .from("business_tasks")
@@ -125,6 +186,20 @@ export async function GET(request: Request) {
     integrity: {
       ...chain,
       note: integrityNote(chain),
+      /*
+       * Reported separately from linkage because they prove different things
+       * and can disagree: a chain can link perfectly while a row's content no
+       * longer matches its own hash. Collapsing them into one boolean would
+       * hide exactly the case this was added for.
+       */
+      content: {
+        verdict: content.verdict,
+        checked: content.checked,
+        mismatched: content.mismatched,
+        first_bad_seq: content.firstBadSeq,
+        method: content.method,
+        note: contentNote(content),
+      },
     },
 
     // what was completed, with the evidence captured at the time

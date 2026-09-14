@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatHeDate, todayInIsrael } from "@/lib/dates";
+import { formatHeDate, israelParts, todayInIsrael } from "@/lib/dates";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CalendarClock, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
@@ -162,7 +162,25 @@ export default async function InsightsPage() {
 
   // finance panels — appear once real revenue is synced from invoicing
   const now = new Date();
-  const year = now.getFullYear();
+  /*
+   * THE YEAR IS ISRAEL'S, not the server's.
+   *
+   * This read now.getFullYear(), which on a Vercel server is the UTC year.
+   * Israel is UTC+2/+3, so from Israeli midnight on 1 January until 02:00/03:00
+   * the UTC year is still the old one — and this value both scopes the metrics
+   * fetch and filters revenueYtd, which is the figure the עוסק פטור ceiling
+   * percentage is computed from.
+   *
+   * So someone opening this page just after Israeli new year would see LAST
+   * year's whole turnover measured against this year's ceiling: a number that
+   * says they have crossed when they have not, on the one panel where the
+   * warning is meant to be actionable.
+   *
+   * Same defect as the one fixed in integrations/apply.ts on the WRITE side of
+   * this figure — that one stamped the UTC day onto synced revenue and summed
+   * the ceiling over the UTC year. This is the read side of the same number.
+   */
+  const year = israelParts(now).year;
   const metrics = await getMetrics(business.id, `${year - 1}-01-01`);
   // synced revenue (from an invoicing integration) and hand-logged income are
   // summed — the money picture works whether or not a tool is connected.

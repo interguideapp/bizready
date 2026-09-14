@@ -1,5 +1,6 @@
 import { CheckCircle2, FileCheck2, Receipt } from "lucide-react";
 import { formatHeMoment } from "@/lib/dates";
+import { formatIls } from "@/lib/money";
 
 /**
  * Which periods were actually filed, and what was paid.
@@ -31,19 +32,28 @@ function heDate(iso: string): string {
 }
 
 /**
- * ₪ after the number, which is where it goes in Hebrew, and agorot only when
- * they are not zero — "₪4,210.00" reads like a database field.
+ * The amount recorded with a filing, formatted through the ONE money formatter.
+ *
+ * This was a second exported formatIls, and it disagreed with lib/money about
+ * where the sign goes: this one produced "4,210 ₪" and everything else in the
+ * product produces "₪4,210". Two documented decisions pointing opposite ways,
+ * with the odd one out on the evidence screen — so the same sum read one way
+ * in the filing history and another way in the cost list beside it.
+ *
+ * lib/money's argument is the stronger one and it is recorded there: every
+ * official Israeli source this product's content mirrors writes ₪122,833, and
+ * matching the sources a user will compare against matters more than matching
+ * the locale default. Strict he-IL convention does trail the sign, which is
+ * what this docstring asserted — correct about Hebrew and wrong about the job.
+ *
+ * Only the parse stays local: the value arrives as evidence text typed at
+ * completion time, so a non-numeric entry must render as nothing rather than
+ * as a guess.
  */
-export function formatIls(raw: string): string | null {
+export function formatFilingAmount(raw: string): string | null {
   const n = Number(raw);
   if (!Number.isFinite(n)) return null;
-  const hasAgorot = Math.round(n * 100) % 100 !== 0;
-  return (
-    n.toLocaleString("he-IL", {
-      minimumFractionDigits: hasAgorot ? 2 : 0,
-      maximumFractionDigits: 2,
-    }) + " ₪"
-  );
+  return formatIls(n);
 }
 
 export function FilingHistory({ entries }: { entries: FilingEntry[] }) {
@@ -62,7 +72,7 @@ export function FilingHistory({ entries }: { entries: FilingEntry[] }) {
       </p>
       <ul className="flex flex-col divide-y divide-edge-soft">
         {entries.map((e) => {
-          const money = e.amount ? formatIls(e.amount) : null;
+          const money = e.amount ? formatFilingAmount(e.amount) : null;
           return (
             <li key={e.periodKey} className="py-2.5">
               <div className="flex items-baseline justify-between gap-3">

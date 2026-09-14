@@ -1,4 +1,4 @@
-import { formatHeDate, formatHeDayMonth, formatHeMomentDayMonth, todayInIsrael } from "@/lib/dates";
+import { formatHeDate, formatHeDayMonth, formatHeMomentDayMonth, israelParts, todayInIsrael } from "@/lib/dates";
 import { looksLikeCatchUpNeeded } from "@/lib/catch-up";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
@@ -70,7 +70,10 @@ export default async function HomePage() {
     getDocuments(business.id),
     getProducts(business.id),
     getTaskEvents(business.id, 40),
-    getMetrics(business.id, `${today.getFullYear()}-01-01`),
+    // Israel's year, not the server's: from Israeli midnight on 1 January
+    // until 02:00/03:00 the UTC year is still the old one, and this is the
+    // window the revenue behind the ceiling is read from.
+    getMetrics(business.id, `${israelParts(today).year}-01-01`),
     getContentChanges(),
   ]);
 

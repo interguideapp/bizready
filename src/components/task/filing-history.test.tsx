@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { FilingHistory, formatIls, type FilingEntry } from "./filing-history";
+import { FilingHistory, formatFilingAmount, type FilingEntry } from "./filing-history";
+import { formatIls as formatIlsShared } from "@/lib/money";
 
 /**
  * The filing record, on screen.
@@ -30,7 +31,8 @@ describe("what the record says", () => {
     render(<FilingHistory entries={[entry()]} />);
     expect(screen.getByText("יולי–אוגוסט 2026")).toBeDefined();
     expect(screen.getByText(/הוגש 12.9.2026/)).toBeDefined();
-    expect(screen.getByText("4,210 ₪")).toBeDefined();
+    // One formatter for the whole product: see the note in the money describe.
+    expect(screen.getByText("₪4,210")).toBeDefined();
     expect(screen.getByText("884512003")).toBeDefined();
   });
 
@@ -88,21 +90,40 @@ describe("what the record says", () => {
   });
 });
 
-describe("money, in Hebrew", () => {
-  it("puts the shekel sign after the number, where Hebrew puts it", () => {
-    expect(formatIls("4210")).toBe("4,210 ₪");
+describe("money, formatted the one way this product formats money", () => {
+  /*
+   * THESE ASSERTED THE SIGN AFTER THE NUMBER, and this screen was the only
+   * place in the product that did.
+   *
+   * There were two exported formatIls. This one produced "4,210 ₪"; lib/money
+   * produces "₪4,210" and everything else uses it. So the same sum read one
+   * way in the filing history and another way in the cost list beside it —
+   * two documented decisions pointing opposite ways, with the odd one out on
+   * the evidence screen.
+   *
+   * Resolved toward lib/money, whose recorded argument is the stronger one:
+   * every official Israeli source this product's content mirrors writes
+   * ₪122,833, and matching the sources a user will compare against matters
+   * more than matching the locale default. Strict he-IL convention does trail
+   * the sign, which is what the old docstring and these assertions said —
+   * correct about Hebrew, wrong about the job.
+   */
+  it("uses the product's sign placement, from the shared formatter", () => {
+    expect(formatFilingAmount("4210")).toBe(formatIlsShared(4210));
+    expect(formatFilingAmount("4210")).toBe("₪4,210");
   });
 
   it("keeps agorot only when they are not zero", () => {
-    // "4,210.00 ₪" reads like a database field.
-    expect(formatIls("4210.00")).toBe("4,210 ₪");
+    // "₪4,210.00" reads like a database field. This behaviour is lib/money's
+    // and is unchanged by the consolidation.
+    expect(formatFilingAmount("4210.00")).toBe("₪4,210");
     // And when they exist they get both digits: 50 agorot is .50, not .5.
-    expect(formatIls("4210.5")).toBe("4,210.50 ₪");
-    expect(formatIls("4210.07")).toBe("4,210.07 ₪");
+    expect(formatFilingAmount("4210.5")).toBe("₪4,210.50");
+    expect(formatFilingAmount("4210.07")).toBe("₪4,210.07");
   });
 
   it("returns nothing for a value that is not a number", () => {
     // The field is free text at the database boundary, whatever the input type.
-    expect(formatIls("בערך אלפיים")).toBeNull();
+    expect(formatFilingAmount("בערך אלפיים")).toBeNull();
   });
 });

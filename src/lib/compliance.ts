@@ -680,6 +680,35 @@ export function overdueStatutory<T extends { basis: string; daysUntil: number }>
 }
 
 /**
+ * THE PAST/FUTURE SPLIT, DEFINED ONCE.
+ *
+ * computeUpcomingObligations returns everything it knows about, past-due
+ * included, sorted ascending — so the earliest entries are the MISSED ones.
+ * Every caller therefore has to split the list, and every caller was doing it
+ * by hand: the obligations board writes the two daysUntil comparisons inline,
+ * and insights fed the money panel obligations.slice(0, 3) with no split at
+ * all.
+ *
+ * That last one put overdue filings under a heading that reads
+ * "תשלומים קרובים" — upcoming payments — dated in the past, first in the list,
+ * because ascending order puts them there. The panel whose whole job is to say
+ * what money is about to leave was presenting a deadline already missed as one
+ * still ahead. On a page that opens with an overdue banner, no less: two
+ * statements about one filing, on one screen, in opposite tenses.
+ *
+ * So the split is a function, the way the overdue count and the renewal date
+ * became functions. The boundary sits in the FUTURE, matching the board and
+ * matching overdueStatutory: due today is not late.
+ */
+export function stillAhead<T extends { daysUntil: number }>(obligations: T[]): T[] {
+  return obligations.filter((o) => o.daysUntil >= 0);
+}
+
+export function alreadyPast<T extends { daysUntil: number }>(obligations: T[]): T[] {
+  return obligations.filter((o) => o.daysUntil < 0);
+}
+
+/**
  * Escalating reminder windows. Free plan only gets the 7-day nudge; Pro gets
  * the full runway so nothing is ever a surprise.
  */

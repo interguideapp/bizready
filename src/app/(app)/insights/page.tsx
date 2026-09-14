@@ -26,7 +26,11 @@ import {
 } from "@/lib/data";
 import { computeScore } from "@/lib/rules-engine";
 import { computeProfileCompleteness } from "@/lib/profile-score";
-import { computeUpcomingObligations, overdueStatutory } from "@/lib/compliance";
+import {
+  computeUpcomingObligations,
+  overdueStatutory,
+  stillAhead,
+} from "@/lib/compliance";
 import { rankByExposure } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
 import { ReadinessByCategory } from "@/components/insights/readiness";
@@ -176,10 +180,15 @@ export default async function InsightsPage() {
         todayIso: todayInIsrael(now),
         latestMonthRevenue: currentMonthRevenue(revByMonth, now),
         monthlyCosts: costs.length ? monthlyTotal(costs) : 0,
-        nextPayments: obligations.slice(0, 3).map((o) => ({
-          title: o.title,
-          date: formatHeDate(o.dueDate),
-        })),
+        // stillAhead, not slice(0, 3): the list is sorted ascending and
+        // includes what is already late, so the three cheapest entries to take
+        // were the three most overdue — under a heading reading "תשלומים קרובים".
+        nextPayments: stillAhead(obligations)
+          .slice(0, 3)
+          .map((o) => ({
+            title: o.title,
+            date: formatHeDate(o.dueDate),
+          })),
       }
     : null;
 

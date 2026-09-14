@@ -23,10 +23,12 @@ import { TEMPLATES_BY_ID } from "@/lib/content";
 import { requireBusinessContext, getDocuments, getFiledPeriods } from "@/lib/data";
 import { capabilitiesFor } from "@/lib/members";
 import {
+  alreadyPast,
   computeUpcomingObligations,
   overdueStatutory,
   filingsAwaitingPrerequisite,
   filingsBlockedByDismissal,
+  stillAhead,
   type Obligation,
   type PendingFiling,
 } from "@/lib/compliance";
@@ -104,10 +106,13 @@ export default async function CalendarPage() {
   // Overclaiming legal consequence is the one thing this product must never do,
   // so the two kinds of late are separated by basis and each gets the
   // consequence that is actually its own.
-  const pastDue = obligations.filter((o) => o.daysUntil < 0);
+  // The same split insights now uses, rather than a second copy of the
+  // comparison: the two screens disagreeing about what "קרוב" means is the
+  // failure this consolidation exists to prevent.
+  const pastDue = alreadyPast(obligations);
   const overdue = overdueStatutory(obligations);
   const lapsed = pastDue.filter((o) => o.basis !== "statutory");
-  const upcoming = obligations.filter((o) => o.daysUntil >= 0);
+  const upcoming = stillAhead(obligations);
 
   // Statutory duties this business has but that have not started, because the
   // setup task unlocking them is unfinished. Without these the board can show

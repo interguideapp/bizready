@@ -243,14 +243,24 @@ export function nextFilingPeriod(
   return periodEndingAt(tAbs, frequency);
 }
 
-/** Next April 30 (annual report anchor). */
-export function nextAnnualReport(today: Date): string {
-  const y = israelParts(today).year;
-  let due = new Date(Date.UTC(y, 3, 30)); // April = month 3
-  if (daysBetween(iso(due), today) < 0) due = new Date(Date.UTC(y + 1, 3, 30));
-  return iso(due);
-}
-
+/*
+ * nextAnnualReport lived here and hardcoded April 30.
+ *
+ * It appeared exactly once in the whole codebase — its own declaration. Dead,
+ * exported, and therefore one import away from being used.
+ *
+ * What made it worth deleting rather than leaving: the date it hardcoded is
+ * one the registry owns. filing-rules.ts carries annual-tax-report as
+ * { anchor: "annual", month: 4, day: 30 } WITH a source URL and a verified
+ * date, because the whole point of that registry is that a statutory date is
+ * never asserted without a citation. This copy had neither. Had the law moved
+ * and the registry been updated, this function would still have said April 30,
+ * and it looks authoritative enough to reach for.
+ *
+ * nextAnnualDate below does the same job from entry.rule.month and
+ * entry.rule.day — the cited values — which is the only version that should
+ * exist.
+ */
 
 /** Next occurrence of a fixed calendar date (month is 1-12). */
 export function nextAnnualDate(today: Date, month: number, day: number): string {

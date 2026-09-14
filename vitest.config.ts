@@ -20,5 +20,21 @@ export default defineConfig({
      * rather than as an assertion about source code.
      */
     environment: "node",
+    /**
+     * Raised from the 5s default, because the suite now contains a dozen
+     * source-scanning guards that walk every file under src -- the one-today
+     * sweep, the duplicate-rule sweep, the eaten-escape sweeps, the Hebrew
+     * plural sweep, the signature-coverage check.
+     *
+     * Individually each takes well under a second. Run in parallel with the
+     * jsdom component tests they occasionally pushed a NEIGHBOURING test past
+     * five seconds, so the suite failed with timeouts on tests that pass in
+     * isolation -- the worst kind of red, because the named test is innocent
+     * and the real cause is elsewhere. A flaky suite gets ignored, and an
+     * ignored suite protects nothing.
+     *
+     * The guards are the point, so the budget moves rather than the guards.
+     */
+    testTimeout: 20_000,
   },
 });

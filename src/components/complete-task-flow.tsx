@@ -6,7 +6,7 @@ import { completeTask } from "@/lib/actions";
 import { isIsoDate, todayInIsrael } from "@/lib/dates";
 import { toast } from "@/components/toaster";
 import type { CompletionSpec } from "@/lib/types";
-import { DEFAULT_COMPLETION } from "@/lib/types";
+import { completionSpecOf } from "@/lib/types";
 
 /**
  * Closing a task is a short, deliberate flow — never a single click:
@@ -36,11 +36,11 @@ export function CompleteTaskFlow({
   previous?: Record<string, string> | null;
   onCancel: () => void;
 }) {
-  const spec = completion ?? DEFAULT_COMPLETION;
+  const spec = completionSpecOf({ completion });
   const [checked, setChecked] = useState<boolean[]>(() => steps.map(() => false));
   const [values, setValues] = useState<Record<string, string>>(() => {
     const seed: Record<string, string> = {};
-    for (const field of (completion ?? DEFAULT_COMPLETION).fields ?? []) {
+    for (const field of completionSpecOf({ completion }).fields ?? []) {
       const was = previous?.[field.key];
       if (typeof was === "string" && was) seed[field.key] = was;
     }

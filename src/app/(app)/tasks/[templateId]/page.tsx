@@ -24,7 +24,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { todayInIsrael } from "@/lib/dates";
 import { reviewAge } from "@/lib/staleness";
-import { DEFAULT_COMPLETION, YEARLY_FIGURES } from "@/lib/types";
+import { YEARLY_FIGURES, completionSpecOf } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/types";
 import type { TaskView } from "@/lib/task-view";
 import { TaskExperience } from "@/components/task/task-experience";
@@ -258,7 +258,7 @@ export default async function TaskDetailPage({
       nextCompletes: position.advanceCompletes,
       resolvedFromStage: position.resolvedFromStage,
     },
-    completion: template.completion ?? DEFAULT_COMPLETION,
+    completion: completionSpecOf(template),
     completionData: task.completion_data ?? {},
     completedAt: task.completed_at,
     waitingFor: task.waiting_for ?? null,

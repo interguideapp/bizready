@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildCertificate, type CertificateTask } from "@/lib/certificate";
 import { TASK_TEMPLATES, TEMPLATES_BY_ID } from "@/lib/content";
+import { completionSpecOf } from "@/lib/types";
 import type { TaskTemplate } from "@/lib/types";
 
 /**
@@ -259,6 +260,42 @@ describe("what must never reach it", () => {
     );
     expect(cert.entries).toEqual([]);
     expect(cert.captureless).toEqual([]);
+  });
+});
+
+/**
+ * A TEMPLATE WITH NO BESPOKE SPEC STILL ASKS A QUESTION.
+ *
+ * Forty of the 73 templates declare no completion fields, and the flow falls
+ * back to DEFAULT_COMPLETION — a required free-text "מה עשית בפועל?". That is
+ * what is actually in the database: the live row for business-name-check holds
+ * `{note: "בדקתי אונליין"}`.
+ *
+ * Reading `template.completion` directly finds no spec for those, so the
+ * answer came out labelled `note` — a column name printed on a page that
+ * calls itself a certificate. The fallback has to be resolved the same way the
+ * flow resolves it, which is why there is now one function that does it.
+ */
+describe("the fallback question is resolved the way the flow resolves it", () => {
+  const templates = new Map([["t1", template({ id: "t1" })]]);
+
+  it("labels the default note with its question, never with the key", () => {
+    const cert = buildCertificate(
+      [task({ completion_data: { note: "בדקתי אונליין" } })],
+      templates
+    );
+    const item = cert.entries[0].items[0];
+    expect(item.value).toBe("בדקתי אונליין");
+    expect(item.label).not.toBe("note");
+    expect(item.label).toContain("מה עשית");
+    expect(item.fromSpec).toBe(true);
+  });
+
+  it("agrees with the spec the completion flow would have shown", () => {
+    // The premise, stated against the shared resolver rather than a copy of
+    // its result: a template with no completion still has a field to answer.
+    const spec = completionSpecOf(template({ id: "t1" }));
+    expect(spec.fields?.map((f) => f.key)).toEqual(["note"]);
   });
 });
 

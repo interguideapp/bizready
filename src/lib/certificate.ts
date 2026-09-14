@@ -1,3 +1,4 @@
+import { completionSpecOf } from "@/lib/types";
 import type { BusinessField, CompletionField, TaskTemplate } from "@/lib/types";
 
 /**
@@ -123,8 +124,11 @@ export function buildCertificate(
     const template = templates.get(task.template_id);
     if (!template) continue;
 
+    // completionSpecOf, not template.completion: a template with no bespoke
+    // spec still asks for the DEFAULT_COMPLETION note, and reading the raw
+    // field would print that answer under the label "note".
     const spec = new Map(
-      (template.completion?.fields ?? []).map((f) => [f.key, f])
+      (completionSpecOf(template).fields ?? []).map((f) => [f.key, f])
     );
     const data = task.completion_data ?? {};
     const items: CertificateItem[] = [];

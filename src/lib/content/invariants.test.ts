@@ -4,7 +4,7 @@ import { ARCHETYPE_BY_ID } from "@/lib/content/archetypes";
 import { filingRuleFor } from "@/lib/content/filing-rules";
 import { LEGAL_BASIS } from "@/lib/content/legal-basis";
 import { buildPlan } from "@/lib/rules-engine";
-import { ANSWER_ORDER } from "@/lib/types";
+import { ANSWER_ORDER, completionSpecOf } from "@/lib/types";
 import type { AppliesWhen, OnboardingAnswers } from "@/lib/types";
 
 /**
@@ -219,7 +219,7 @@ describe("content invariants", () => {
       if (filingRuleFor(t.id)) return false;
       const prose = [t.after_submit ?? "", t.steps, ...(t.pitfalls ?? [])].join(" ");
       if (!EXPIRY_TALK.test(prose)) return false;
-      return !t.completion?.fields?.some((f) => f.key === "renewal");
+      return !completionSpecOf(t).fields?.some((f) => f.key === "renewal");
     }).map((t) => t.id);
     expect(bad).toEqual([]);
 

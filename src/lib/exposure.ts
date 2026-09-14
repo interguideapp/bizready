@@ -198,11 +198,52 @@ export function rankByExposure(obligations: Obligation[]): Exposure[] {
  * honest answer, and better than promoting the least-irrelevant item to look
  * busy.
  */
-export function topExposure(obligations: Obligation[], threshold = 0.1): Exposure | null {
+export function topExposure(
+  obligations: Obligation[],
+  threshold = EXPOSURE_THRESHOLD
+): Exposure | null {
   const ranked = rankByExposure(obligations);
   const top = ranked[0];
   if (!top || top.score < threshold) return null;
   return top;
+}
+
+/**
+ * Below this, an obligation is not something that "could cost you".
+ *
+ * THE THRESHOLD EXISTED AND NOTHING APPLIED IT. topExposure had it as a
+ * default parameter, with the reason written out above — returning nothing
+ * beats promoting the least-irrelevant item to look busy — and topExposure was
+ * called by no production code at all.
+ *
+ * What the two surfaces did instead was rank and slice. Home takes the top
+ * four under the heading "מה באמת עלול לעלות לכם", beside a warning triangle;
+ * insights takes three under "מה הכי כדאי לטפל בו". Both are claims about
+ * consequence, and "באמת" makes the first one stronger than a neutral list. A
+ * business whose every obligation is advisory and months away still got four
+ * rows asserting material cost.
+ *
+ * Both sections already vanish when handed nothing, so the honest behaviour
+ * needs only the filter they were missing.
+ */
+export const EXPOSURE_THRESHOLD = 0.1;
+
+/**
+ * The obligations worth putting under a heading that claims consequence.
+ *
+ * One function for both surfaces rather than a rank-and-slice at each call
+ * site: they were already two copies of the same decision, and the pair that
+ * drifted this session (scoreCreditFor, addRecurrence, formatIls) were all
+ * exactly this shape.
+ */
+export function significantExposures(
+  obligations: Obligation[],
+  limit: number,
+  threshold = EXPOSURE_THRESHOLD
+): Exposure[] {
+  return rankByExposure(obligations)
+    .filter((e) => e.score >= threshold)
+    .slice(0, limit);
 }
 
 /** Hebrew label for the severity chip. */

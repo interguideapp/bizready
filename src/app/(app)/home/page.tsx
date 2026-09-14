@@ -16,7 +16,7 @@ import {
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { computeScore } from "@/lib/rules-engine";
 import { computeUpcomingObligations, filingsBlockedByDismissal, overdueStatutory } from "@/lib/compliance";
-import { SEVERITY_LABEL, rankByExposure } from "@/lib/exposure";
+import { SEVERITY_LABEL, significantExposures } from "@/lib/exposure";
 import { distanceLabel, lapsedLabel } from "@/lib/he-distance";
 import {
   CHANGE_LABEL,
@@ -139,7 +139,11 @@ export default async function HomePage() {
   // Ranked by consequence, not by date. The old ordering put whatever was
   // nearest first, so a harmless task due today outranked a VAT filing that
   // had been accruing a penalty for a week.
-  const ranked = rankByExposure(actionable).slice(0, 4);
+  // significantExposures, not rank-and-slice: the heading this feeds says
+  // "מה באמת עלול לעלות לכם" beside a warning triangle, and four advisory
+  // items months away is not that. The threshold lived in exposure.ts as
+  // topExposure's default and nothing had ever applied it.
+  const ranked = significantExposures(actionable, 4);
   const exposures = ranked.map((e) => ({
     title: e.title,
     href: e.templateId ? `/tasks/${e.templateId}?from=home` : "/calendar",

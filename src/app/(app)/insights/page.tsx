@@ -35,7 +35,7 @@ import {
 import { boardWindow } from "@/lib/board-window";
 import { capabilitiesFor } from "@/lib/members";
 import { isPro } from "@/lib/subscription";
-import { rankByExposure } from "@/lib/exposure";
+import { significantExposures } from "@/lib/exposure";
 import { OverdueBanner, TopExposures } from "@/components/insights/lead";
 import { ReadinessByCategory } from "@/components/insights/readiness";
 import { DeliveryNotice } from "@/components/delivery-notice";
@@ -148,9 +148,10 @@ export default async function InsightsPage() {
   const timelineWindow = boardWindow(stillAhead(obligations), isPro(business));
   const timeline = [...alreadyPast(obligations), ...timelineWindow.visible];
   const overdue = overdueStatutory(obligations);
-  const topExposures = rankByExposure(actionable)
-    .filter((e) => e.daysUntil <= 30)
-    .slice(0, 3);
+  // The same threshold home applies, plus this page's own 30-day horizon.
+  // Proximity was the only filter here, so an advisory item due next week
+  // still appeared under "מה הכי כדאי לטפל בו".
+  const topExposures = significantExposures(actionable, 3).filter((e) => e.daysUntil <= 30);
 
   // Where the score is actually being lost, so the number is explainable
   // rather than just displayed. Ordered by how many tasks are outstanding,

@@ -1,4 +1,4 @@
-import { todayInIsrael } from "@/lib/dates";
+import { startsWithIsoDate, todayInIsrael } from "@/lib/dates";
 
 /**
  * One reading of `completion_data.renewal`, the expiry a user types when they
@@ -17,7 +17,7 @@ export function renewalDateOf(task: {
   completion_data?: Record<string, unknown> | null;
 }): string | null {
   const raw = task.completion_data?.renewal;
-  if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(raw)) return null;
+  if (!startsWithIsoDate(raw)) return null;
   const d = new Date(raw.slice(0, 10) + "T00:00:00Z");
   return Number.isNaN(d.getTime()) ? null : raw.slice(0, 10);
 }

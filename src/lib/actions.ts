@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { seal, open, sealingAvailable } from "@/lib/crypto-box";
 import { sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
 
-import { ISO_DATE_SHAPE, todayInIsrael } from "@/lib/dates";
+import { ISO_DATE_SHAPE, isIsoDate, isIsoMonth, todayInIsrael } from "@/lib/dates";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -875,7 +875,7 @@ export async function updateDocument(
   // found for renewal dates.
   if ("expiresAt" in patch) {
     const raw = patch.expiresAt;
-    if (raw !== null && !/^\d{4}-\d{2}-\d{2}$/.test(raw ?? "")) {
+    if (raw !== null && !isIsoDate(raw)) {
       throw new Error("תאריך לא תקין");
     }
     update.expires_at = raw;
@@ -1171,7 +1171,7 @@ export async function setMonthlyIncome(
   monthKey: string, // "yyyy-mm"
   amount: number
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!/^\d{4}-\d{2}$/.test(monthKey)) return { ok: false, error: "חודש לא תקין" };
+  if (!isIsoMonth(monthKey)) return { ok: false, error: "חודש לא תקין" };
   const value = Math.max(0, Math.round(Number(amount)));
   if (!Number.isFinite(value)) return { ok: false, error: "סכום לא תקין" };
   const { supabase, businessId } = await requireBusinessId();

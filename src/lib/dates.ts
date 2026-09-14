@@ -229,3 +229,56 @@ export function formatHeMomentLongMonth(iso: string | null | undefined): string 
  * route can eat a backslash again.
  */
 export const ISO_DATE_SHAPE = "[0-9]{4}-[0-9]{2}-[0-9]{2}";
+
+
+/**
+ * The shape of a year-month key, no escapes, same reasoning as above.
+ */
+export const ISO_MONTH_SHAPE = "[0-9]{4}-[0-9]{2}";
+
+/**
+ * PREDICATES, SO A CALLER STATES INTENT INSTEAD OF RESPELLING A PATTERN.
+ *
+ * Eight sites validated one of these shapes with their own inline regex.
+ * All eight were correct -- the eaten-escapes sweep proves no mangling -- and
+ * eight spellings of one rule is how the two that were NOT correct
+ * (markPeriodFiled and setTaskDueDate) went unnoticed for as long as they
+ * did: the pattern is familiar, so a broken copy reads as fine.
+ *
+ * Two shapes are genuinely different and both get a name. isIsoDate asks
+ * whether a value IS a date, for an input the product will store. Whereas
+ * startsWithIsoDate asks whether a TIMESTAMP begins with one, which is what
+ * renewals and the ceiling coverage check want -- they are handed
+ * completed_at and metric_date and care only about the prefix.
+ *
+ * The most consequential pair was complete-task-flow (client) and
+ * updateDocument (server) validating the same typed date with two separate
+ * copies. Divergence there means the browser accepts what the server
+ * refuses, and the user sees a rejection with no field to fix.
+ */
+export function isIsoDate(value: unknown): value is string {
+  return typeof value === "string" && new RegExp("^" + ISO_DATE_SHAPE + "$").test(value);
+}
+
+export function isIsoMonth(value: unknown): value is string {
+  return typeof value === "string" && new RegExp("^" + ISO_MONTH_SHAPE + "$").test(value);
+}
+
+/** A timestamp (or date) whose first ten characters are a calendar date. */
+export function startsWithIsoDate(value: unknown): value is string {
+  return typeof value === "string" && new RegExp("^" + ISO_DATE_SHAPE).test(value);
+}
+
+
+/**
+ * A value whose first seven characters are a year-month.
+ *
+ * Separate from isIsoMonth because the difference is deliberate and tested:
+ * revenueCoverage is handed either a month key or a full date and reads the
+ * month off either. Narrowing it to isIsoMonth broke that test, which is
+ * exactly what the test is for -- the prefix behaviour is a decision, not an
+ * accident of an unanchored regex.
+ */
+export function startsWithIsoMonth(value: unknown): value is string {
+  return typeof value === "string" && new RegExp("^" + ISO_MONTH_SHAPE).test(value);
+}

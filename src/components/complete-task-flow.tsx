@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Check, CheckCircle2, Loader2, Unlock, X } from "lucide-react";
 import { completeTask } from "@/lib/actions";
-import { todayInIsrael } from "@/lib/dates";
+import { isIsoDate, todayInIsrael } from "@/lib/dates";
 import { toast } from "@/components/toaster";
 import type { CompletionSpec } from "@/lib/types";
 import { DEFAULT_COMPLETION } from "@/lib/types";
@@ -67,7 +67,7 @@ export function CompleteTaskFlow({
    */
   const staleRenewal = useMemo(() => {
     const raw = (values.renewal ?? "").trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return false;
+    if (!isIsoDate(raw)) return false;
     return raw <= todayInIsrael();
   }, [values.renewal]);
 

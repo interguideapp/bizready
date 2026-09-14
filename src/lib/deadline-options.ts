@@ -1,5 +1,5 @@
 import { filingRuleFor, type DateRule } from "@/lib/content/filing-rules";
-import { formatHeDate } from "@/lib/dates";
+import { formatHeDate, isIsoDate } from "@/lib/dates";
 
 /**
  * The dates a user can pick from when setting a deadline, computed rather than
@@ -165,7 +165,7 @@ export function onDemandDeadline(
 ): { date: string; days: number } | null {
   const entry = filingRuleFor(templateId);
   if (!entry || entry.rule.anchor !== "on_demand") return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(demandDateIso)) return null;
+  if (!isIsoDate(demandDateIso)) return null;
   const date = addDays(demandDateIso, entry.rule.days);
   if (date === demandDateIso) return null;
   return { date, days: entry.rule.days };

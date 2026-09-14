@@ -2,7 +2,13 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PERIOD_KEY_SHAPE } from "@/lib/filings";
-import { ISO_DATE_SHAPE } from "@/lib/dates";
+import {
+  ISO_DATE_SHAPE,
+  isIsoDate,
+  isIsoMonth,
+  startsWithIsoDate,
+  startsWithIsoMonth,
+} from "@/lib/dates";
 
 /**
  * A LOST BACKSLASH LEVEL, SHIPPED TWICE, IN CODE THAT STILL COMPILES.
@@ -251,5 +257,120 @@ describe("no negated character class has lost a backslash", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * INVARIANT: A KNOWN SHAPE IS NOT RESPELLED INLINE.
+ *
+ * The two dead validators above are the reason. Both were inline regex
+ * literals, both looked right, and both rejected every real value — and they
+ * survived because SIX other sites spelled the same date shape correctly, so
+ * the pattern reads as familiar and a broken copy does not stand out.
+ *
+ * Those six were:
+ *
+ *   complete-task-flow.tsx  the renewal date a user types (client)
+ *   actions.ts              the same date on the server, twice over
+ *   deadline-options.ts     a demand date
+ *   staleness.ts            a content review date
+ *   renewals.ts             the prefix of a stored timestamp
+ *   finance/ceiling.ts      the month a revenue figure covers
+ *
+ * The client/server pair is the one that mattered most: two copies of the rule
+ * for one typed field means the browser can accept what the server refuses,
+ * and the user sees a rejection with no field to fix.
+ *
+ * All eight now go through lib/dates predicates that state intent -- isIsoDate,
+ * isIsoMonth, startsWithIsoDate, startsWithIsoMonth -- and the shapes
+ * themselves are character classes with no backslash to lose.
+ */
+describe("no inline respelling of a shape that already has a name", () => {
+  /** A date or month quantifier pattern written out in a regex literal. */
+  function inlineShapeSpelling(text: string): string[] {
+    const found: string[] = [];
+    for (const line of text.split("\n")) {
+      // The signature: a {4} quantifier next to a dash and a {2}, i.e. a
+      // year-month(-day) pattern. Character-level so nothing needs escaping.
+      const i = line.indexOf("{4}-");
+      if (i === -1) continue;
+      if (!line.slice(i).includes("{2}")) continue;
+      found.push(line.trim());
+    }
+    return found;
+  }
+
+  /**
+   * Where the shapes are DEFINED, plus the one production site that is not
+   * validating anything.
+   *
+   * TEST FILES ARE OUT OF SCOPE ENTIRELY, and deliberately. A test asserting
+   * that todayInIsrael returns a date should spell the shape itself: checking
+   * it with isIsoDate would be circular, since both would come from the same
+   * module. The guard is about production code respelling a rule, which is
+   * what its own name says -- it flagged five test assertions on the first run
+   * and that was the guard telling me its scope was too wide.
+   */
+  const HOMES = new Set([
+    "src/lib/dates.ts",
+    "src/lib/filings.ts",
+    // Normalisation, not validation: dates are stripped out of fetched page
+    // text so that a date changing does not read as the content changing.
+    "src/lib/content/source-watch.ts",
+  ]);
+
+  it("the premise: the detector matches the spellings that were there", () => {
+    expect(inlineShapeSpelling('if (!/^\d{4}-\d{2}-\d{2}$/.test(x))')).not.toEqual([]);
+    expect(inlineShapeSpelling('if (!/^\d{4}-\d{2}$/.test(x))')).not.toEqual([]);
+    expect(inlineShapeSpelling("if (!isIsoDate(x))")).toEqual([]);
+  });
+
+  it("finds none in production code", () => {
+    const offenders: string[] = [];
+    for (const file of walk(join(root, "src"))) {
+      const path = file.slice(root.length + 1).split(String.fromCharCode(92)).join("/");
+      if (path.endsWith(".test.ts") || path.endsWith(".test.tsx")) continue;
+      if (HOMES.has(path)) continue;
+      for (const hit of inlineShapeSpelling(readFileSync(file, "utf8"))) {
+        offenders.push(path + ": " + hit);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("the shapes and their predicates agree", () => {
+  /**
+   * Four predicates over two shapes, and the pairs that must NOT collapse:
+   * isIsoDate is equality and startsWithIsoDate is a prefix, because one
+   * guards a value the product stores and the other reads the date off a
+   * timestamp. Collapsing either direction is a real change -- narrowing
+   * revenueCoverage to isIsoMonth broke its test, which is how the prefix
+   * behaviour turned out to be a documented decision rather than a loose
+   * regex.
+   */
+  it("a date is a date, and is also a date-prefixed value", () => {
+    expect(isIsoDate("2026-09-15")).toBe(true);
+    expect(startsWithIsoDate("2026-09-15")).toBe(true);
+  });
+
+  it("a timestamp is date-prefixed but is not a date", () => {
+    expect(isIsoDate("2026-09-15T10:00:00Z")).toBe(false);
+    expect(startsWithIsoDate("2026-09-15T10:00:00Z")).toBe(true);
+  });
+
+  it("a month is a month, and a date is month-prefixed but not a month", () => {
+    expect(isIsoMonth("2026-09")).toBe(true);
+    expect(isIsoMonth("2026-09-15")).toBe(false);
+    expect(startsWithIsoMonth("2026-09-15")).toBe(true);
+  });
+
+  it("all four reject a non-string and a malformed value", () => {
+    for (const bad of [null, undefined, 20260915, "2026-9-15", "", "nope"]) {
+      expect(isIsoDate(bad), String(bad)).toBe(false);
+      expect(isIsoMonth(bad), String(bad)).toBe(false);
+      expect(startsWithIsoDate(bad), String(bad)).toBe(false);
+      expect(startsWithIsoMonth(bad), String(bad)).toBe(false);
+    }
   });
 });

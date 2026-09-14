@@ -1,3 +1,4 @@
+import { isIsoDate } from "@/lib/dates";
 /**
  * How old the legal review of a piece of content is.
  *
@@ -52,7 +53,7 @@ function wholeMonthsBetween(fromIso: string, toIso: string): number {
  * error; it means someone stamped a review ahead of time, which is harmless.
  */
 export function reviewAge(lastReviewed: string | null | undefined, todayIso: string): ReviewAge {
-  if (!lastReviewed || !/^\d{4}-\d{2}-\d{2}$/.test(lastReviewed)) {
+  if (!isIsoDate(lastReviewed)) {
     return { state: "unknown", months: null, reviewedOn: null };
   }
   const months = Math.max(0, wholeMonthsBetween(lastReviewed, todayIso));

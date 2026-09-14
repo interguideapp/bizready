@@ -1,3 +1,4 @@
+import { startsWithIsoMonth } from "@/lib/dates";
 /**
  * Where a עוסק פטור stands against the annual ceiling.
  *
@@ -124,7 +125,8 @@ export function revenueCoverage(
   throughMonth: string | null,
   todayIso: string
 ): RevenueCoverage | null {
-  if (!throughMonth || !/^\d{4}-\d{2}/.test(throughMonth)) return null;
+  // Prefix, not equality: this is handed a month key OR a full date.
+  if (!startsWithIsoMonth(throughMonth)) return null;
   const [ty, tm] = throughMonth.slice(0, 7).split("-").map(Number);
   const [ny, nm] = todayIso.slice(0, 7).split("-").map(Number);
   if (![ty, tm, ny, nm].every(Number.isFinite)) return null;

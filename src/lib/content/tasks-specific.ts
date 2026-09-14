@@ -64,6 +64,18 @@ export const SPECIFIC_TASKS: TaskTemplate[] = [
 2. כתבו מדיניות החזרות תואמת חוק הגנת הצרכן (זכות ביטול בעסקת מכר מרחוק)
 3. בחרו ספק שילוח/שליחויות והסדירו איסוף
 4. פרסמו את המדיניות בבירור בחנות ובתהליך הרכישה`,
+    completion: {
+      confirm: "מדיניות המשלוחים וההחזרות מפורסמת באתר",
+      fields: [
+        { key: "policy_url", label: "כתובת עמוד המדיניות", type: "url", required: true },
+        {
+          key: "return_window",
+          label: "חלון ההחזרה שנקבע (ימים)",
+          placeholder: "למשל 14",
+          type: "reference",
+        },
+      ],
+    },
     official_links: [
       { label: "ביטול עסקת מכר מרחוק — כל-זכות", url: "https://www.kolzchut.org.il/he/ביטול_עסקת_מכר_מרחוק" },
     ],
@@ -89,6 +101,13 @@ export const SPECIFIC_TASKS: TaskTemplate[] = [
 2. עדכנו אחרי כל מכירה וקבלת סחורה (בחנות דיגיטלית — לרוב אוטומטי)
 3. קבעו ספירת מלאי תקופתית להתאמה מול הרישום
 4. שמרו קשר עם הספקים ומועדי אספקה`,
+    completion: {
+      confirm: "המלאי נרשם ונספר, ואני יודע מה יש ומה חסר",
+      fields: [
+        { key: "inventory_tool", label: "איפה מנוהל המלאי", required: true },
+        { key: "count_date", label: "תאריך ספירת המלאי האחרונה", type: "date" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "מחינם (טבלה) עד תוכנה ייעודית",
@@ -114,6 +133,14 @@ export const SPECIFIC_TASKS: TaskTemplate[] = [
 2. עברו/ודאו הדרכת נאמן היגייני / עוסק במזון כנדרש
 3. הסדירו נהלי אחסון, קירור וטמפרטורות, ותיעוד
 4. שמרו את התעודות בארכיון — ייבדקו בפיקוח`,
+    completion: {
+      confirm: "עברתי הדרכת היגיינה ובטיחות מזון ויש תעודה",
+      fields: [
+        { key: "trainee", label: "מי עבר את ההדרכה", required: true },
+        { key: "certificate_number", label: "מספר תעודת ההדרכה", type: "reference" },
+        { key: "trained_on", label: "תאריך ההדרכה", type: "date" },
+      ],
+    },
     official_links: [
       { label: "רישוי עסקי מזון — משרד הבריאות", url: "https://www.gov.il/he/departments/topics/food_licensing" },
     ],
@@ -137,6 +164,13 @@ export const SPECIFIC_TASKS: TaskTemplate[] = [
 2. קבעו רישיון שימוש: היקף, בלעדיות, ותנאי תשלום להעברת זכויות מלאה
 3. שמרו זכות להציג את העבודה בתיק העבודות (portfolio) אלא אם סוכם אחרת
 4. הבהירו טיפול בקנסות/עיכובים ובבעלות על נכסים של צד ג' (פונטים, תמונות סטוק)`,
+    completion: {
+      confirm: "ההסכמים מגדירים למי שייך הקניין הרוחני ומה מותר לעשות בו",
+      fields: [
+        { key: "clause_location", label: "באיזה הסכם נכנס סעיף הקניין הרוחני", required: true },
+        { key: "version_date", label: "תאריך הגרסה", type: "date" },
+      ],
+    },
     official_links: [
       { label: "זכויות יוצרים — כל-זכות", url: "https://www.kolzchut.org.il/he/זכויות_יוצרים" },
     ],

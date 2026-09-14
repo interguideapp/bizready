@@ -224,6 +224,54 @@ describe("content invariants", () => {
     expect(bad).toEqual([]);
 
   });
+  /**
+   * EVERY TASK LEAVES ITS OWN ARTEFACT BEHIND.
+   *
+   * Forty of the 73 templates declared no completion spec, so all forty fell
+   * back to DEFAULT_COMPLETION's free-text "מה עשית בפועל?". Finishing them
+   * recorded a sentence, and the business card could show nothing for any of
+   * them — you had opened a bank account, insured the business and published a
+   * privacy policy, and the card knew about none of it.
+   *
+   * A generic note is not the artefact. Opening a VAT file leaves a dealer
+   * number; building a site leaves an address; a pension arrangement leaves a
+   * provider and a policy number. The certificate on /business is built from
+   * exactly these fields, so a template with no spec of its own is a task that
+   * can never appear on it.
+   *
+   * The fallback stays in the code for robustness — a new template is written
+   * before its spec is — but it may not ship.
+   */
+  it("every template asks for its own artefact, not the generic note", () => {
+    const bare = TASK_TEMPLATES.filter((t) => !t.completion).map((t) => t.id);
+    expect(bare).toEqual([]);
+  });
+
+  it("and every field it asks for is answerable in one short input", () => {
+    // A label is the whole prompt the user sees above a single-line field.
+    // Past a sentence it is a form nobody fills, and the value it produces
+    // lands verbatim on a page that calls itself a certificate.
+    const tooLong = TASK_TEMPLATES.flatMap((t) =>
+      (t.completion?.fields ?? [])
+        .filter((f) => f.label.length > 60)
+        .map((f) => t.id + "." + f.key + " (" + f.label.length + " chars)")
+    );
+    expect(tooLong).toEqual([]);
+  });
+
+  it("at least one field is required, or ticking through records nothing", () => {
+    // Four specs were all-optional — professional-certification,
+    // withholding-certificate, bituach-leumi-advances and company-tax-files —
+    // so a user could close them and leave the certificate with nothing to
+    // show, which is indistinguishable from never having done the task. Each
+    // of the four asks for something the user is holding at that moment: the
+    // certificate's validity date, the monthly advance, the VAT file number.
+    const noneRequired = TASK_TEMPLATES.filter(
+      (t) => !(t.completion?.fields ?? []).some((f) => f.required)
+    ).map((t) => t.id);
+    expect(noneRequired).toEqual([]);
+  });
+
   it("every statute task records when it was last reviewed", () => {
     const bad = TASK_TEMPLATES
       .filter((t) => LEGAL_BASIS[t.id] === "statute")

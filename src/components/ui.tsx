@@ -15,14 +15,18 @@ export function Card({
   className = "",
   elevated = false,
   interactive = false,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   elevated?: boolean;
   interactive?: boolean;
+  /** For an in-page anchor, so one section can link to another. */
+  id?: string;
 }) {
   return (
     <div
+      id={id}
       className={cn(
         "panel rounded-card",
         elevated && "shadow-e2",

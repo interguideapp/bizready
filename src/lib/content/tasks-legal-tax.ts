@@ -199,7 +199,7 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
       confirm: "הרישיון או ההסמכה שלי בתוקף ומתויקים",
       fields: [
         { key: "authority", label: "הגוף המסמיך", placeholder: "למשל משרד הבריאות" },
-        { key: "renewal", label: "תוקף התעודה עד", type: "date" },
+        { key: "renewal", label: "תוקף התעודה עד", type: "date", required: true },
       ],
     },
     applies_when: { field: ["beauty_care", "food", "construction"] },
@@ -218,6 +218,13 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
 2. בדקו במאגר סימני המסחר של רשות הפטנטים שהשם לא רשום בתחומכם
 3. בדקו שהדומיין ושמות המשתמש ברשתות פנויים
 4. שקלו רישום סימן מסחר משלכם כשהעסק יתבסס`,
+    completion: {
+      confirm: "בדקתי את השם בגוגל, ברשתות ובמאגר סימני המסחר",
+      fields: [
+        { key: "chosen_name", label: "השם שנבחר לעסק", required: true },
+        { key: "trademark", label: "מספר סימן מסחר (אם נרשם)", type: "reference" },
+      ],
+    },
     official_links: [
       { label: "חיפוש סימני מסחר — רשות הפטנטים", url: "https://www.gov.il/he/departments/israel_patent_office" },
     ],
@@ -371,6 +378,19 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
 2. השוו לרווח בפועל — אם ההכנסה נמוכה מהצפי, אפשר לבקש הקטנת מקדמות
 3. שלמו בזמן דרך האתר — איחור צובר ריבית והצמדה
 4. בסוף השנה המקדמות מתקזזות מול המס בדוח השנתי`,
+    completion: {
+      confirm: "בדקתי את שיעור המקדמות שנקבע לי והמקדמות משולמות בזמן",
+      fields: [
+        {
+          key: "advance_rate",
+          label: "שיעור המקדמות שנקבע (%)",
+          placeholder: "למשל 4.5",
+          type: "reference",
+          required: true,
+        },
+        { key: "advance_amount", label: "סכום המקדמה התקופתית (₪)", type: "amount" },
+      ],
+    },
     official_links: [
       { label: "מקדמות מס הכנסה — רשות המסים", url: "https://www.gov.il/he/departments/israel_tax_authority" },
     ],
@@ -532,6 +552,7 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
           label: "תוקף האישור עד",
           type: "date",
           placeholder: "בדרך כלל סוף מרץ",
+          required: true,
         },
       ],
     },
@@ -557,6 +578,18 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
 2. בסביבות 80% מהתקרה — התחילו לתכנן מעבר לעוסק מורשה עם איש מקצוע
 3. חציית התקרה מחייבת רישום כמורשה ותשלום מע״מ על החלק שמעל
 4. זכרו: התקרה מתעדכנת כל ינואר — בדקו את הסכום העדכני`,
+    completion: {
+      confirm: "בדקתי את המחזור המצטבר שלי מול התקרה",
+      fields: [
+        {
+          key: "turnover_checked",
+          label: "המחזור המצטבר שבדקת (₪)",
+          type: "amount",
+          required: true,
+        },
+        { key: "checked_on", label: "נכון לתאריך", type: "date" },
+      ],
+    },
     official_links: [
       { label: "עוסק פטור — כל-זכות", url: "https://www.kolzchut.org.il/he/עוסק_פטור" },
     ],
@@ -579,6 +612,18 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
 2. כבר עכשיו: שמרו אסמכתאות על נכסים קיימים (דירה, רכב, חסכונות, ירושות ומתנות גדולות)
 3. תעדו העברות כספים גדולות בין חשבונות
 4. כשתגיע הדרישה — 120 יום להגשה; אל תגישו לבד, זה המסמך שהכי כדאי לעשות עם רו״ח`,
+    completion: {
+      confirm: "האסמכתאות על נכסים והתחייבויות נשמרות במקום אחד",
+      fields: [
+        {
+          key: "archive_location",
+          label: "איפה נשמרות האסמכתאות",
+          placeholder: "למשל: תיקיית הצהרת הון בדרייב",
+          required: true,
+        },
+        { key: "demand_date", label: "תאריך הדרישה שהתקבלה (אם התקבלה)", type: "date" },
+      ],
+    },
     official_links: [
       { label: "הצהרת הון — כל-זכות", url: "https://www.kolzchut.org.il/he/הצהרת_הון" },
     ],
@@ -618,7 +663,9 @@ export const LEGAL_TAX_TASKS: TaskTemplate[] = [
     est_time: "הסדרה חד-פעמית של הוראת קבע",
     completion: {
       confirm: "הסדרתי את תשלום המקדמות לביטוח לאומי",
-      fields: [{ key: "advance", label: "גובה המקדמה החודשית (₪)" }],
+      fields: [
+        { key: "advance", label: "גובה המקדמה החודשית (₪)", type: "amount", required: true },
+      ],
     },
     // The 2017 self-employed regime: osek + individual partners. A company owner
     // draws a salary and is reported through טופס 102 instead.

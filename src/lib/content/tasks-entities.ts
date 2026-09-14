@@ -88,7 +88,7 @@ export const ENTITY_TASKS: TaskTemplate[] = [
     completion: {
       confirm: "פתחתי לחברה תיק מע״מ ותיק מס הכנסה",
       fields: [
-        { key: "vat_file", label: "מספר תיק מע״מ של החברה", writesTo: "vat_file" },
+        { key: "vat_file", label: "מספר תיק מע״מ של החברה", required: true, writesTo: "vat_file" },
         { key: "income_tax_file", label: "מספר תיק מס הכנסה של החברה", writesTo: "income_tax_file" },
       ],
     },
@@ -115,6 +115,14 @@ export const ENTITY_TASKS: TaskTemplate[] = [
 2. הביאו: תעודת התאגדות, תקנון, פרוטוקול מינוי מורשי חתימה, ותעודות זהות
 3. הגדירו מורשי חתימה והרשאות
 4. בקשו פנקסי החברה, כרטיס וגישה דיגיטלית`,
+    completion: {
+      confirm: "נפתח חשבון על שם החברה ומורשי החתימה הוגדרו",
+      fields: [
+        { key: "bank_name", label: "שם הבנק", required: true, writesTo: "bank_name" },
+        { key: "bank_account", label: "מספר החשבון", type: "reference", writesTo: "bank_account" },
+        { key: "signatories", label: "מי מורשי החתימה" },
+      ],
+    },
     official_links: [
       { label: "פתיחת חשבון עסקי — מדריך", url: "https://www.kolzchut.org.il/he/פתיחת_חשבון_בנק_עסקי" },
     ],
@@ -181,6 +189,20 @@ export const ENTITY_TASKS: TaskTemplate[] = [
 2. הגישו דוח שנתי לרשם החברות (כולל עדכון פרטי בעלי מניות ודירקטורים)
 3. הגישו דוח מס חברות שנתי (טופס 1214) ושלמו מס חברות על הרווח ({{corporateTaxRate}})
 4. תכננו מול הרו״ח את שילוב המשכורת והדיבידנד למשיכת רווחים`,
+    completion: {
+      confirm: "הדוחות הכספיים, הדוח לרשם ודוח מס החברות הוגשו",
+      fields: [
+        {
+          key: "report_year",
+          label: "שנת הדוח",
+          placeholder: "2026",
+          type: "reference",
+          required: true,
+        },
+        { key: "form_1214_reference", label: "אסמכתת הגשת טופס 1214", type: "reference" },
+        { key: "registrar_filed_on", label: "תאריך הגשת הדוח לרשם החברות", type: "date" },
+      ],
+    },
     official_links: [
       { label: "מס חברות — רשות המסים", url: "https://www.gov.il/he/departments/israel_tax_authority" },
       { label: "דוח שנתי לרשם החברות — רשות התאגידים", url: "https://www.gov.il/he/departments/topics/corporations_authority" },
@@ -215,6 +237,18 @@ export const ENTITY_TASKS: TaskTemplate[] = [
 2. הגישו בקשת רישום לרשם השותפויות עם פרטי השותפים ושם השותפות
 3. שלמו את אגרת הרישום (שותפות כללית {{partnershipRegistrationGeneral}} / מוגבלת {{partnershipRegistrationLimited}} ב-2026)
 4. פתחו לשותפות תיק מע״מ; כל שותף מסדיר תיק מס הכנסה על חלקו`,
+    completion: {
+      confirm: "השותפות נרשמה אצל הרשם והאגרה שולמה",
+      fields: [
+        {
+          key: "partnership_number",
+          label: "מספר השותפות שהתקבל",
+          type: "reference",
+          required: true,
+        },
+        { key: "registered_on", label: "תאריך הרישום", type: "date" },
+      ],
+    },
     official_links: [
       { label: "רשם השותפויות — רשות התאגידים", url: "https://www.gov.il/he/departments/topics/registrar_of_partnerships/govil-landing-page" },
       { label: "שותפות — כל-זכות", url: "https://www.kolzchut.org.il/he/שותפות" },
@@ -243,6 +277,14 @@ export const ENTITY_TASKS: TaskTemplate[] = [
 2. הגדירו מנגנון להכנסת שותף, יציאת שותף ופירוק
 3. הגדירו כיצד מקבלים החלטות ואיך פותרים מחלוקות
 4. חתמו על ההסכם מול עו"ד — עדיף לפני תחילת הפעילות`,
+    completion: {
+      confirm: "ההסכם נחתם על ידי כל השותפים",
+      fields: [
+        { key: "signed_on", label: "תאריך חתימת ההסכם", type: "date", required: true },
+        { key: "lawyer", label: "מי ליווה את ההסכם" },
+        { key: "agreement_location", label: "איפה שמור ההסכם החתום" },
+      ],
+    },
     official_links: [
       { label: "שותפות — כל-זכות", url: "https://www.kolzchut.org.il/he/שותפות" },
     ],

@@ -7,12 +7,16 @@ import { DEFAULT_COMPLETION, completionSpecOf } from "@/lib/types";
 /**
  * WHICH FIELDS A TASK ASKS FOR MUST HAVE ONE ANSWER.
  *
- * Forty of the 73 templates declare no completion spec, and the flow falls
- * back to DEFAULT_COMPLETION. Three production sites each wrote
+ * Forty of the 73 templates used to declare no completion spec, so the flow
+ * fell back to DEFAULT_COMPLETION. Three production sites each wrote
  * `completion ?? DEFAULT_COMPLETION` for themselves and happened to agree —
  * then the certificate was written, did not have that expression, read
  * `template.completion` directly, found nothing for those forty, and printed
  * the stored answer under the label `note`.
+ *
+ * All 73 now declare their own spec, which is a content rule held in
+ * invariants.test.ts. The fallback stays because the next template is written
+ * before its spec is — and it stays resolved in ONE place, which is this one.
  *
  * The defect was not a wrong fallback. It was a fourth reader of one rule.
  */
@@ -46,6 +50,10 @@ function stripComments(text: string): string {
  */
 const ALLOWED = new Set([
   "src/lib/types.ts",
+  // Asserts things ABOUT the declared field — that every template has one of
+  // its own — which is the one question the resolver cannot answer, since it
+  // returns the fallback either way.
+  "src/lib/content/invariants.test.ts",
   "src/lib/completion-spec.test.ts",
   "src/lib/certificate.test.ts",
   "src/components/task/milestone-tracker.test.tsx",
@@ -98,11 +106,11 @@ describe("what the resolver returns", () => {
   });
 
   it("a template with no spec gets the default, not undefined fields", () => {
-    const without = TASK_TEMPLATES.find((t) => !t.completion);
-    // Only meaningful while such templates exist; when the last one gains a
-    // spec this premise fails loudly rather than the test passing vacuously.
-    expect(without, "no template lacks a completion spec any more").toBeTruthy();
-    expect(completionSpecOf(without!)).toBe(DEFAULT_COMPLETION);
+    // Synthetic on purpose. Every shipped template now declares its own spec
+    // (invariants.test.ts holds that line), so the fallback has no live
+    // subject — and it must still behave, because the next template added is
+    // written before its spec is.
+    expect(completionSpecOf({})).toBe(DEFAULT_COMPLETION);
   });
 
   it("survives a missing template rather than throwing", () => {

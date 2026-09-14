@@ -1,3 +1,4 @@
+import { LOGO_TEMPLATE_ID } from "@/lib/content";
 import type { BusinessRow } from "@/lib/data";
 
 export interface ProfileCheck {
@@ -68,7 +69,7 @@ export function computeProfileCompleteness(
       done: filled(business.accountant_name) || filled(business.accountant_phone),
       href: "/business#field-accountant_name",
     },
-    { id: "logo", label: "לוגו", done: filled(business.logo_path), href: "/tasks/basic-branding" },
+    { id: "logo", label: "לוגו", done: filled(business.logo_path), href: "/tasks/" + LOGO_TEMPLATE_ID },
     { id: "pricing", label: "מחירון (לפחות פריט אחד)", done: counts.products > 0, href: "/tasks/pricing" },
     { id: "documents", label: "מסמך ראשון בארכיון", done: counts.documents > 0, href: "/documents" },
   ];

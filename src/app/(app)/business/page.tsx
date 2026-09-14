@@ -89,10 +89,10 @@ export default async function BusinessPage() {
       </Card>
 
       {/* what the business has actually done, with each task's artefact */}
-      <BusinessCertificate certificate={certificate} />
+      <BusinessCertificate certificate={certificate} logoUrl={logoUrl} />
 
       {/* logo */}
-      <Card className="mt-5 p-5">
+      <Card id="logo" className="mt-5 scroll-mt-28 p-5">
         <h2 className="mb-3 flex items-center gap-2 font-bold text-ink">
           <ImageIcon className="h-4.5 w-4.5 text-brand-500" aria-hidden />
           הלוגו שלי

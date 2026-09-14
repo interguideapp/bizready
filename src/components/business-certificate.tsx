@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, ExternalLink } from "lucide-react";
+import { ArrowLeft, BadgeCheck, ExternalLink, ImageIcon } from "lucide-react";
 import { Card } from "@/components/ui";
-import { formatHeMoment } from "@/lib/dates";
+import { LOGO_TEMPLATE_ID } from "@/lib/content";
+import { formatHeDate, formatHeMoment } from "@/lib/dates";
 import { TASK_FORMS, countLabel } from "@/lib/he-distance";
 import type { Certificate } from "@/lib/certificate";
 
@@ -16,7 +17,22 @@ import type { Certificate } from "@/lib/certificate";
  * certificate that silently omitted most of the work would read as complete
  * while proving very little.
  */
-export function BusinessCertificate({ certificate }: { certificate: Certificate }) {
+export function BusinessCertificate({
+  certificate,
+  logoUrl,
+}: {
+  certificate: Certificate;
+  /**
+   * A signed URL for the uploaded logo, when there is one.
+   *
+   * The logo is the branding task's artefact but it is a file, not a
+   * completion field — so it cannot arrive through completion_data like
+   * everything else here. Showing it inside that task's entry is what makes
+   * "the task is done" and "the business has a logo" one statement instead of
+   * two rows on one page that never refer to each other.
+   */
+  logoUrl?: string | null;
+}) {
   const { entries, captureless, recorded } = certificate;
 
   if (entries.length === 0 && captureless.length === 0) return null;
@@ -54,6 +70,33 @@ export function BusinessCertificate({ certificate }: { certificate: Certificate 
                   </span>
                 )}
               </div>
+              {entry.templateId === LOGO_TEMPLATE_ID &&
+                (logoUrl ? (
+                  <div className="mb-2 flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-edge bg-surface-2">
+                    {/*
+                      A plain <img>, like the uploader's: the source is a
+                      short-lived signed Storage URL, which the image optimiser
+                      cannot process and would cache past its expiry. The 56px
+                      box reserves the space, so there is no layout shift.
+                    */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logoUrl}
+                      alt="הלוגו של העסק"
+                      width={56}
+                      height={56}
+                      className="h-full w-full object-contain p-1"
+                    />
+                  </div>
+                ) : (
+                  <Link
+                    href="#logo"
+                    className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-brand-strong hover:underline"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" aria-hidden />
+                    חסר הלוגו — אפשר להעלות אותו כאן
+                  </Link>
+                ))}
               <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
                 {entry.items.map((item) => (
                   <div key={item.key} className="min-w-0">
@@ -71,11 +114,17 @@ export function BusinessCertificate({ certificate }: { certificate: Certificate 
                           <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
                         </a>
                       ) : (
-                        // A Latin-digit reference inside an RTL line reorders
-                        // as it renders, so identifiers and dates are LTR —
-                        // the same rule the business card already follows.
-                        <span dir={item.type && item.type !== "text" ? "ltr" : undefined} className="break-all">
-                          {item.value}
+                        // A Latin-digit reference inside an RTL line
+                        // reorders as it renders, so identifiers and amounts
+                        // are LTR — the rule the business card already follows.
+                        //
+                        // A date is stored as the ISO string the input
+                        // produced; nobody reads a certificate in 2026-09-10.
+                        <span
+                          dir={item.type && item.type !== "text" ? "ltr" : undefined}
+                          className="break-all"
+                        >
+                          {item.type === "date" ? formatHeDate(item.value) : item.value}
                         </span>
                       )}
                     </dd>

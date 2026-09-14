@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { BusinessCertificate } from "./business-certificate";
 import { buildCertificate, type Certificate } from "@/lib/certificate";
-import { TEMPLATES_BY_ID } from "@/lib/content";
+import { LOGO_TEMPLATE_ID, TEMPLATES_BY_ID } from "@/lib/content";
 
 /**
  * WHAT THE CERTIFICATE ACTUALLY PUTS ON THE SCREEN.
@@ -143,6 +143,13 @@ describe("the kind of value decides how it reads", () => {
     expect(screen.getByText("A-1234/26").getAttribute("dir")).toBe("ltr");
   });
 
+  it("writes a date out, since nobody reads a certificate in 2026-09-10", () => {
+    render(<BusinessCertificate certificate={withItem({ type: "date", value: "2026-09-10" })} />);
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("10.9.2026");
+    expect(text).not.toContain("2026-09-10");
+  });
+
   it("leaves Hebrew free text in the page direction", () => {
     render(<BusinessCertificate certificate={withItem({ type: "text", value: "רואה חשבון כהן" })} />);
     expect(screen.getByText("רואה חשבון כהן").getAttribute("dir")).toBeNull();
@@ -151,6 +158,76 @@ describe("the kind of value decides how it reads", () => {
   it("and leaves an untyped field alone too, since most of them hold Hebrew", () => {
     render(<BusinessCertificate certificate={withItem({ value: "בדקתי אונליין" })} />);
     expect(screen.getByText("בדקתי אונליין").getAttribute("dir")).toBeNull();
+  });
+});
+
+/**
+ * THE LOGO IS THE BRANDING TASK'S ARTEFACT, AND IT IS A FILE.
+ *
+ * Everything else here arrives through completion_data. The logo cannot: it is
+ * an image in Storage under businesses.logo_path, uploaded further down the
+ * same page. So "מיתוג בסיסי" was a task that could be complete while the card
+ * showed no logo, and the logo could exist while the task read undone — two
+ * rows about one fact that never referred to each other.
+ */
+describe("the logo belongs to the task that produced it", () => {
+  const branding = (items = 1) =>
+    cert({
+      entries: [
+        {
+          templateId: LOGO_TEMPLATE_ID,
+          title: "מיתוג בסיסי",
+          categoryId: "marketing",
+          completedAt: "2026-09-10T08:00:00Z",
+          items: Array.from({ length: items }, (_, i) => ({
+            key: "brand_name" + i,
+            label: "השם המסחרי",
+            value: "העסק שלי",
+            fromSpec: true,
+            live: false,
+          })),
+        },
+      ],
+      recorded: items,
+    });
+
+  it("shows the uploaded logo inside that entry", () => {
+    render(<BusinessCertificate certificate={branding()} logoUrl="https://signed.example/logo.png" />);
+    const img = screen.getByAltText("הלוגו של העסק") as HTMLImageElement;
+    expect(img.getAttribute("src")).toBe("https://signed.example/logo.png");
+  });
+
+  it("says the logo is missing, and links to where it is uploaded", () => {
+    render(<BusinessCertificate certificate={branding()} logoUrl={null} />);
+    expect(screen.queryByAltText("הלוגו של העסק")).toBeNull();
+    const link = screen.getByRole("link", { name: /חסר הלוגו/ });
+    expect(link.getAttribute("href")).toBe("#logo");
+  });
+
+  it("does not put the logo on any other task's entry", () => {
+    const other = cert({
+      entries: [
+        {
+          templateId: "buy-domain",
+          title: "רכישת דומיין",
+          categoryId: "digital",
+          completedAt: null,
+          items: [
+            { key: "domain", label: "הדומיין", value: "mybiz.co.il", fromSpec: true, live: false },
+          ],
+        },
+      ],
+      recorded: 1,
+    });
+    render(<BusinessCertificate certificate={other} logoUrl="https://signed.example/logo.png" />);
+    expect(screen.queryByAltText("הלוגו של העסק")).toBeNull();
+    expect(document.body.textContent).not.toContain("חסר הלוגו");
+  });
+
+  it("the premise: that template id is a real one and the branding task", () => {
+    const template = TEMPLATES_BY_ID.get(LOGO_TEMPLATE_ID);
+    expect(template, LOGO_TEMPLATE_ID + " is not a template any more").toBeTruthy();
+    expect(template!.title).toContain("לוגו");
   });
 });
 

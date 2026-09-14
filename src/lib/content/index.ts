@@ -23,6 +23,21 @@ export const TEMPLATES_BY_ID = new Map(TASK_TEMPLATES.map((t) => [t.id, t]));
 export const CATEGORIES_BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
 
 /**
+ * The task that owns the logo.
+ *
+ * The logo is not a completion field — it is a file in Storage under
+ * businesses.logo_path, uploaded on /business. But it IS the artefact of
+ * "מיתוג בסיסי — שם, לוגו וצבעים", which is why the profile checklist already
+ * sent the missing-logo link here. The certificate shows the uploaded image
+ * inside that task's entry, so finishing the task and having a logo are
+ * visibly the same fact rather than two unrelated rows on one page.
+ *
+ * Named once because two surfaces now depend on it, and a renamed template
+ * would otherwise silently break the quieter one.
+ */
+export const LOGO_TEMPLATE_ID = "basic-branding";
+
+/**
  * Options for the "מה כבר יש?" onboarding step — template ids the user can
  * pre-mark as done. `entities`, when present, limits an option to those legal
  * structures (so a company isn't offered the individual עוסק registration);

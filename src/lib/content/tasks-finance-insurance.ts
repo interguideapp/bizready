@@ -56,6 +56,14 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 3. לעסק אונליין: ודאו שהסליקה משתלבת באתר ובדף התשלום
 4. חברו את הסליקה לתוכנת החשבוניות — קבלה אוטומטית על כל תשלום
 5. בדקו עסקת אמת קטנה מקצה לקצה`,
+    completion: {
+      confirm: "הסליקה אושרה ועברה עסקת בדיקה מקצה לקצה",
+      fields: [
+        { key: "provider", label: "חברת הסליקה", required: true },
+        { key: "merchant_number", label: "מספר בית עסק או מסוף", type: "reference" },
+        { key: "fee", label: "העמלה שהוסכמה (%)", placeholder: "למשל 1.9", type: "reference" },
+      ],
+    },
     official_links: [],
     docs_needed: ["תעודת עוסק", "חשבון בנק"],
     est_cost: "עמלה של כ-1%–3% לעסקה",
@@ -78,6 +86,19 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 2. קבעו "משכורת" חודשית ריאלית לעצמכם
 3. בנו כרית ביטחון של 3 חודשי הוצאות
 4. עדכנו את הטבלה פעם בחודש — באותו מפגש חודשי של ניהול הספרים`,
+    completion: {
+      confirm: "יש טבלת תזרים מעודכנת ומשכורת חודשית שנקבעה",
+      fields: [
+        {
+          key: "tracker_location",
+          label: "איפה מנוהל התזרים",
+          placeholder: "למשל: גוגל שיטס — תזרים 2026",
+          required: true,
+        },
+        { key: "monthly_draw", label: "המשכורת החודשית שקבעת לעצמך (₪)", type: "amount" },
+        { key: "buffer", label: "כרית הביטחון שנצברה (₪)", type: "amount" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "חינם",
@@ -140,6 +161,14 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 2. הפקדה מוכרת לניכוי עד 4.5% מההכנסה החייבת (עד תקרה שנתית מתעדכנת)
 3. הכסף נזיל אחרי 6 שנים — ופטור ממס רווחי הון עד תקרת ההפקדה המוטבת
 4. נצלו את התקרה לפני סוף שנת המס`,
+    completion: {
+      confirm: "נפתחה קרן השתלמות במעמד עצמאי וההפקדות התחילו",
+      fields: [
+        { key: "fund", label: "שם הקרן והמסלול", required: true },
+        { key: "policy_number", label: "מספר החשבון בקרן", type: "reference" },
+        { key: "monthly_deposit", label: "ההפקדה החודשית (₪)", type: "amount" },
+      ],
+    },
     official_links: [
       { label: "קרן השתלמות לעצמאים — כל-זכות", url: "https://www.kolzchut.org.il/he/קרן_השתלמות_לעצמאים" },
     ],
@@ -165,6 +194,19 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 2. מהכסף הזה משלמים: מקדמות מס, ביטוח לאומי, מע״מ (מורשה) והשלמות בדוח השנתי
 3. אחרי הדוח השנתי הראשון תדעו את השיעור האמיתי שלכם ותדייקו
 4. מה שנשאר עודף — הפקידו לפנסיה/השתלמות וקבלו הטבת מס`,
+    completion: {
+      confirm: "קבעתי אחוז הפרשה והכסף נשמר בחשבון נפרד",
+      fields: [
+        {
+          key: "set_aside_rate",
+          label: "אחוז ההפרשה שקבעת (%)",
+          placeholder: "למשל 30",
+          type: "reference",
+          required: true,
+        },
+        { key: "set_aside_where", label: "לאיזה חשבון או פיקדון" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "חינם",
@@ -293,6 +335,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 2. אפשר להתחיל מתבנית ולהתאים — אבל לפחות לעסקאות גדולות שווה שעת ייעוץ עם עו"ד
 3. החתימו כל לקוח לפני תחילת עבודה (גם אישור במייל/וואטסאפ עדיף מכלום)
 4. שמרו עותק חתום בארכיון המסמכים`,
+    completion: {
+      confirm: "יש הסכם התקשרות כתוב שנשלח ללקוחות",
+      fields: [
+        { key: "agreement_location", label: "איפה שמור ההסכם", required: true },
+        { key: "version_date", label: "תאריך הגרסה", type: "date" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "תבנית חינם; ליווי עו\"ד מכ-₪500",
@@ -313,6 +362,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 2. במכירה אונליין: פרטו מדיניות משלוחים והחזרות ברורה
 3. הציבו קישור נגיש בתחתית האתר ובתהליך הרכישה
 4. עדכנו כשמשהו משתנה במודל העסקי`,
+    completion: {
+      confirm: "תנאי השימוש פורסמו באתר ונגישים מכל עמוד",
+      fields: [
+        { key: "terms_url", label: "כתובת עמוד תנאי השימוש", type: "url", required: true },
+        { key: "version_date", label: "תאריך העדכון האחרון", type: "date" },
+      ],
+    },
     official_links: [
       { label: "ביטול עסקה בקנייה מרחוק — כל-זכות", url: "https://www.kolzchut.org.il/he/ביטול_עסקת_מכר_מרחוק" },
     ],
@@ -342,6 +398,13 @@ export const FINANCE_INSURANCE_TASKS: TaskTemplate[] = [
 2. כתבו מדיניות פרטיות שמפרטת: איזה מידע נאסף, למה, האם חלה חובה חוקית למסור אותו, זהות בעל המאגר ודרכי יצירת קשר, וזכויות העיון והתיקון
 3. פרסמו אותה באתר ובכל טופס איסוף פרטים
 4. אספו רק מה שבאמת צריך — פחות מידע = פחות סיכון`,
+    completion: {
+      confirm: "מדיניות הפרטיות פורסמה באתר ובטופסי איסוף הפרטים",
+      fields: [
+        { key: "policy_url", label: "כתובת עמוד מדיניות הפרטיות", type: "url", required: true },
+        { key: "version_date", label: "תאריך הגרסה שפורסמה", type: "date" },
+      ],
+    },
     official_links: [
       { label: "הרשות להגנת הפרטיות — gov.il", url: "https://www.gov.il/he/departments/the_privacy_protection_authority" },
     ],

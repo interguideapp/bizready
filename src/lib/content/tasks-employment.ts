@@ -59,6 +59,14 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
 2. מסרו לכל עובד תוך 30 יום מתחילת העבודה (נוער — 7 ימים)
 3. החתימו על קבלה ושמרו עותק בתיק העובד
 4. כל שינוי בתנאים — הודעה מעודכנת תוך 30 יום`,
+    completion: {
+      confirm: "כל עובד קיבל הודעה כתובה על תנאי העסקתו",
+      fields: [
+        { key: "employee", label: "שם העובד שקיבל את ההודעה", required: true },
+        { key: "given_on", label: "תאריך מסירת ההודעה", type: "date", required: true },
+        { key: "notice_location", label: "איפה שמור העותק החתום" },
+      ],
+    },
     official_links: [
       { label: "הודעה על תנאי העבודה — כל-זכות", url: "https://www.kolzchut.org.il/he/הודעה_על_תנאי_העבודה" },
     ],
@@ -182,6 +190,14 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
 2. הסדירו הפרשות לפי צו ההרחבה לפנסיה חובה (חלק מעסיק, חלק עובד ופיצויים)
 3. חשב השכר בדרך כלל מטפל בהעברות — ודאו שזה קורה מהחודש הראשון הרלוונטי
 4. שמרו אישורי הפקדה`,
+    completion: {
+      confirm: "ההסדר הפנסיוני נפתח וההפקדות מבוצעות בכל חודש",
+      fields: [
+        { key: "provider", label: "הגוף המנהל את ההסדר", required: true },
+        { key: "policy_number", label: "מספר ההסדר או הפוליסה", type: "reference" },
+        { key: "started_on", label: "תאריך תחילת ההפקדות", type: "date" },
+      ],
+    },
     official_links: [
       { label: "פנסיית חובה לשכירים — כל-זכות", url: "https://www.kolzchut.org.il/he/פנסיה_חובה" },
     ],
@@ -251,6 +267,18 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
 4. תעדו הכל — זו גם הוצאה מוכרת לעסק`,
       },
     ],
+    completion: {
+      confirm: "החזר הנסיעות מחושב ומשולם עם המשכורת",
+      fields: [
+        {
+          key: "method",
+          label: "איך מחושב ההחזר",
+          placeholder: "למשל: לפי עלות נסיעה ציבורית בפועל",
+          required: true,
+        },
+        { key: "daily_amount", label: "הסכום היומי שנקבע (₪)", type: "amount" },
+      ],
+    },
     official_links: [
       { label: "החזר הוצאות נסיעה — כל-זכות", url: "https://www.kolzchut.org.il/he/החזר_הוצאות_נסיעה" },
     ],
@@ -273,6 +301,13 @@ export const EMPLOYMENT_TASKS: TaskTemplate[] = [
 2. ודאו שהתלוש מציג צבירת חופשה ומחלה
 3. שמרו נוהל אחיד לאישור חופשות והיעדרויות
 4. עדכנו מכסות עם עליית הוותק`,
+    completion: {
+      confirm: "ימי החופשה, המחלה וההבראה נרשמים ומחושבים נכון",
+      fields: [
+        { key: "tracker", label: "איפה נרשמים ימי חופשה, מחלה והבראה", required: true },
+        { key: "reviewed_on", label: "תאריך העדכון האחרון", type: "date" },
+      ],
+    },
     official_links: [
       { label: "זכויות עובדים — כל-זכות", url: "https://www.kolzchut.org.il/he/זכויות_עובדים_ומעסיקים" },
     ],

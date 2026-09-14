@@ -18,6 +18,14 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. הריצו בדיקת נגישות אוטומטית (יש כלים חינמיים) וטפלו בבסיס: ניגודיות, טקסט לתמונות, ניווט מקלדת
 3. אם בונים אתר חדש — דרשו מהבונה עמידה בתקן מראש (זול פי כמה מתיקון בדיעבד)
 4. שקלו רכיב נגישות ייעודי, אך זכרו שהוא לא פוטר לבדו מעמידה בתקן`,
+    completion: {
+      confirm: "האתר נבדק מול תקן 5568 והליקויים תוקנו",
+      fields: [
+        { key: "audit_by", label: "מי ביצע את בדיקת הנגישות", required: true },
+        { key: "audit_date", label: "תאריך הבדיקה", type: "date" },
+        { key: "audit_report", label: "איפה שמור דוח הנגישות" },
+      ],
+    },
     official_links: [
       { label: "נגישות אינטרנט — gov.il", url: "https://www.gov.il/he/departments/topics/internet_accessibility" },
       { label: "הנגשת אתרים ואפליקציות — כל-זכות", url: "https://www.kolzchut.org.il/he/הנגשת_אתרי_אינטרנט_ואפליקציות_לאנשים_עם_מוגבלות" },
@@ -42,6 +50,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
     steps: `1. כתבו עמוד "הצהרת נגישות": מה הונגש, מה עדיין לא, ופרטי רכז/איש קשר לנושאי נגישות
 2. קשרו אליו מכל עמוד באתר (בדרך כלל בפוטר)
 3. עדכנו את ההצהרה אחרי כל שינוי משמעותי באתר`,
+    completion: {
+      confirm: "הצהרת הנגישות פורסמה באתר עם דרכי פנייה",
+      fields: [
+        { key: "statement_url", label: "כתובת הצהרת הנגישות", type: "url", required: true },
+        { key: "coordinator", label: "רכז הנגישות ודרכי הפנייה אליו" },
+      ],
+    },
     official_links: [
       { label: "הצהרת נגישות — איגוד האינטרנט", url: "https://www.isoc.org.il/freedom-of-internet/accessibility/all-about-accessibility" },
     ],
@@ -70,6 +85,18 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. חריג: לקוח קיים שמסר פרטים בעת רכישה — מותר לשלוח על מוצרים דומים, אם ניתנה לו אפשרות סירוב
 3. כל הודעה חייבת לכלול: המילה "פרסומת", זהות השולח, ודרך הסרה פשוטה וחינמית
 4. תעדו הסכמות ושמרו רשימת מוסרים — והסירו מיד מי שביקש`,
+    completion: {
+      confirm: "הדיוור יוצא רק למי שנתן הסכמה מפורשת, ויש דרך להסיר",
+      fields: [
+        {
+          key: "consent_mechanism",
+          label: "איך נאספת ההסכמה לדיוור",
+          placeholder: "למשל: תיבת סימון לא מסומנת בטופס ההרשמה",
+          required: true,
+        },
+        { key: "unsubscribe_url", label: "קישור להסרה מהדיוור", type: "url" },
+      ],
+    },
     official_links: [
       { label: "שאלות ותשובות בנושא ספאם — משרד התקשורת", url: "https://www.gov.il/he/pages/17052018_7" },
     ],
@@ -93,6 +120,19 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. מידע רגיש (בריאות, מצב כלכלי) מחמיר את הדרישות — בדקו באתר הרשות אם חלה עליכם חובת רישום או יידוע
 3. יישמו אבטחה בסיסית: סיסמאות חזקות, הרשאות מינימליות, אל תשמרו פרטים בקבצי אקסל פתוחים
 4. מחקו מידע שאין בו עוד צורך`,
+    completion: {
+      confirm: "בדקתי אם המאגר שלי מחייב רישום ויידוע",
+      fields: [
+        {
+          key: "conclusion",
+          label: "מה עלה מהבדיקה",
+          placeholder: "למשל: אין חובת רישום — מאגר קטן בלי מידע רגיש",
+          required: true,
+        },
+        { key: "registration_number", label: "מספר רישום המאגר (אם נרשם)", type: "reference" },
+        { key: "checked_on", label: "תאריך הבדיקה", type: "date" },
+      ],
+    },
     official_links: [
       { label: "הרשות להגנת הפרטיות — מאגרי מידע", url: "https://www.gov.il/he/departments/the_privacy_protection_authority" },
     ],
@@ -114,6 +154,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. הוסיפו באנר עוגיות שמיידע ומאפשר בחירה
 3. פרטו את כלי המעקב במדיניות הפרטיות
 4. אל תפעילו פיקסלים של שיווק לפני קבלת הסכמה`,
+    completion: {
+      confirm: "באנר העוגיות פעיל באתר והשימוש בפיקסלים שקוף",
+      fields: [
+        { key: "banner_tool", label: "באיזה כלי מנוהל באנר העוגיות", required: true },
+        { key: "cookies_policy_url", label: "כתובת עמוד מדיניות העוגיות", type: "url" },
+      ],
+    },
     official_links: [
       { label: "הרשות להגנת הפרטיות", url: "https://www.gov.il/he/departments/the_privacy_protection_authority" },
     ],
@@ -216,6 +263,18 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 4. הגדירו חתימת מייל אחידה: שם, שם העסק, טלפון, קישור לאתר ולוואטסאפ
 5. הוסיפו גם רשומת DMARC בסיסית — משפרת עבירות (שהמיילים לא ייפלו לספאם)
 6. מעכשיו: כל תקשורת עסקית מהכתובת הזו, והפרידו מהמייל הפרטי`,
+    completion: {
+      confirm: "יש כתובת אימייל על שם הדומיין של העסק",
+      fields: [
+        {
+          key: "business_email",
+          label: "כתובת האימייל העסקית",
+          placeholder: "info@mybiz.co.il",
+          type: "reference",
+          required: true,
+        },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "מחינם עד כ-₪25/חודש",
@@ -269,6 +328,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. פתחו פרופיל עסקי (לא פרטי) עם שם אחיד, לוגו ותיאור ברור + דרך יצירת קשר
 3. העלו תוכן פתיחה: מי אתם, מה אתם עושים, דוגמאות עבודה
 4. קבעו קצב ריאלי — עדיף פוסט איכותי בשבוע מהתפרצות ונטישה`,
+    completion: {
+      confirm: "נפתחו פרופילים עסקיים ברשתות שהלקוחות שלי נמצאים בהן",
+      fields: [
+        { key: "main_profile", label: "כתובת הפרופיל המרכזי", type: "url", required: true },
+        { key: "other_profiles", label: "אילו רשתות נוספות נפתחו" },
+      ],
+    },
     official_links: [],
     docs_needed: ["לוגו", "תמונות עבודה"],
     est_cost: "חינם",
@@ -319,6 +385,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. נסחו משפט בידול: "אני עוזר ל[קהל] להשיג [תוצאה] באמצעות [מה שמייחד אותך]"
 3. בדקו את המשפט על 3 אנשים אמיתיים — הבינו אותו מיד?
 4. השתמשו בו בכל מקום: אתר, רשתות, שיחות מכירה`,
+    completion: {
+      confirm: "הגדרתי למי אני מוכר ובמה אני שונה",
+      fields: [
+        { key: "audience", label: "קהל היעד במשפט אחד", required: true },
+        { key: "differentiator", label: "הבידול — למה יבחרו בך" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "חינם",
@@ -339,6 +412,14 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 3. בקשו מהמעצב את כל הפורמטים: PNG עם רקע שקוף, גרסה לרקע כהה, וקובץ מקור (SVG/AI)
 4. **העלו את הלוגו כאן במערכת** (בקטע "הלוגו שלי" למטה) — הוא יישמר בפרופיל העסקי ותמיד יהיה זמין
 5. יישמו בכל מקום בבת אחת: וואטסאפ, רשתות, חשבוניות, חתימת מייל — עקביות היא כל הסוד`,
+    completion: {
+      confirm: "יש שם, לוגו וצבעים קבועים לעסק",
+      fields: [
+        { key: "brand_name", label: "השם המסחרי כפי שהוא מופיע ללקוחות", required: true },
+        { key: "brand_colors", label: "צבעי המיתוג", placeholder: "למשל: כחול כהה ולבן" },
+        { key: "logo_location", label: "איפה שמורים קבצי הלוגו המקוריים" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "מחינם עד אלפי ₪",
@@ -359,6 +440,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 3. הקצו תקציב — גם ₪300 בחודש לקידום ממוקד יכול לעבוד
 4. פעם בחודש: מה עבד? מה לא? התאימו
 5. אל תזניחו את הזול והחזק: לבקש המלצות והפניות מלקוחות מרוצים`,
+    completion: {
+      confirm: "יש תכנית שיווק עם ערוצים ותקציב",
+      fields: [
+        { key: "channels", label: "הערוצים שנבחרו", required: true },
+        { key: "monthly_budget", label: "תקציב חודשי (₪)", type: "amount" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "לפי תקציב",
@@ -379,6 +467,18 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. שלחו קישור ישיר לכתיבת ביקורת בגוגל — כמה שפחות קליקים
 3. שמרו צילומי מסך של פידבקים טובים מוואטסאפ (באישור הלקוח) לשימוש ברשתות
 4. הציבו יעד: ביקורת חדשה בכל שבוע-שבועיים`,
+    completion: {
+      confirm: "יש דרך קבועה לבקש ביקורת מלקוח מרוצה",
+      fields: [
+        {
+          key: "review_url",
+          label: "הקישור שנשלח ללקוחות להשארת ביקורת",
+          type: "url",
+          required: true,
+        },
+        { key: "review_channel", label: "איפה נאספות הביקורות", placeholder: "למשל: גוגל" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "חינם",
@@ -398,6 +498,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. שמרו את הקישור נגיש בטלפון לשיתוף מהיר
 3. הגדירו חתימת מייל אחידה עם לוגו ופרטי קשר
 4. שקלו גם כרטיס פיזי מינימלי אם אתם פוגשים לקוחות פנים-אל-פנים`,
+    completion: {
+      confirm: "יש כרטיס ביקור דיגיטלי וחתימת מייל אחידה",
+      fields: [
+        { key: "signature", label: "מה נכנס לחתימת המייל", required: true },
+        { key: "card_url", label: "כתובת כרטיס הביקור הדיגיטלי", type: "url" },
+      ],
+    },
     official_links: [],
     docs_needed: ["לוגו"],
     est_cost: "מחינם",
@@ -427,6 +534,18 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 5. **בנו את המחירון שלכם כאן במערכת** (בקטע "המחירון שלי" למטה) — כל שירות/מוצר עם מחיר. הוא יופיע גם בפרופיל העסקי שלכם
 6. קבעו כללי הנחות מראש (למשל: 10% לחבילה מראש) — הנחה ספונטנית שוחקת רווח
 7. עדכנו מחירון אחת לשנה לפחות, ותמיד כשעלויות עולות`,
+    completion: {
+      confirm: "התמחור מבוסס על עלויות ורווח, ולא על תחושה",
+      fields: [
+        {
+          key: "price_list_location",
+          label: "איפה מנוהל המחירון",
+          placeholder: "למשל: המחירון בכרטיס העסק",
+          required: true,
+        },
+        { key: "base_price", label: "מחיר שעה או יחידה בסיסי (₪)", type: "amount" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "חינם",
@@ -453,6 +572,18 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 3. הוציאו חשבונית/קבלה מיד עם התשלום — לא "בסוף החודש"
 4. קבעו יום קבוע בשבוע למעקב גבייה אחרי חובות פתוחים
 5. תעדו כל שלב בכלי ניהול הלקוחות`,
+    completion: {
+      confirm: "יש תהליך מכירה קבוע מפנייה ועד סגירה",
+      fields: [
+        {
+          key: "sales_steps",
+          label: "שלבי תהליך המכירה",
+          placeholder: "פנייה, שיחת אפיון, הצעה, מעקב, סגירה",
+          required: true,
+        },
+        { key: "quote_template", label: "איפה שמורה תבנית הצעת המחיר" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "חינם",
@@ -472,6 +603,19 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. מבנה פשוט: חשבוניות / לקוחות / מסמכים רשמיים / שיווק
 3. הפעילו סנכרון אוטומטי מהמחשב והטלפון
 4. את המסמכים הרשמיים החשובים תייקו גם בארכיון של BizReady — כך הכל זמין בכל מקום`,
+    completion: {
+      confirm: "המסמכים מגובים בענן ובדקתי שחזור בפועל",
+      fields: [
+        {
+          key: "backup_service",
+          label: "שירות הגיבוי",
+          placeholder: "למשל: דרייב",
+          required: true,
+        },
+        { key: "backup_scope", label: "מה מגובה" },
+        { key: "restore_tested_on", label: "תאריך בדיקת השחזור האחרונה", type: "date" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "מחינם עד כ-₪40/חודש",
@@ -496,6 +640,13 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 3. סמנו למי צריך לחזור ומתי, ועברו על הרשימה פעם בשבוע
 4. כשהעסק גדל — שדרגו ל-CRM ייעודי (יש חינמיים לעסקים קטנים)
 5. זכרו: רשימת הלקוחות היא מאגר מידע — שמרו עליה מאובטחת`,
+    completion: {
+      confirm: "כל הלקוחות והפניות מרוכזים במקום אחד",
+      fields: [
+        { key: "crm_tool", label: "הכלי לניהול הלקוחות", required: true },
+        { key: "record_count", label: "כמה לקוחות הוזנו", type: "reference" },
+      ],
+    },
     official_links: [],
     docs_needed: [],
     est_cost: "מחינם",
@@ -515,6 +666,18 @@ export const DIGITAL_MARKETING_OPS_TASKS: TaskTemplate[] = [
 2. ההכרה היא חלקית (לפי כללי מס הכנסה לרכב מעורב) — איש המקצוע יחשב את החלק המוכר בדוח
 3. רשמו את מד הק"מ בתחילת השנה ובסופה
 4. נסיעות ספציפיות ללקוחות — תעדו ביומן`,
+    completion: {
+      confirm: "הסדרתי מול רואה החשבון איך הוצאות הרכב נרשמות",
+      fields: [
+        {
+          key: "method",
+          label: "שיטת ההכרה שנבחרה",
+          placeholder: "למשל: לפי שווי שימוש",
+          required: true,
+        },
+        { key: "log_location", label: "איפה מנוהל יומן הנסיעות" },
+      ],
+    },
     official_links: [
       { label: "הוצאות מוכרות — רשות המסים", url: "https://www.gov.il/he/departments/israel_tax_authority" },
     ],

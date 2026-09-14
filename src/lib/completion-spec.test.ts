@@ -45,19 +45,45 @@ function stripComments(text: string): string {
 }
 
 /**
- * Where the fallback legitimately lives, and the tests that name it as the
- * thing being asserted rather than applying it.
+ * `.completion` read off something, but not `completion_data` and not
+ * `completionSpecOf`. A negative lookahead rather than a word boundary, since
+ * the receiver is usually an expression and not an identifier.
  */
-const ALLOWED = new Set([
-  "src/lib/types.ts",
-  // Asserts things ABOUT the declared field — that every template has one of
-  // its own — which is the one question the resolver cannot answer, since it
-  // returns the fallback either way.
-  "src/lib/content/invariants.test.ts",
-  "src/lib/completion-spec.test.ts",
-  "src/lib/certificate.test.ts",
-  "src/components/task/milestone-tracker.test.tsx",
-  "src/components/task/task-experience.test.tsx",
+const RAW_READ = /\.completion(?![_A-Za-z])/;
+
+/** The fallback spelled out inline instead of asked for. */
+const INLINE = /\?\?\s*DEFAULT_COMPLETION/;
+
+/**
+ * Every file allowed to touch `.completion` directly, each with its reason.
+ * Anything else asks completionSpecOf.
+ */
+const ALLOWED = new Map([
+  ["src/lib/types.ts", "declares the field, the default and the resolver"],
+  [
+    "src/lib/content/invariants.test.ts",
+    "asserts that every template DECLARES a spec of its own — the one question the resolver cannot answer, since it returns the fallback either way",
+  ],
+  [
+    "src/lib/completion-spec.test.ts",
+    "the guard itself, which has to name the banned shapes in order to detect them",
+  ],
+  [
+    "src/lib/certificate.test.ts",
+    "names the old defect in prose, and picks a fixture by whether a spec is declared",
+  ],
+  [
+    "src/components/task/task-experience.tsx",
+    "reads .fields off the ALREADY-resolved spec handed to it as a prop, which happens to be named completion",
+  ],
+  [
+    "src/components/task/milestone-tracker.test.tsx",
+    "passes DEFAULT_COMPLETION in as a test fixture",
+  ],
+  [
+    "src/components/task/task-experience.test.tsx",
+    "passes DEFAULT_COMPLETION in as a test fixture",
+  ],
 ]);
 
 describe("the fallback is applied in exactly one place", () => {
@@ -66,35 +92,48 @@ describe("the fallback is applied in exactly one place", () => {
     body: stripComments(readFileSync(full, "utf8")),
   }));
 
-  it("the premise: the detector sees the shape that shipped", () => {
-    // The exact expression that was in three files, so a pass here cannot be
-    // a detector that matches nothing.
-    const shipped = "const spec = completion ?? DEFAULT_COMPLETION;";
-    expect(/\?\?\s*DEFAULT_COMPLETION/.test(shipped)).toBe(true);
+  it("the premise: the detectors see every shape that shipped", () => {
+    // Each of these was really in this tree, so a pass below cannot be a
+    // detector that matches nothing.
+    expect(INLINE.test("const spec = completion ?? DEFAULT_COMPLETION;")).toBe(true);
+    expect(RAW_READ.test("(template.completion?.fields ?? []).map((f) => f.key)")).toBe(true);
+    expect(RAW_READ.test("completion: template.completion ?? DEFAULT_COMPLETION,")).toBe(true);
+    // The one a receiver-anchored pattern let through: the first version of
+    // the sweep below matched `template.completion` and `t.completion`, while
+    // the live reader sat inside completeTask — the write path for every
+    // artefact the certificate shows — one token outside the pattern.
+    expect(
+      RAW_READ.test("TEMPLATES_BY_ID.get(current.template_id)?.completion?.fields ?? []")
+    ).toBe(true);
+    // And neither may fire on the resolver or on the evidence column.
+    expect(RAW_READ.test("completionSpecOf(template).fields")).toBe(false);
+    expect(RAW_READ.test("task.completion_data ?? {}")).toBe(false);
+    expect(INLINE.test("completionSpecOf(template)")).toBe(false);
   });
 
   it("no other file resolves it inline", () => {
     const offenders = files
       .filter((f) => !ALLOWED.has(f.rel))
-      .filter((f) => /\?\?\s*DEFAULT_COMPLETION/.test(f.body))
+      .filter((f) => INLINE.test(f.body))
       .map((f) => f.rel);
     expect(offenders).toEqual([]);
   });
 
-  it("and no other file reads template.completion instead of asking", () => {
-    // Reading the raw field is the same defect wearing different clothes: it
-    // silently returns undefined for the forty templates with no spec.
+  it("and no other file reads .completion off a template instead of asking", () => {
+    // Reading the raw field is the same defect in different clothes: it
+    // silently returns undefined for a template with no spec of its own.
     const offenders = files
       .filter((f) => !ALLOWED.has(f.rel))
-      .filter((f) => /(template|t)\.completion\b/.test(f.body))
+      .filter((f) => RAW_READ.test(f.body))
       .map((f) => f.rel);
     expect(offenders).toEqual([]);
   });
 
-  it("the exemption is not stale", () => {
+  it("the exemption is not stale, and every entry gives a reason", () => {
     const known = new Set(files.map((f) => f.rel));
-    for (const rel of ALLOWED) {
+    for (const [rel, reason] of ALLOWED) {
       expect(known.has(rel), rel + " is exempted but no longer exists").toBe(true);
+      expect(reason.length, rel + " is exempted without a reason").toBeGreaterThan(10);
     }
   });
 });

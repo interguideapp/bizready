@@ -34,6 +34,7 @@ import { createCheckoutSession } from "@/lib/billing";
 import { looksLikeEmail, normaliseEmail, type MemberRole } from "@/lib/members";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
+import { completionSpecOf } from "@/lib/types";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
 import { looksLikeEmailAddress } from "@/lib/email-shape";
 
@@ -527,7 +528,7 @@ export async function completeTask(
   // endpoint and TS types vanish at runtime, so the previous unfiltered splat
   // let any caller write arbitrary columns (subscription_tier included).
   const writable = new Set<string>(
-    (TEMPLATES_BY_ID.get(current.template_id)?.completion?.fields ?? [])
+    (completionSpecOf(TEMPLATES_BY_ID.get(current.template_id)).fields ?? [])
       .map((f) => f.writesTo)
       .filter((w): w is NonNullable<typeof w> => Boolean(w))
   );

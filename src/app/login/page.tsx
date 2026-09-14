@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { KeyRound, Loader2, Mail, MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { looksLikeEmailAddress } from "@/lib/email-shape";
 import {
   isValidUsername,
   normalizeUsername,
@@ -51,7 +52,10 @@ export default function LoginPage() {
     const isEmail = raw.includes("@");
 
     if (isEmail) {
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw)) {
+      // The shared shape, not a fifth spelling. The sign-in screen and the
+      // register route must agree about what an address is, or a person is
+      // accepted by one and refused by the other.
+      if (!looksLikeEmailAddress(raw)) {
         setErrorMsg("כתובת אימייל לא תקינה.");
         setState("error");
         return;

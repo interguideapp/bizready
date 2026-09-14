@@ -186,3 +186,70 @@ describe("the personal-deadline shape accepts a real date", () => {
     expect(ISO_DATE_SHAPE.includes(BS)).toBe(false);
   });
 });
+
+/**
+ * A SECOND SIGNATURE THE FIRST SWEEP DID NOT SEE.
+ *
+ * The detector above looks for a quantifier applied to a bare class letter —
+ * `d{4}` where a digit class was meant. It found two dead validators and
+ * missed a third defect of the same origin, because that one lost its
+ * backslash INSIDE a character class:
+ *
+ *     [^s@]   where   [^ (backslash) s @ ]   was meant
+ *
+ * Which reads "not the letter s, not at-sign". The public partner-application
+ * form used it, so every address containing an s — moshe@business.co.il,
+ * yossi@post.co.il — was told "כתובת האימייל לא נראית תקינה". A valid address
+ * refused, with a message blaming the applicant.
+ *
+ * A bare letter inside a class is usually legitimate (`[abc]`), so the check
+ * is narrowed to the shape that is almost never intentional: a NEGATED class
+ * containing one of the class letters together with punctuation. Nobody writes
+ * "any character except the letter s and the at-sign".
+ */
+export function mangledNegatedClasses(text: string): string[] {
+  const found: string[] = [];
+  const CLASS_LETTERS = "dswSWD";
+  for (let i = 0; i + 2 < text.length; i++) {
+    if (text[i] !== "[" || text[i + 1] !== "^") continue;
+    const close = text.indexOf("]", i + 2);
+    if (close < 0) continue;
+    const body = text.slice(i + 2, close);
+    // An escaped letter is the correct form and is written with a backslash,
+    // so a body that contains one is fine by construction.
+    if (body.includes(BS)) continue;
+    const hasClassLetter = [...body].some((c) => CLASS_LETTERS.includes(c));
+    const hasPunctuation = /[@.:/+-]/.test(body);
+    if (hasClassLetter && hasPunctuation) found.push(text.slice(i, close + 1));
+  }
+  return found;
+}
+
+describe("no negated character class has lost a backslash", () => {
+  it("the premise: it flags the class that shipped", () => {
+    expect(mangledNegatedClasses("/^[^s@]+@[^s@]+.[^s@]+$/")).not.toEqual([]);
+  });
+
+  it("does not flag the correct form", () => {
+    expect(mangledNegatedClasses("/^[^" + BS + "s@]+@[^" + BS + "s@]+$/")).toEqual([]);
+  });
+
+  it("does not flag a legitimate negated class of plain letters", () => {
+    // "[^abc]" is a real thing to write; the signature is a class letter
+    // sitting beside punctuation.
+    expect(mangledNegatedClasses("/[^abc]/")).toEqual([]);
+    expect(mangledNegatedClasses("/[^aeiou]/")).toEqual([]);
+  });
+
+  it("finds none in the codebase", () => {
+    const offenders: string[] = [];
+    for (const file of walk(join(root, "src"))) {
+      if (file.endsWith("eaten-escapes.test.ts")) continue;
+      const hits = mangledNegatedClasses(readFileSync(file, "utf8"));
+      if (hits.length > 0) {
+        offenders.push(file.slice(root.length + 1).split("\\").join("/") + ": " + hits.join(" | "));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

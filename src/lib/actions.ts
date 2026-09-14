@@ -35,6 +35,7 @@ import { looksLikeEmail, normaliseEmail, type MemberRole } from "@/lib/members";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
+import { looksLikeEmailAddress } from "@/lib/email-shape";
 
 /**
  * The only columns the business card may write. The typed signatures on the
@@ -1324,7 +1325,14 @@ export async function submitPartnerApplication(input: {
   }
   // Shape check only — we are not the authority on what a deliverable address
   // is, but an entry with no @ is certainly not one.
-  if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(email)) {
+  //
+  // Through the shared shape, because THIS copy was dead: its class had lost a
+  // backslash and read as "not the letter s, not @", so every address
+  // containing an s was rejected as malformed. moshe@business.co.il and
+  // yossi@post.co.il were told their address did not look valid, on a public
+  // form, while three other copies of the same expression elsewhere in the
+  // codebase were spelled correctly.
+  if (!looksLikeEmailAddress(email)) {
     return { ok: false, error: "כתובת האימייל לא נראית תקינה." };
   }
 

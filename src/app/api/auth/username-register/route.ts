@@ -6,12 +6,13 @@ import {
   usernameToInternalEmail,
 } from "@/lib/auth/username";
 import { check, clientIp } from "@/lib/rate-limit";
+import { looksLikeEmailAddress } from "@/lib/email-shape";
 
 const MINIMUM_PASSWORD_LENGTH = 12;
 // account creation is expensive and abusable — keep it tight
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Was a fourth spelling of the same expression. One definition now.
 
 /**
  * Password account creation — by username (internal identifier) OR by a real
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
   let username: string | null = null;
   if (typeof body.email === "string" && body.email.trim()) {
     email = body.email.trim().toLowerCase();
-    if (!EMAIL_RE.test(email)) {
+    if (!looksLikeEmailAddress(email)) {
       return NextResponse.json({ error: "כתובת אימייל לא תקינה." }, { status: 400 });
     }
   } else if (typeof body.username === "string") {

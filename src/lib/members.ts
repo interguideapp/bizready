@@ -1,3 +1,4 @@
+import { looksLikeEmailAddress } from "@/lib/email-shape";
 /**
  * Collaborators on a business — in practice, the accountant.
  *
@@ -164,6 +165,11 @@ export function normaliseEmail(email: string): string {
 }
 
 /** Shape check for an invited address. */
+/*
+ * Delegates to lib/email-shape, the only definition now. This copy was
+ * correct and the one in actions.ts was not -- four spellings of one
+ * expression is exactly how that happens.
+ */
 export function looksLikeEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normaliseEmail(email));
+  return looksLikeEmailAddress(email);
 }

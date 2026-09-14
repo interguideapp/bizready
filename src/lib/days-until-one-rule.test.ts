@@ -14,7 +14,7 @@ import { daysUntilInIsrael, todayInIsrael } from "@/lib/dates";
  * that ran.
  *
  * These are the two modules that must never disagree: the obligations board
- * reads compliance.ts, the sweep reads reminders.ts, and one_truth.test.ts
+ * reads compliance.ts, the sweep reads reminders.ts, and one-truth.test.ts
  * exists because the way this design actually breaks is not the logic
  * diverging but one side being fed something different. A second copy of the
  * arithmetic is one edit from exactly that, silently, with every test green.

@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
  *     about whether a reporting period was open.
  *
  * Neither was catchable by a unit test of the engine: computeReminders was
- * right both times. What was wrong was the query in front of it. one-truth.ts
+ * right both times. What was wrong was the query in front of it. one-truth.test.ts
  * asserts the two REACH the same conclusion given the same input; this asserts
  * they are actually GIVEN the same input.
  *

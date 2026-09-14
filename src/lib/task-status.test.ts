@@ -95,7 +95,24 @@ describe("score treatment", () => {
     expect(scoreCreditFor(task({ status: "done" }))).toBe(1);
     expect(scoreCreditFor(task({ status: "in_progress" }))).toBe(0.5);
     expect(scoreCreditFor(task({ status: "todo" }))).toBe(0);
-    expect(scoreCreditFor(task({ status: "waiting" }))).toBe(0);
+  });
+
+  it("waiting on a third party earns half, as the live score has always given", () => {
+    /*
+     * THIS ASSERTION SAID 0, AND CONTRADICTED THE SHIPPED SCORE.
+     *
+     * scoreCreditFor was exported, documented as the rule and tested, and
+     * called by nothing: computeScore inlined its own copy, which gives
+     * "waiting" half credit. So the tested value and the rendered value
+     * disagreed, and a reader reaching for the named helper would have got the
+     * wrong answer — the STATUTORY_FILINGS and ConfidenceState hazard again.
+     *
+     * Resolved toward what SHIPS, deliberately: nobody's score should move
+     * because a duplicate was removed. A task handed to an accountant is out
+     * of the user's hands and is real progress, which is the reading
+     * computeScore's own comment gives.
+     */
+    expect(scoreCreditFor(task({ status: "waiting" }))).toBe(0.5);
   });
 
   it("a task whose rule no longer applies is out of the score", () => {

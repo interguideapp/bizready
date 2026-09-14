@@ -10,8 +10,8 @@ import { ANSWER_ORDER, PRIORITY_WEIGHT } from "@/lib/types";
 import { interpolateFigures } from "@/lib/content/figures";
 import {
   countsTowardScore,
-  dismissalOf,
   satisfiesDependency,
+  scoreCreditFor,
   type Dismissal,
 } from "@/lib/task-status";
 import {
@@ -374,13 +374,13 @@ export function computeScore(
     if (!template) continue;
 
     const weight = PRIORITY_WEIGHT[template.priority as TaskPriority];
-    // in-flight work earns partial credit; waiting on a third party counts too
-    const credit =
-      task.status === "done" || dismissalOf(task) === "handled_externally"
-        ? 1
-        : task.status === "in_progress" || task.status === "waiting"
-          ? 0.5
-          : 0;
+    // In-flight work earns partial credit; waiting on a third party counts too.
+    //
+    // Through scoreCreditFor, not a copy of it. This expression WAS the copy,
+    // and task-status.ts held an exported, documented, tested version that
+    // disagreed with it about "waiting" — the named helper said none, this
+    // says half, and the one nothing called was the one the tests asserted.
+    const credit = scoreCreditFor(task);
 
     const bucket = perCategory.get(template.category_id) ?? {
       earned: 0,

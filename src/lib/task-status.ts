@@ -112,11 +112,31 @@ export function countsTowardScore(task: DismissibleTask): boolean {
   return dismissalOf(task) !== "not_applicable";
 }
 
-/** Fraction of credit a task earns in the score. */
+/**
+ * Fraction of credit a task earns in the score.
+ *
+ * THIS WAS A DEAD DUPLICATE THAT DISAGREED WITH THE LIVE RULE. It was
+ * exported, documented as the rule, tested — and called by nothing.
+ * computeScore inlined its own copy, and the two differed on "waiting": the
+ * inline copy gives it half credit, this gave it none, and the test asserted
+ * the none. So a tested assertion contradicted shipped behaviour on the
+ * readiness score, and a reader reaching for the named helper would have got
+ * the wrong answer.
+ *
+ * Aligned to what SHIPS rather than to what this said, deliberately: nobody's
+ * score should move because a duplicate was removed. A task handed to an
+ * accountant is out of the user's hands and is real progress, which is the
+ * reading computeScore's own comment gives ("waiting on a third party counts
+ * too") — and the score is a progress metric, not a compliance claim, since
+ * the exposure model became the headline.
+ *
+ * Same shape as STATUTORY_FILINGS and ConfidenceState, each of which was
+ * declared twice here before drifting.
+ */
 export function scoreCreditFor(task: DismissibleTask): number {
   if (task.status === "done") return 1;
   if (dismissalOf(task) === "handled_externally") return 1;
-  if (task.status === "in_progress") return 0.5;
+  if (task.status === "in_progress" || task.status === "waiting") return 0.5;
   return 0;
 }
 

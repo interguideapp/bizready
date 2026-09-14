@@ -3,7 +3,7 @@ import { ArrowLeft, BadgeCheck, ExternalLink, ImageIcon } from "lucide-react";
 import { Card } from "@/components/ui";
 import { LOGO_TEMPLATE_ID } from "@/lib/content";
 import { formatHeDate, formatHeMoment } from "@/lib/dates";
-import { TASK_FORMS, countLabel } from "@/lib/he-distance";
+import { DETAIL_FORMS, TASK_FORMS, countLabel } from "@/lib/he-distance";
 import type { Certificate } from "@/lib/certificate";
 
 /**
@@ -39,10 +39,18 @@ export function BusinessCertificate({
 
   return (
     <Card className="mt-5 p-5">
-      <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
-        <BadgeCheck className="h-4.5 w-4.5 text-brand-500" aria-hidden />
-        מה שכבר הושג
-      </h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 className="flex items-center gap-2 font-bold text-ink">
+          <BadgeCheck className="h-4.5 w-4.5 text-brand-500" aria-hidden />
+          תעודת העסק
+        </h2>
+        {recorded > 0 && (
+          <span className="text-xs text-ink-muted">
+            {/* The count is the progress: the card filling itself up. */}
+            {countLabel(recorded, DETAIL_FORMS) + " נאספו"}
+          </span>
+        )}
+      </div>
       <p className="mb-4 text-sm text-ink-muted">
         {recorded > 0
           ? "כל פרט שרשמתם בסיום משימה — מספרי תיקים, אישורים, כתובות ותאריכים — נאסף לכאן אוטומטית"

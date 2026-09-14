@@ -25,6 +25,51 @@ const cert = (over: Partial<Certificate> = {}): Certificate => ({
   ...over,
 });
 
+describe("the heading", () => {
+  const withRecorded = (recorded: number) =>
+    cert({
+      entries: [
+        {
+          templateId: "t",
+          title: "משימה",
+          categoryId: "c",
+          completedAt: null,
+          items: Array.from({ length: recorded }, (_, i) => ({
+            key: "k" + i,
+            label: "פרט",
+            value: "v",
+            fromSpec: true,
+            live: false,
+          })),
+        },
+      ],
+      recorded,
+    });
+
+  it("counts the artefacts in a form Hebrew uses at one, two and three", () => {
+    for (const [n, expected] of [
+      [1, "פרט אחד נאספו"],
+      [2, "שני פרטים נאספו"],
+      [3, "3 פרטים נאספו"],
+    ] as const) {
+      cleanup();
+      render(<BusinessCertificate certificate={withRecorded(n)} />);
+      const text = document.body.textContent ?? "";
+      expect(text, String(n)).toContain(expected);
+      expect(text, String(n)).not.toMatch(/[12] פרטים/);
+    }
+  });
+
+  it("shows no count when nothing has been recorded", () => {
+    render(
+      <BusinessCertificate
+        certificate={cert({ captureless: [{ templateId: "t", title: "משימה" }] })}
+      />
+    );
+    expect(document.body.textContent).not.toContain("נאספו");
+  });
+});
+
 describe("nothing to show", () => {
   it("renders nothing at all rather than an empty heading", () => {
     const { container } = render(<BusinessCertificate certificate={cert()} />);

@@ -146,3 +146,10 @@ export const TASK_FORMS: CountForms = {
   two: "שתי משימות",
   many: "משימות",
 };
+
+/** Artefacts recorded on the business certificate — "פרט אחד", "23 פרטים". */
+export const DETAIL_FORMS: CountForms = {
+  one: "פרט אחד",
+  two: "שני פרטים",
+  many: "פרטים",
+};

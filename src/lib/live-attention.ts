@@ -1,4 +1,5 @@
 import type { NotificationDraft } from "@/lib/reminders";
+import { DOCUMENT_EXPIRY_HREF, SYNC_ERROR_HREF } from "@/lib/destinations";
 
 /**
  * What needs attention right now, whether or not the nightly sweep ran.
@@ -72,12 +73,15 @@ export function attentionHref(item: {
   if (item.templateId) return `/tasks/${item.templateId}?from=notifications`;
   // A broken sync is fixed on the connection screen, which is also the only
   // place these errors were ever shown.
-  if (item.dedupeKey?.startsWith("sync:")) return "/integrations";
+  if (item.dedupeKey?.startsWith("sync:")) return SYNC_ERROR_HREF;
   // Matched on the dedupe key, not on `key`: a stored row is keyed by its
   // database id, so only a derived item would ever have matched otherwise —
   // and the stored ones are exactly the notifications the cron emailed.
   if (item.dedupeKey?.startsWith("doc-expiry:") || item.dedupeKey?.startsWith("doc-expired:")) {
-    return "/documents";
+    // The same constant the obligations board uses for the same item. It was
+    // the board that had no destination for an expiry while this one did, so
+    // the answer is shared rather than written twice.
+    return DOCUMENT_EXPIRY_HREF;
   }
   return null;
 }

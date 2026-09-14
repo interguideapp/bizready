@@ -16,6 +16,7 @@ import {
 import { MarkPeriodFiled } from "@/components/mark-period-filed";
 import { Card, InfoPopover } from "@/components/ui";
 import type { Obligation, ObligationKind } from "@/lib/compliance";
+import { DOCUMENT_EXPIRY_HREF } from "@/lib/destinations";
 
 /**
  * The obligations board, as presentation.
@@ -39,6 +40,22 @@ const KIND_META: Record<ObligationKind, { label: string; icon: React.ReactNode }
   renewal: { label: "חידוש", icon: <RefreshCw className="h-4 w-4" aria-hidden /> },
   document_expiry: { label: "תפוגת מסמך", icon: <FileClock className="h-4 w-4" aria-hidden /> },
 };
+
+/**
+ * Where a board row leads.
+ *
+ * Deliberately the same two answers the alerts list gives (lib/live-attention
+ * hrefFor): a task, or /documents for an expiry. Anything else has genuinely
+ * nowhere to go and stays plain rather than pretending to be a link.
+ */
+function rowHref(ob: Obligation): string | null {
+  if (ob.templateId) return `/tasks/${ob.templateId}?from=calendar`;
+  // Plain "/documents", byte-identical to what the alerts list produces:
+  // that page reads no searchParams at all, so a ?from= would be noise that
+  // makes one destination look like two.
+  if (ob.kind === "document_expiry") return DOCUMENT_EXPIRY_HREF;
+  return null;
+}
 
 export function ObligationRow({
   ob,
@@ -80,11 +97,17 @@ export function ObligationRow({
               is late offered no way to go and do it — you had to find the task
               yourself in a different list. /insights already linked its rows
               this way; the board, which is the page that matters most, did not.
-              An expiry has no task, so that row stays plain rather than
-              pretending to be a link. */}
-          {ob.templateId ? (
+
+              A DOCUMENT EXPIRY HAS SOMEWHERE TO GO TOO, and this said it did
+              not: "an expiry has no task, so that row stays plain". True about
+              tasks and wrong about acting — an expiring insurance certificate
+              is replaced on /documents, which is exactly where the alerts list
+              has routed doc-expiry items all along. So the row telling you
+              your cover lapses in five days was the one row on this board that
+              led nowhere, while the same item one screen over was a link. */}
+          {rowHref(ob) ? (
             <Link
-              href={`/tasks/${ob.templateId}?from=calendar`}
+              href={rowHref(ob)!}
               className="text-sm font-medium leading-snug text-ink hover:text-brand-strong hover:underline"
             >
               {ob.title}

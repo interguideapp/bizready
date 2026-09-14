@@ -197,9 +197,24 @@ describe("the board leads somewhere", () => {
     expect(link.getAttribute("href")).toBe("/tasks/vat-reporting?from=calendar");
   });
 
-  it("does not pretend an expiry is a link when it has no task", () => {
-    // A document expiry comes from the archive, not from a task.
-    render(<ObligationRow ob={ob({ templateId: null, kind: "document_expiry" })} />);
+  it("does not pretend a row is a link when it has nowhere to go", () => {
+    /*
+     * THIS USED TO SAY "an expiry is not a link", and that was the narrower
+     * decision, deliberately made and deliberately tested. It is superseded,
+     * and the reason it existed is kept.
+     *
+     * The old reasoning was "a document expiry comes from the archive, not
+     * from a task" — true, and it answered the wrong question. An expiring
+     * insurance certificate is REPLACED on /documents, which is exactly where
+     * the alerts list has routed doc-expiry items all along. So the row
+     * warning that cover lapses in five days was the one row on this board
+     * that led nowhere, while the same item one screen over was actionable.
+     *
+     * What survives is the principle: a link that goes nowhere useful is worse
+     * than no link, because it teaches the reader that rows here are not worth
+     * pressing. A kind with no task AND no screen to act on stays plain.
+     */
+    render(<ObligationRow ob={ob({ templateId: null, kind: "renewal" })} />);
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByText('דיווח מע״מ תקופתי')).toBeDefined();
   });
@@ -419,5 +434,55 @@ describe("duties we decline to date, because the user set the prerequisite aside
   it("disappears when there are none", () => {
     const { container } = render(<BlockedFilingsSection blocked={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe("every row that can be acted on leads somewhere", () => {
+  /**
+   * The board's rows became links because the screen that tells you what is
+   * late offered no way to go and do it. One kind was left out, with a comment
+   * explaining why: "an expiry has no task, so that row stays plain".
+   *
+   * True about tasks, and wrong about acting. An expiring insurance certificate
+   * is replaced on /documents — which is precisely where the alerts list has
+   * routed doc-expiry items all along (lib/live-attention hrefFor). So the row
+   * saying your cover lapses in five days was the one row on this board that
+   * led nowhere, while the same item one screen over was a link.
+   */
+  const expiry = () =>
+    ob({
+      kind: "document_expiry",
+      // A real date from the user own data, which is what renewal means here.
+      basis: "renewal",
+      title: "תעודת ביטוח אחריות מקצועית",
+      templateId: null,
+      periodLabel: null,
+      daysUntil: 5,
+    });
+
+  it("the premise: an expiry really has no task to link to", () => {
+    // Otherwise this whole case would be about the templateId branch.
+    expect(expiry().templateId).toBeNull();
+  });
+
+  it("sends a document expiry to the documents screen", () => {
+    render(<ObligationRow ob={expiry()} />);
+    const link = screen.getByRole("link", { name: /תעודת ביטוח/ });
+    expect(link.getAttribute("href")).toBe("/documents");
+  });
+
+  it("still sends a filing to its task", () => {
+    render(<ObligationRow ob={ob({ daysUntil: 3 })} />);
+    const link = screen.getByRole("link", { name: /דיווח מע״מ תקופתי/ });
+    expect(link.getAttribute("href")).toBe("/tasks/vat-reporting?from=calendar");
+  });
+
+  it("leaves a row with genuinely nowhere to go as plain text", () => {
+    // A link that goes nowhere useful is worse than no link: it teaches the
+    // reader that rows on this screen are not worth pressing.
+    render(
+      <ObligationRow ob={ob({ kind: "renewal", templateId: null, title: "חידוש כלשהו" })} />
+    );
+    expect(screen.queryByRole("link", { name: /חידוש כלשהו/ })).toBeNull();
   });
 });

@@ -21,6 +21,41 @@ const ymd = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+/**
+ * Calendar days from now to a date-only ISO string. Negative when past.
+ *
+ * ONE DEFINITION, because this is the calculation the whole product turns on
+ * -- "is this late?" -- and it was written out twice, byte-identical, in
+ * compliance.ts and reminders.ts. The two modules that must never disagree
+ * about lateness each held their own copy, so a single edit to either would
+ * have made the board and the sweep answer differently for the same filing,
+ * silently, with every test still passing.
+ *
+ * They had not drifted, which is the only reason this is a consolidation and
+ * not a bug report: STATUTORY_FILINGS, ConfidenceState and the score credit
+ * rule were each declared twice here too, and the third of those HAD drifted.
+ *
+ * Both copies anchored at UTC midnight and compared against Israel's calendar
+ * day, which is the correct contract and is kept exactly: a date-only string
+ * carries no zone, and the day it is late relative to is Israel's.
+ */
+export function daysUntilInIsrael(fromIso: string, now: Date = new Date()): number {
+  // Midday on BOTH sides, not midnight.
+  //
+  // The two copies this replaces used midnight, and numerically it makes no
+  // difference: both operands are built from a date string at a fixed UTC
+  // time, so the gap is an exact multiple of a day either way, and no DST
+  // shift can enter. Midday is used because this file bans the
+  // slice + "T00:00:00Z" shape outright -- that instant falls on the previous
+  // day for every negative offset, which is a real defect on the DISPLAY path
+  // in the same module. Satisfying the ban rather than carving an exception
+  // into it keeps the ban blanket, and a blanket ban is the one that still
+  // works on the next person's edit.
+  const from = new Date(fromIso.slice(0, 10) + "T12:00:00Z");
+  const today = new Date(todayInIsrael(now) + "T12:00:00Z");
+  return Math.round((from.getTime() - today.getTime()) / 86_400_000);
+}
+
 /** Today in Israel, as `yyyy-mm-dd`. */
 export function todayInIsrael(now: Date = new Date()): string {
   return ymd.format(now);

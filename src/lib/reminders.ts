@@ -1,4 +1,4 @@
-import { todayInIsrael } from "@/lib/dates";
+import { daysUntilInIsrael } from "@/lib/dates";
 import {
   isStatutoryFiling,
   REMINDER_WINDOWS_FREE,
@@ -87,10 +87,9 @@ function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Delegates to lib/dates -- see the note there on why there was a second copy. */
 function daysBetween(fromIso: string, to: Date): number {
-  const from = new Date(fromIso + "T00:00:00Z");
-  const toMid = new Date(todayInIsrael(to) + "T00:00:00Z");
-  return Math.round((from.getTime() - toMid.getTime()) / 86_400_000);
+  return daysUntilInIsrael(fromIso, to);
 }
 
 function addRecurrence(fromIso: string, recurrence: Recurrence): string {

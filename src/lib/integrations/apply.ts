@@ -1,4 +1,5 @@
 import { YEARLY_FIGURES } from "@/lib/types";
+import { israelParts, todayInIsrael } from "@/lib/dates";
 import type { IntegrationCategory, NormalizedBatch } from "./types";
 
 /**
@@ -70,9 +71,27 @@ const VERIFY_BY_CATEGORY: Partial<Record<IntegrationCategory, string>> = {
 const ALLOCATION_START = "2026-06-01";
 const CEILING_THRESHOLDS = [80, 95, 100] as const;
 
-function isoDay(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
+/*
+ * THE UTC DAY OF AN INSTANT -- the A10 pattern this product removed everywhere
+ * else, still live on the revenue WRITE path.
+ *
+ * isoDay was d.toISOString().slice(0, 10), and "today" here is a real instant.
+ * Israel is UTC+2/+3, so from Israeli midnight until 02:00/03:00 the UTC date
+ * is still yesterday. What that stamped:
+ *
+ *   metric_date for any synced document, lead or order carrying no date of its
+ *   own -- so revenue landed on the previous day, and across a month boundary
+ *   in the previous MONTH, feeding the twelve-month chart and the osek patur
+ *   ceiling. The READ side of that same figure was corrected earlier today;
+ *   this is the write side of it.
+ *
+ *   the year the ceiling is summed over, and its notification dedupe key
+ *   (ceiling:<year>:<threshold>) -- so the first sync after Israeli new year
+ *   would both sum against the old year and reuse the old year's key.
+ *
+ * todayInIsrael and israelParts exist for exactly this, and the local helper
+ * was a second answer to "what day is it" that did not consult them.
+ */
 
 export function applyBatch(input: ApplyInput): ApplyOutput {
   const { connection, batch, business, tasks, today } = input;
@@ -83,8 +102,8 @@ export function applyBatch(input: ApplyInput): ApplyOutput {
     notifications: [],
     complianceErrors: [],
   };
-  const todayIso = isoDay(today);
-  const year = today.getUTCFullYear();
+  const todayIso = todayInIsrael(today);
+  const year = israelParts(today).year;
 
   // ---- 1. connection presence verifies the matching task ----
   const openTask = (templateId: string) =>

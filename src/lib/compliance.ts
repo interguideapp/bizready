@@ -1,4 +1,4 @@
-import { todayInIsrael, israelParts } from "@/lib/dates";
+import { daysUntilInIsrael, israelParts, todayInIsrael } from "@/lib/dates";
 import { openRenewalOf } from "@/lib/renewals";
 import {
   dismissalOf,
@@ -138,10 +138,13 @@ function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Delegates to lib/dates. This was one of two byte-identical copies -- the
+ * other in reminders.ts -- of the calculation the product turns on. The board
+ * and the sweep must never disagree about lateness, and each held its own.
+ */
 function daysBetween(fromIso: string, today: Date): number {
-  const from = new Date(fromIso + "T00:00:00Z");
-  const todayMid = new Date(todayInIsrael(today) + "T00:00:00Z");
-  return Math.round((from.getTime() - todayMid.getTime()) / 86_400_000);
+  return daysUntilInIsrael(fromIso, today);
 }
 
 const HE_MONTHS = [

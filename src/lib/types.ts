@@ -313,7 +313,11 @@ export const DEFAULT_COMPLETION: CompletionSpec = {
   fields: [
     {
       key: "note",
-      label: "מה עשית בפועל? (משפט קצר — יישמר ביומן)",
+      // Short enough to stand as a label on the certificate, which renders
+      // stored answers under the question they were asked. The parenthetical
+      // that used to live here — "משפט קצר — יישמר ביומן" — was guidance for
+      // the input, not a name for the value.
+      label: "מה עשית בפועל?",
       placeholder: "למשל: נרשמתי אונליין וקיבלתי אישור במייל",
       required: true,
     },

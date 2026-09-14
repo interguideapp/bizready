@@ -1,4 +1,4 @@
-import { completionSpecOf } from "@/lib/types";
+import { DEFAULT_COMPLETION, completionSpecOf } from "@/lib/types";
 import type { BusinessField, CompletionField, TaskTemplate } from "@/lib/types";
 
 /**
@@ -124,12 +124,29 @@ export function buildCertificate(
     const template = templates.get(task.template_id);
     if (!template) continue;
 
-    // completionSpecOf, not template.completion: a template with no bespoke
-    // spec still asks for the DEFAULT_COMPLETION note, and reading the raw
-    // field would print that answer under the label "note".
-    const spec = new Map(
-      (completionSpecOf(template).fields ?? []).map((f) => [f.key, f])
-    );
+    // completionSpecOf, not the raw field: a template with no bespoke spec
+    // still asks for the DEFAULT_COMPLETION note, and reading the raw field
+    // would print that answer under the label "note".
+    const own = completionSpecOf(template).fields ?? [];
+    const spec = new Map(own.map((f) => [f.key, f]));
+
+    // THE QUESTION THEY WERE ACTUALLY ASKED, even after the spec changed.
+    //
+    // Forty templates used to have no spec of their own, so what people
+    // answered for them is stored under DEFAULT_COMPLETION's `note` key. Giving
+    // those templates real fields made every one of those answers an
+    // unrecognised key — and the live row for business-name-check, the only
+    // artefact in the database at the time, came out labelled `note`. Adding
+    // the fields fixed the future and broke the past.
+    //
+    // So the default spec stands behind the template's own: a key the template
+    // no longer asks for is still looked up there before falling back to
+    // printing the key itself. Only as a fallback, never overriding, and
+    // `order` below holds the template's own keys alone, so a historical
+    // answer sorts after the fields asked for today.
+    for (const f of DEFAULT_COMPLETION.fields ?? []) {
+      if (!spec.has(f.key)) spec.set(f.key, f);
+    }
     const data = task.completion_data ?? {};
     const items: CertificateItem[] = [];
 
@@ -169,8 +186,10 @@ export function buildCertificate(
       continue;
     }
 
-    // Spec order first, so a task's artefacts read in the order they were
-    // asked for; anything unrecognised trails behind it.
+    // The order the fields were asked in — and since the map is built
+    // own-fields-first, then the default's, then nothing, a value reads in
+    // that order too: what this task asks for today, then an answer to the
+    // generic question it used to ask, then a key nothing recognises at all.
     const order = [...spec.keys()];
     items.sort((a, b) => {
       const ai = order.indexOf(a.key);

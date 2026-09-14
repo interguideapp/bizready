@@ -299,6 +299,85 @@ describe("the fallback question is resolved the way the flow resolves it", () =>
   });
 });
 
+/**
+ * ADDING THE FIELDS FIXED THE FUTURE AND BROKE THE PAST.
+ *
+ * Forty templates had no spec of their own, so what people answered for them
+ * is stored under DEFAULT_COMPLETION's `note` key. Giving those templates real
+ * fields turned every one of those answers into an unrecognised key — measured
+ * against the live database, the only artefact recorded at that point was
+ * business-name-check's note, and it came out on the certificate labelled
+ * `note`.
+ *
+ * The default spec therefore stands BEHIND the template's own, never over it.
+ */
+describe("an answer given before the spec changed keeps its question", () => {
+  const templates = new Map([
+    [
+      "t1",
+      template({
+        completion: {
+          confirm: "c",
+          fields: [{ key: "chosen_name", label: "השם שנבחר לעסק", required: true }],
+        },
+      }),
+    ],
+  ]);
+
+  it("labels an old note with the question it was asked, not with the key", () => {
+    const cert = buildCertificate(
+      [task({ completion_data: { note: "בדקתי אונליין" } })],
+      templates
+    );
+    const item = cert.entries[0].items[0];
+    expect(item.value).toBe("בדקתי אונליין");
+    expect(item.label).toBe(completionSpecOf({}).fields![0].label);
+    expect(item.label).not.toBe("note");
+    expect(item.fromSpec).toBe(true);
+  });
+
+  it("reads after today's fields, and before a key nothing recognises", () => {
+    // Keys chosen so alphabetical order is the WRONG answer in every
+    // position: sorted by name this reads aa_unknown, note, trademark. An
+    // earlier fixture used keys whose alphabetical order happened to match
+    // the intended one, so dropping the spec ordering entirely still passed.
+    const byKeyIsWrong = new Map([
+      [
+        "t1",
+        template({
+          completion: { confirm: "c", fields: [{ key: "trademark", label: "מספר סימן מסחר" }] },
+        }),
+      ],
+    ]);
+    const cert = buildCertificate(
+      [
+        task({
+          completion_data: { aa_unknown: "?", note: "היסטוריה", trademark: "123456" },
+        }),
+      ],
+      byKeyIsWrong
+    );
+    expect(cert.entries[0].items.map((i) => i.key)).toEqual([
+      "trademark",
+      "note",
+      "aa_unknown",
+    ]);
+  });
+
+  it("does not let the default override a key the template itself declares", () => {
+    const shadowing = new Map([
+      [
+        "t1",
+        template({
+          completion: { confirm: "c", fields: [{ key: "note", label: "מה נרשם ביומן הספירה" }] },
+        }),
+      ],
+    ]);
+    const cert = buildCertificate([task({ completion_data: { note: "42 יחידות" } })], shadowing);
+    expect(cert.entries[0].items[0].label).toBe("מה נרשם ביומן הספירה");
+  });
+});
+
 describe("a stored key the spec no longer asks for is shown, not hidden", () => {
   const templates = new Map([
     [

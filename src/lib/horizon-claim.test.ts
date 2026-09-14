@@ -105,14 +105,40 @@ describe("the empty state says it", () => {
     .join("\n");
 
   it("scopes the claim rather than asserting nothing is approaching", () => {
-    expect(shipped).toContain("horizonLabel(");
+    /*
+     * The sentence moved into lib/alert-horizon.ts and this assertion failed,
+     * which is the point of a source-level guard. What it protects is
+     * unchanged: the claim must name a horizon rather than assert a general
+     * all-clear.
+     *
+     * Why it moved: naming ONE horizon was itself false on Pro. The
+     * escalation had been narrowed by kind — statutory filings and expiries
+     * keep 30/14/7/1, a recommendation gets a single nudge at seven days —
+     * so "אין דדליין בחודש הקרוב" was said to Pro users who had a recommended
+     * task twenty days out. A false all-clear produced by the fix for a
+     * different problem, in the copy this very test was written to correct.
+     */
+    expect(shipped).toContain("horizonSentence(");
     expect(shipped).not.toContain("אין דדליין מתקרב");
   });
 
-  it("derives the horizon from the tier's own windows", () => {
-    // Hardcoding 7 or 30 here would drift from the windows the engine uses.
-    expect(shipped).toContain("isPro(business) ? REMINDER_WINDOWS_PRO : REMINDER_WINDOWS_FREE");
-    expect(shipped).toContain("Math.max(...windows)");
+  it("derives the horizon from the engine's windows, not from a literal", () => {
+    // Hardcoding 7 or 30 anywhere would drift from the windows the engine
+    // uses. alert-horizon.ts reads the constants; the page reads that.
+    const horizon = readFileSync(
+      join(process.cwd(), "src/lib/alert-horizon.ts"),
+      "utf8"
+    );
+    expect(horizon).toContain("REMINDER_WINDOWS_PRO");
+    expect(horizon).toContain("REMINDER_WINDOWS_FREE");
+    expect(horizon).toContain("REMINDER_WINDOWS_RECOMMENDED");
+    expect(shipped).toContain("alertHorizon(isPro(business))");
+  });
+
+  it("does not name a single horizon, which was the over-promise", () => {
+    // Pro's statutory horizon applied to recommendations is the exact claim
+    // that was false.
+    expect(shipped).not.toContain("Math.max(...windows)");
   });
 
   it("points at the surface that does show everything dated", () => {

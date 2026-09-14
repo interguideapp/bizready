@@ -10,8 +10,7 @@ import { deliveryFault, deliveryIsDown, loadDeliveryHealth } from "@/lib/deliver
 import { ChannelsOffNotice } from "@/components/channels-off-notice";
 import { NOTIFICATIONS_PAGE_SIZE } from "@/lib/data";
 import { isPro } from "@/lib/subscription";
-import { REMINDER_WINDOWS_FREE, REMINDER_WINDOWS_PRO } from "@/lib/compliance";
-import { horizonLabel } from "@/lib/he-distance";
+import { alertHorizon, horizonSentence } from "@/lib/alert-horizon";
 
 /**
  * התראות — derived live, not just read back.
@@ -49,8 +48,7 @@ export default async function NotificationsPage() {
    * for. A9 and A2 in one sentence, on the screen whose entire job is that
    * nothing gets missed.
    */
-  const windows = isPro(business) ? REMINDER_WINDOWS_PRO : REMINDER_WINDOWS_FREE;
-  const horizon = Math.max(...windows);
+  const horizon = alertHorizon(isPro(business));
 
   return (
     <div>
@@ -97,7 +95,7 @@ export default async function NotificationsPage() {
           <EmptyState
             icon={<BellOff className="h-6 w-6" aria-hidden />}
             title="אין כרגע מה לטפל"
-            subtitle={`בדקנו את המשימות שלכם עכשיו — אין דדליין ${horizonLabel(
+            subtitle={`בדקנו את המשימות שלכם עכשיו — ${horizonSentence(
               horizon
             )}, אין איחור ואין תקופת דיווח חדשה. מה שרחוק יותר מופיע בלוח החובות לפי תאריך, ונעדכן אותך כאן ברגע שיתקרב.`}
           />

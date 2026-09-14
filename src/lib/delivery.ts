@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getBusinessContext } from "@/lib/data";
 import { allSweepHealth, jobIsDown, type SweepHealth, type SweepJob } from "@/lib/heartbeat";
 import {
   anyOutboundChannel,
@@ -89,9 +90,21 @@ export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Pro
 });
 
 /**
- * The business's own notification settings, read under the user's session.
+ * The business's own notification settings — for the business the PAGE is
+ * showing, which is the part worth being careful about.
  *
- * RLS scopes this to businesses the caller may see, so no tenant needs naming.
+ * My first version selected from businesses with .limit(1), and that was a
+ * second source of truth for "which business is this". getBusinessContext
+ * resolves it in a defined order (owned first, then the earliest accepted
+ * membership), and RLS lets a collaborator read more than one row — so an
+ * accountant who also owns a business could have been shown one business's
+ * obligations beside the other's delivery state. The exact class of split this
+ * whole codebase has been consolidating.
+ *
+ * It is also cheaper: getBusinessContext is request-cached and selects *, so
+ * the four preference columns are already in hand and this adds no query at
+ * all in the common case.
+ *
  * Returns null on any failure — an unreadable answer is reported as unknown
  * rather than guessed, because both guesses are harmful: "reachable" restores
  * the false promise this layer exists to remove, and "unreachable" tells
@@ -101,28 +114,32 @@ async function loadReach(
   supabase: Awaited<ReturnType<typeof createClient>>,
   channels: OutboundChannels
 ): Promise<ChannelReach | null> {
-  const { data, error } = await supabase
-    .from("businesses")
-    .select("id, notify_email, notify_push, notify_whatsapp, whatsapp_phone")
-    .limit(1)
-    .maybeSingle();
-  if (error || !data) return null;
+  // getBusinessContext throws on a degraded read (critical()), which must not
+  // take down the page it is only annotating.
+  let context: Awaited<ReturnType<typeof getBusinessContext>> = null;
+  try {
+    context = await getBusinessContext();
+  } catch {
+    return null;
+  }
+  if (!context) return null;
+  const business = context.business;
   // Only asked when it can change the answer: with push unconfigured or
   // switched off, the device count cannot make push reachable.
   let pushDevices = 0;
-  if (channels.push && data.notify_push) {
+  if (channels.push && business.notify_push) {
     const { count, error: countError } = await supabase
       .from("push_subscriptions")
       .select("id", { count: "exact", head: true })
-      .eq("business_id", data.id);
+      .eq("business_id", business.id);
     if (countError) return null;
     pushDevices = count ?? 0;
   }
   return reachableChannels(channels, {
-    notifyEmail: Boolean(data.notify_email),
-    notifyPush: Boolean(data.notify_push),
-    notifyWhatsapp: Boolean(data.notify_whatsapp),
-    hasWhatsappPhone: Boolean(data.whatsapp_phone),
+    notifyEmail: Boolean(business.notify_email),
+    notifyPush: Boolean(business.notify_push),
+    notifyWhatsapp: Boolean(business.notify_whatsapp),
+    hasWhatsappPhone: Boolean(business.whatsapp_phone),
     pushDevices,
   });
 }

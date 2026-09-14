@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   anyOutboundChannel,
@@ -160,5 +162,41 @@ describe("a business that IS reachable still gets the promise", () => {
     };
     expect(remindersWillReach(health)).toBe(true);
     expect(deliveryFault(health)).toBe("none");
+  });
+});
+
+describe("reach is read for the business the page is showing", () => {
+  /**
+   * A SPLIT I INTRODUCED IN THE FIX FOR A SPLIT.
+   *
+   * loadReach first selected from businesses with .limit(1) — a second
+   * answer to "which business is this". getBusinessContext resolves it in a
+   * defined order (owned row first, then the earliest accepted membership),
+   * and RLS lets a collaborator read more than one row, so an accountant who
+   * also owns a business could have been shown one business's obligations
+   * beside the other's delivery state.
+   *
+   * Asserted at the source: no runtime observation available here can tell
+   * the two rows apart, and the whole session's lesson is that a guard which
+   * cannot see the defect certifies it.
+   */
+  it("resolves the business through the one authority, not its own query", () => {
+    const src = readFileSync(join(process.cwd(), "src/lib/delivery.ts"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("//"))
+      .join("\n");
+    expect(src).toContain("getBusinessContext()");
+    // The shape that made it a second source of truth.
+    expect(src).not.toContain('.from("businesses")');
+  });
+
+  it("still survives a degraded business read without taking the page down", () => {
+    // getBusinessContext throws on a degraded read by design (critical()).
+    // A monitoring annotation must never be the thing that 500s a page.
+    const src = readFileSync(join(process.cwd(), "src/lib/delivery.ts"), "utf8");
+    const at = src.indexOf("async function loadReach");
+    expect(at).toBeGreaterThan(-1);
+    expect(src.slice(at, src.indexOf("\nexport", at) === -1 ? undefined : src.indexOf("\nexport", at))).toContain("catch");
   });
 });

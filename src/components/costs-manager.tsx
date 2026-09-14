@@ -7,7 +7,7 @@ import { toast } from "@/components/toaster";
 import { Button, Card } from "@/components/ui";
 import { Table } from "@/components/table";
 import { CADENCE_LABEL, monthlyTotal, annualTotal, type CostRow, type Cadence } from "@/lib/costs";
-import { formatIlsRounded } from "@/lib/money";
+import { formatIlsRounded, parseIls } from "@/lib/money";
 
 // One formatter for the whole app — see lib/money.ts. Rounded here because
 // these are aggregates and chart labels, where agorot are noise.
@@ -43,8 +43,10 @@ export function CostsManager({
   function add(e: React.FormEvent) {
     e.preventDefault();
     const n = name.trim();
-    const a = Number(amount);
-    if (!n || !a) return;
+    // A pasted "₪1,200" was NaN to Number and fell into the !a guard, so the
+    // form refused a perfectly good amount and said nothing about why.
+    const a = parseIls(amount);
+    if (!n || a === null || a <= 0) return;
     startTransition(async () => {
       try {
         await addCost({ name: n, amount: a, cadence });

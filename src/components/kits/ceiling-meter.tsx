@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, TrendingUp } from "lucide-react";
-import { formatIls as nis } from "@/lib/money";
+import { formatIls as nis, parseIls } from "@/lib/money";
 
 /**
  * Live עוסק-פטור ceiling tracker. The user enters turnover so far this year and
@@ -14,7 +14,28 @@ export function CeilingMeter({ ceiling }: { ceiling: number }) {
   const [turnover, setTurnover] = useState<string>("");
   const [months, setMonths] = useState<number>(new Date().getMonth() + 1);
 
-  const t = Number(turnover) || 0;
+  /*
+   * parseIls, NOT Number() -- and this is the field where it matters most.
+   *
+   * Number("122,000") is NaN, and "|| 0" turned that into ZERO. So a user who
+   * typed their turnover the way Hebrew writes it, with a thousands separator
+   * -- the way this very component RENDERS money two lines below, via
+   * formatIls -- saw the meter read 0%, green, "safe", while standing ₪833
+   * from the ceiling.
+   *
+   * That is the dangerous direction, and this codebase says so elsewhere in
+   * as many words: understating the ceiling tells someone they have room when
+   * they have crossed the line. parseIls exists for exactly this and was
+   * called by nothing.
+   *
+   * The empty field and an unparseable one are kept apart. Empty is the
+   * starting state and means nothing yet; unparseable means the person typed
+   * something and we could not read it, which has to be said rather than
+   * shown as zero.
+   */
+  const parsed = parseIls(turnover);
+  const unreadable = turnover.trim() !== "" && parsed === null;
+  const t = parsed ?? 0;
   // The true percentage, uncapped. The old Math.min(999, …) was a clamp
   // showing through to the user, and it sat beside a bar capped at 100% — so
   // the label and the bar told different stories about the same number.
@@ -49,14 +70,31 @@ export function CeilingMeter({ ceiling }: { ceiling: number }) {
           <span className="mb-1 block text-sm font-medium text-ink-soft">
             מחזור מצטבר השנה (₪)
           </span>
+          {/* TEXT, not number.
+              type="number" makes the browser itself blank a value containing a
+              thousands separator, so "122,000" arrived here as "" and the
+              meter read 0% — the same wrong answer parseIls was added to
+              prevent, reached by a different route. A field that silently
+              discards what a person typed is worse than one that reads it and
+              says it cannot. */}
           <input
-            type="number"
-            inputMode="numeric"
+            type="text"
+            inputMode="decimal"
             value={turnover}
             onChange={(e) => setTurnover(e.target.value)}
-            placeholder="למשל 45000"
+            placeholder="למשל 45,000"
+            aria-invalid={unreadable || undefined}
+            aria-describedby={unreadable ? "ceiling-turnover-error" : undefined}
             className="w-full rounded-xl border border-edge bg-card px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
           />
+          {unreadable && (
+            <p
+              id="ceiling-turnover-error"
+              className="mt-1 text-xs text-status-overdue"
+            >
+              לא הצלחנו לקרוא את הסכום. אפשר לכתוב 45000 או 45,000 — עם ₪ או בלי.
+            </p>
+          )}
         </label>
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink-soft">

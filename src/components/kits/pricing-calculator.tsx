@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Calculator } from "lucide-react";
-import { formatIlsRounded } from "@/lib/money";
+import { formatIlsRounded, parseIls } from "@/lib/money";
 
 /**
  * A real pricing tool: from monthly costs, the take-home you want, billable
@@ -16,10 +16,14 @@ export function PricingCalculator() {
   const [hours, setHours] = useState("");
   const [taxPct, setTaxPct] = useState("25");
 
-  const c = Number(costs) || 0;
-  const s = Number(salary) || 0;
-  const h = Number(hours) || 0;
-  const tax = Math.min(60, Math.max(0, Number(taxPct) || 0));
+  // parseIls rather than Number(): a pasted "12,000" is NaN to Number and
+  // became 0 here, silently pricing the work as if the cost were nothing.
+  // Hours and the tax percentage are plain numbers, but they get the same
+  // treatment so one paste cannot read as zero either.
+  const c = parseIls(costs) ?? 0;
+  const s = parseIls(salary) ?? 0;
+  const h = parseIls(hours) ?? 0;
+  const tax = Math.min(60, Math.max(0, parseIls(taxPct) ?? 0));
 
   // gross needed = (costs + desired take-home) grossed up for tax; then / hours
   const grossMonthly = h > 0 ? (c + s) / (1 - tax / 100) : 0;

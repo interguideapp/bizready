@@ -125,12 +125,19 @@ describe("nothing new promises a send without a condition", () => {
    * blanket entry was protecting nothing and hiding everything.
    */
   const ALLOWED = new Set([
-    // Describes the outage itself.
+    // Describe the outage itself -- they exist to say a send did NOT happen.
     "src/components/delivery-notice.tsx",
     "src/app/(app)/notifications/sweep-notice.tsx",
     "src/components/admin/sweep-health-panel.tsx",
-    // Opt-in screen, now carries the caveat.
+    // The opt-in screen, which carries the caveat when sending is down.
     "src/app/(app)/settings/notification-prefs.tsx",
+    // Report a send that ALREADY happened, in the past tense, about a
+    // specific action the user just took -- an invitation email, a
+    // marketplace lead, a partner application. Not a standing promise about
+    // deadlines, which is the only kind this file is policing.
+    "src/app/invite/[token]/accept-invite.tsx",
+    "src/components/offer-lead-button.tsx",
+    "src/components/partners/partner-form.tsx",
   ]);
 
   function walk(dir: string): string[] {
@@ -141,14 +148,51 @@ describe("nothing new promises a send without a condition", () => {
     });
   }
 
+  /*
+   * ANY FORM OF THE VERB, because the narrow one caught almost nothing.
+   *
+   * This was /נשלח ל|נשלחות תזכורות|נשלח לך/ -- three exact phrasings. The
+   * copy in the product uses נשלחו (5 times), נשלחה (4) and נשלחות (2), so
+   * two of the four allowlist entries no longer matched their own pattern
+   * and a NEW surface saying נשלחה לך התראה would have passed unflagged.
+   * A net that cannot catch the thing it is for certifies its absence --
+   * the lesson this file's own docstring records, arriving in this file.
+   *
+   * Widening means the list has to name the completed-send surfaces too. That
+   * is the right trade: those are reviewed once and are not promises, while
+   * the net now actually fires on a new claim.
+   */
+  const claim = /נשלח[א-ת]*/;
+
   it("only the reviewed surfaces claim an outbound send", () => {
-    const claim = /נשלח ל|נשלחות תזכורות|נשלח לך/;
     const offenders = walk(join(root, "src"))
       .filter((f) => !/\.test\.tsx$/.test(f))
       .filter((f) => claim.test(stripComments(readFileSync(f, "utf8"))))
       .map((f) => f.slice(root.length + 1).split("\\").join("/"))
       .filter((rel) => !ALLOWED.has(rel));
     expect([...new Set(offenders)]).toEqual([]);
+  });
+
+  it("the list is not stale, so it cannot pass by listing everything", () => {
+    /*
+     * THE SIBLING LIST HAD THIS CHECK AND THIS ONE DID NOT.
+     *
+     * ALLOWED_REMINDS asserts its own freshness, and its comment states the
+     * reason in full: "an allowlist entry for a file that no longer makes
+     * the claim is an exemption sitting ready to hide the next one." The
+     * same argument applies here and the check was simply missing -- so an
+     * exemption could outlive the claim it was written for and silently
+     * cover a new one.
+     *
+     * Both nets are only as good as their lists being live, and this
+     * product's delivery story gained three surfaces today
+     * (ChannelsOffNotice across the board, insights and notifications),
+     * which is exactly when a list goes stale.
+     */
+    const stale = [...ALLOWED].filter(
+      (rel) => !claim.test(stripComments(readFileSync(join(root, rel), "utf8")))
+    );
+    expect(stale).toEqual([]);
   });
 });
 

@@ -141,9 +141,9 @@ export function buildCertificate(
     //
     // So the default spec stands behind the template's own: a key the template
     // no longer asks for is still looked up there before falling back to
-    // printing the key itself. Only as a fallback, never overriding, and
-    // `order` below holds the template's own keys alone, so a historical
-    // answer sorts after the fields asked for today.
+    // printing the key itself. Only as a fallback, never overriding — and
+    // appended AFTER the own fields, which is what makes a historical answer
+    // sort behind the fields asked for today (see `order` below).
     for (const f of DEFAULT_COMPLETION.fields ?? []) {
       if (!spec.has(f.key)) spec.set(f.key, f);
     }

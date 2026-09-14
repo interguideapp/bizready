@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import { lapsedLabel } from "@/lib/he-distance";
+import { formatHeMoment } from "@/lib/dates";
 
 /**
  * What someone sees when their Pro period has ended.
@@ -29,7 +30,7 @@ export function SubscriptionLapsed({
         המנוי הסתיים
       </h2>
       <p className="mb-1 text-sm text-ink">
-        התקופה ששולמה הסתיימה ב־{new Date(untilIso).toLocaleDateString("he-IL")}
+        התקופה ששולמה הסתיימה ב־{formatHeMoment(untilIso)}
         {daysAgo > 0 ? ` (${lapsedLabel(daysAgo)})` : ""}. בדרך כלל הסיבה היא
         חיוב שלא עבר — כרטיס שפג תוקפו או שסירב.
       </p>

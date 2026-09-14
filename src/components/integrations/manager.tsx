@@ -19,6 +19,7 @@ import {
   disconnectConnection,
   syncConnectionNow,
 } from "@/lib/actions";
+import { formatHeMoment } from "@/lib/dates";
 
 export interface ProviderInfo {
   id: string;
@@ -103,7 +104,7 @@ function ConnectionRow({ conn, label }: { conn: ConnectionInfo; label: string })
           </div>
           <p className="tnum mt-0.5 text-xs text-ink-muted">
             {conn.last_sync_at
-              ? `סונכרן: ${new Date(conn.last_sync_at).toLocaleDateString("he-IL")}`
+              ? `סונכרן: ${formatHeMoment(conn.last_sync_at)}`
               : "טרם סונכרן"}
           </p>
           {conn.last_error && <p className="mt-1 text-xs text-status-overdue">{conn.last_error}</p>}

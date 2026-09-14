@@ -5,6 +5,7 @@ import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { resolveSyncError } from "@/lib/integration-actions";
 import { Card } from "@/components/ui";
 import type { SyncErrorRow } from "@/lib/data";
+import { formatHeMomentWithTime } from "@/lib/dates";
 
 const CODE_LABELS: Record<string, string> = {
   missing_allocation: "חסר מספר הקצאה",
@@ -44,7 +45,7 @@ function ErrorRow({ error }: { error: SyncErrorRow }) {
         </p>
         <p className="text-xs text-ink-muted">{error.message}</p>
         <p className="mt-0.5 text-xs text-ink-faint">
-          {new Date(error.occurred_at).toLocaleString("he-IL")}
+          {formatHeMomentWithTime(error.occurred_at)}
         </p>
       </div>
       <button

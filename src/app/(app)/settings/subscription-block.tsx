@@ -6,6 +6,7 @@ import { cancelPro } from "@/lib/actions";
 import { Card } from "@/components/ui";
 import { aheadLabel } from "@/lib/he-distance";
 import type { SubscriptionState } from "@/lib/subscription";
+import { formatHeMoment } from "@/lib/dates";
 
 export function SubscriptionBlock({
   until,
@@ -39,7 +40,7 @@ export function SubscriptionBlock({
           so this says only what is true of both.
         */}
         {until &&
-          ` התקופה הנוכחית בתוקף עד ${new Date(until).toLocaleDateString("he-IL")}.`}
+          ` התקופה הנוכחית בתוקף עד ${formatHeMoment(until)}.`}
       </p>
       {endingSoon && daysLeft !== null && (
         /*

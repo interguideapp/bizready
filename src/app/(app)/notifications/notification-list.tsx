@@ -6,6 +6,7 @@ import { AlertTriangle, CalendarClock, Check, RefreshCw } from "lucide-react";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/actions";
 import { Card } from "@/components/ui";
 import { attentionHref, type AttentionItem } from "@/lib/live-attention";
+import { formatHeMomentLongMonth } from "@/lib/dates";
 
 const ICONS: Record<string, React.ReactNode> = {
   overdue: <AlertTriangle className="h-5 w-5 text-status-overdue" aria-hidden />,
@@ -92,12 +93,7 @@ function Row({
         <p className="font-medium text-ink">{item.title}</p>
         {item.body && <p className="mt-0.5 text-sm text-ink-muted">{item.body}</p>}
         <p className="mt-1 text-xs text-ink-faint">
-          {item.createdAt
-            ? new Date(item.createdAt).toLocaleDateString("he-IL", {
-                day: "numeric",
-                month: "long",
-              })
-            : "מהבדיקה שעשינו עכשיו"}
+          {item.createdAt ? formatHeMomentLongMonth(item.createdAt) : "מהבדיקה שעשינו עכשיו"}
         </p>
       </div>
       {!item.readAt && (

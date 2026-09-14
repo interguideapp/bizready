@@ -98,3 +98,83 @@ export function formatHeDayMonth(iso: string): string {
   if (Number.isNaN(d.getTime())) return iso;
   return heDayMonth.format(d);
 }
+
+/**
+ * AN INSTANT, rendered as the day it happened IN ISRAEL.
+ *
+ * formatHeDate above fixed the deadlines. It cannot fix these, and using it
+ * here would be worse than the bug: it slices the first ten characters, and
+ * for a timestamptz those ten characters are the UTC calendar day. A task
+ * completed at 2026-09-14T22:30:00Z happened on the 15th in Israel, and
+ * slicing says the 14th.
+ *
+ * What the code did instead was `new Date(iso).toLocaleDateString("he-IL")` —
+ * the instant formatted in whatever zone the RENDERER is in. On a Vercel
+ * server that is UTC, so the same evening action shows as the previous day for
+ * every Israeli user; in a client component it is the viewer's browser, so it
+ * varies by traveller. Sixteen sites did this.
+ *
+ * Where they did it is what makes it matter: completed_at on /tracking,
+ * task_events on the activity trail, filedAt in the filing history, created_at
+ * on documents, the evidence pack's own generation date. The surfaces whose
+ * whole purpose is answering "when did this happen" — and the answer was
+ * wrong for the two to three hours each evening when Israel has already
+ * turned the page. "Filed on the 15th" and "filed on the 14th" is the
+ * difference between on time and late for a filing due on the 15th.
+ *
+ * Takes a full timestamp. Anything unparseable comes back untouched rather
+ * than as "Invalid Date".
+ */
+export function formatHeMoment(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  // heDate carries timeZone: Asia/Jerusalem, so formatting an instant with it
+  // asks the only question worth asking: which Israeli day was that?
+  return heDate.format(d);
+}
+
+const heMomentWithTime = new Intl.DateTimeFormat("he-IL", {
+  timeZone: TZ,
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** An instant with the clock time, in Israel — for logs where the hour matters. */
+export function formatHeMomentWithTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return heMomentWithTime.format(d);
+}
+
+const heMomentDayMonth = new Intl.DateTimeFormat("he-IL", {
+  timeZone: TZ,
+  day: "numeric",
+  month: "numeric",
+});
+
+/** An instant as `15.9` in Israel — for tight rows where the year is obvious. */
+export function formatHeMomentDayMonth(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return heMomentDayMonth.format(d);
+}
+
+const heMomentLongMonth = new Intl.DateTimeFormat("he-IL", {
+  timeZone: TZ,
+  day: "numeric",
+  month: "long",
+});
+
+/** An instant as `15 בספטמבר` in Israel — the alerts list's own form. */
+export function formatHeMomentLongMonth(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return heMomentLongMonth.format(d);
+}

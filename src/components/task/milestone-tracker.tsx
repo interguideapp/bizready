@@ -6,6 +6,7 @@ import { Button } from "@/components/primitives";
 import { advanceStage, revertStage } from "@/lib/actions";
 import type { Stage } from "@/lib/content/milestones";
 import type { TaskView } from "@/lib/task-view";
+import { formatHeDate } from "@/lib/dates";
 
 /**
  * אבני דרך — the task's real position, and the one button that moves it.
@@ -101,7 +102,7 @@ export function MilestoneTracker({
             <p className="mt-1.5 text-xs text-ink-muted">
               נזכיר לכם לבדוק ב-
               <span className="tnum">
-                {new Date(view.followUpDate).toLocaleDateString("he-IL")}
+                {formatHeDate(view.followUpDate)}
               </span>
             </p>
           )}

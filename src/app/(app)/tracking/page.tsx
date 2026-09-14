@@ -13,6 +13,7 @@ import { Card, EmptyState, PageTitle } from "@/components/ui";
 import { TEMPLATES_BY_ID } from "@/lib/content";
 import { requireBusiness, getTaskEvents } from "@/lib/data";
 import type { BusinessTask, TaskStatus } from "@/lib/types";
+import { formatHeMoment, formatHeMomentDayMonth } from "@/lib/dates";
 
 /** Board columns — everything the user is tracking, grouped by state. */
 const COLUMNS: { status: TaskStatus; icon: React.ReactNode; tone: string }[] = [
@@ -109,7 +110,7 @@ export default async function TrackingPage() {
                           {status === "done" && task.completed_at && (
                             <p className="text-xs text-ink-muted">
                               הושלם ב-
-                              {new Date(task.completed_at).toLocaleDateString("he-IL")}
+                              {formatHeMoment(task.completed_at)}
                             </p>
                           )}
                         </div>
@@ -170,10 +171,7 @@ export default async function TrackingPage() {
                     )}
                   </div>
                   <span className="shrink-0 text-xs text-ink-faint">
-                    {new Date(event.created_at).toLocaleDateString("he-IL", {
-                      day: "numeric",
-                      month: "short",
-                    })}
+                    {formatHeMomentDayMonth(event.created_at)}
                   </span>
                 </div>
               );

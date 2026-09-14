@@ -22,6 +22,7 @@ import { getTaskEvents } from "@/lib/data";
 import { ENTITY_LABELS, type OnboardingAnswers } from "@/lib/types";
 import type { PassportData } from "@/lib/documents/passport";
 import { formatIlsRounded } from "@/lib/money";
+import { formatHeMoment } from "@/lib/dates";
 
 // One formatter for the whole app — see lib/money.ts. Rounded here because
 // these are aggregates and chart labels, where agorot are noise.
@@ -143,7 +144,7 @@ export async function loadPassport(): Promise<PassportData | null> {
     entityLabel,
     fieldLabel: business.field ? FIELD_LABELS[business.field] : undefined,
     regStatus,
-    generatedAt: new Date().toLocaleDateString("he-IL"),
+    generatedAt: formatHeMoment(new Date().toISOString()),
     identity,
     levelTitle: level.title,
     levelNumber: level.level,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { formatHeDate, todayInIsrael } from "@/lib/dates";
+import { formatHeDate, formatHeMoment, todayInIsrael } from "@/lib/dates";
 import { ExternalLink, FileText, Link2, Loader2, Trash2 } from "lucide-react";
 import { deleteDocument, updateDocument } from "@/lib/actions";
 import { toast } from "@/components/toaster";
@@ -82,7 +82,7 @@ export function DocumentRowItem({
       <div className="min-w-0 flex-1 basis-full sm:basis-0">
         <p className="truncate text-sm font-medium text-ink">{doc.name}</p>
         <p className="text-xs text-ink-faint">
-          {new Date(doc.created_at).toLocaleDateString("he-IL")}
+          {formatHeMoment(doc.created_at)}
           {/* An EXPIRED document read exactly like a valid one — neutral grey,
               "בתוקף עד 1.6.2026", three months after it stopped being valid.
               The archive is where a user goes to check they are covered, so it

@@ -9,7 +9,7 @@ import { OfferManager } from "@/components/admin/offer-manager";
 import { PublishChange } from "@/components/admin/publish-change";
 import { ReviewQueuePanel } from "@/components/admin/review-queue-panel";
 import { buildReviewQueue, januaryFiguresDue } from "@/lib/content/review-queue";
-import { todayInIsrael } from "@/lib/dates";
+import { formatHeMoment, todayInIsrael } from "@/lib/dates";
 import { cronSecretConfigured } from "@/lib/cron-auth";
 import { allSweepHealth, type SweepJob } from "@/lib/heartbeat";
 import { SweepHealthPanel } from "@/components/admin/sweep-health-panel";
@@ -138,7 +138,7 @@ export default async function AdminPage() {
                   </p>
                 </div>
                 <span className="tnum shrink-0 text-xs text-ink-faint">
-                  {new Date(l.created_at).toLocaleDateString("he-IL", { day: "numeric", month: "short" })}
+                  {formatHeMoment(l.created_at)}
                 </span>
               </div>
             ))}

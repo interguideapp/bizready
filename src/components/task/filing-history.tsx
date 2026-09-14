@@ -1,4 +1,5 @@
 import { CheckCircle2, FileCheck2, Receipt } from "lucide-react";
+import { formatHeMoment } from "@/lib/dates";
 
 /**
  * Which periods were actually filed, and what was paid.
@@ -26,7 +27,7 @@ export interface FilingEntry {
 }
 
 function heDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", { day: "numeric", month: "numeric", year: "numeric" });
+  return formatHeMoment(iso);
 }
 
 /**

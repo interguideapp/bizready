@@ -1,4 +1,4 @@
-import { formatHeDate, formatHeDayMonth, todayInIsrael } from "@/lib/dates";
+import { formatHeDate, formatHeDayMonth, formatHeMomentDayMonth, todayInIsrael } from "@/lib/dates";
 import { looksLikeCatchUpNeeded } from "@/lib/catch-up";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
@@ -51,7 +51,7 @@ function agoPhrase(iso: string, now: Date): string {
   const days = Math.round(hrs / 24);
   if (days === 1) return "אתמול";
   if (days < 7) return `לפני ${days} ימים`;
-  return new Date(iso).toLocaleDateString("he-IL", { day: "numeric", month: "numeric" });
+  return formatHeMomentDayMonth(iso);
 }
 
 const EVENT_VERB: Record<string, { verb: string; icon: string }> = {

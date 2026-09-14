@@ -34,6 +34,7 @@ import { TaskBackLink } from "@/components/task/back-link";
 import { BasisChip, ProvenanceCard } from "@/components/task/provenance";
 import type { TaskView } from "@/lib/task-view";
 import { ArchetypeAction, archetypePrimaryCta } from "@/components/task/archetype-action";
+import { formatHeMoment } from "@/lib/dates";
 
 export type Phase = "understand" | "act" | "finish";
 
@@ -452,7 +453,7 @@ function FinishPhase({
           </dl>
           {view.completedAt && (
             <p className="mt-2 text-xs text-ink-muted">
-              הושלם ב-{new Date(view.completedAt).toLocaleDateString("he-IL")}
+              הושלם ב-{formatHeMoment(view.completedAt)}
             </p>
           )}
         </Card>

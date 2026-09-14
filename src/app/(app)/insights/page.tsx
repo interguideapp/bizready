@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatHeDate, israelParts, todayInIsrael } from "@/lib/dates";
+import { formatHeDate, todayInIsrael } from "@/lib/dates";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { CalendarClock, Info } from "lucide-react";
 import { Card, FadeIn, PageTitle } from "@/components/ui";
@@ -8,6 +8,11 @@ import { TrophyWall } from "@/components/insights/trophy-wall";
 import { FinancePanels } from "@/components/finance/finance-panels";
 import { IncomeLogger } from "@/components/finance/income-logger";
 import { buildIncomeMonths } from "@/lib/finance/income";
+import {
+  currentMonthRevenue,
+  revenueByMonth,
+  trailingMonths,
+} from "@/lib/finance/revenue-months";
 import type { MonthPoint } from "@/components/revenue-chart";
 import { CATEGORIES, TEMPLATES_BY_ID } from "@/lib/content";
 import {
@@ -118,33 +123,25 @@ export default async function InsightsPage() {
   // synced revenue (from an invoicing integration) and hand-logged income are
   // summed — the money picture works whether or not a tool is connected.
   const REVENUE_METRICS = new Set(["revenue", "manual_revenue"]);
-  const revByMonth = new Map<string, number>();
-  let hasSynced = false;
-  for (const m of metrics) {
-    if (!REVENUE_METRICS.has(m.metric)) continue;
-    if (m.metric === "revenue" && m.value > 0) hasSynced = true;
-    // Bucketed by slicing the string, not by parsing it.
-    //
-    // The parse here was local-in, local-out, so it happened to be correct —
-    // but it is one keystroke from the shift that was live elsewhere (parse as
-    // UTC, read in the ambient zone), and revenue landing in the wrong month
-    // feeds the עוסק פטור ceiling. Two lines below, revenueYtd already decides
-    // the year with startsWith, so the string form is this file's own idiom.
-    const key = m.metric_date.slice(0, 7);
-    revByMonth.set(key, (revByMonth.get(key) ?? 0) + m.value);
-  }
-  const monthly: MonthPoint[] = [];
-  // The twelve-month window ends on the ISRAELI month. now.getMonth() is the
-  // server's, and at 01:00 on the 1st in Israel that is still last month, so
-  // the chart would have been labelled a month behind for those hours.
-  const hereNow = israelParts(now);
-  for (let i = 11; i >= 0; i--) {
-    const dt = new Date(Date.UTC(hereNow.year, hereNow.month - i, 1));
-    const year = dt.getUTCFullYear();
-    const month = dt.getUTCMonth();
-    const key = `${year}-${String(month + 1).padStart(2, "0")}`;
-    monthly.push({ year, month, value: revByMonth.get(key) ?? 0 });
-  }
+  const revenueRows = metrics.filter((m) => REVENUE_METRICS.has(m.metric));
+  const hasSynced = metrics.some((m) => m.metric === "revenue" && m.value > 0);
+  /*
+   * Bucketing moved to lib/finance/revenue-months.ts, and not for tidiness.
+   *
+   * This page keyed the map "2026-09" and then looked the current month up as
+   * "2026-8" — 0-based, unpadded, and off the SERVER's clock rather than
+   * Israel's. It matched nothing, in any month, in any timezone, so
+   * latestMonthRevenue was permanently 0; the finance panel renders that as
+   * "מחזור החודש" and subtracts the fixed costs from it for "נטו משוער", so a
+   * business with revenue was shown no turnover and a red net loss equal to
+   * its whole monthly cost.
+   *
+   * Inline, nothing could assert it. Extracted, the chart's last bar and the
+   * headline figure read the same map through the same key builder and a test
+   * asserts they agree — which is the only durable form of this fix.
+   */
+  const revByMonth = revenueByMonth(revenueRows);
+  const monthly: MonthPoint[] = trailingMonths(revByMonth, 12, now);
   const revenueYtd = metrics
     .filter((m) => REVENUE_METRICS.has(m.metric) && m.metric_date.startsWith(String(year)))
     .reduce((s, m) => s + m.value, 0);
@@ -177,7 +174,7 @@ export default async function InsightsPage() {
         // query.
         revenueThroughMonth: revenueMonths.length > 0 ? revenueMonths[revenueMonths.length - 1] : null,
         todayIso: todayInIsrael(now),
-        latestMonthRevenue: revByMonth.get(`${now.getFullYear()}-${now.getMonth()}`) ?? 0,
+        latestMonthRevenue: currentMonthRevenue(revByMonth, now),
         monthlyCosts: costs.length ? monthlyTotal(costs) : 0,
         nextPayments: obligations.slice(0, 3).map((o) => ({
           title: o.title,

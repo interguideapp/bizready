@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types";
 import { ANSWER_ORDER, PRIORITY_WEIGHT } from "@/lib/types";
 import { interpolateFigures } from "@/lib/content/figures";
+import { todayInIsrael } from "@/lib/dates";
 import {
   countsTowardScore,
   satisfiesDependency,
@@ -151,7 +152,7 @@ export function buildPlan(
       due_date: isStatutoryFiling(t.id)
         ? nextStatutoryDueDate(t.id, today, profile)
         : t.deadline_days != null && answers.stage !== "active"
-          ? addDays(today, t.deadline_days)
+          ? addDays(todayInIsrael(today), t.deadline_days)
           : null,
       is_relevant: true,
     }));
@@ -172,8 +173,27 @@ export function buildPlan(
  * exact 24-hour multiples, and then only for an instant within an hour of UTC
  * midnight. Worth having for predictability; not worth claiming as a defect.
  */
-function addDays(date: Date, days: number): string {
-  const d = new Date(date);
+/**
+ * N days after a calendar DAY -- takes the day, not an instant.
+ *
+ * TWO DEFINITIONS OF "TODAY" LIVED IN ONE FUNCTION. This took a real Date and
+ * read the UTC day off it, while the statutory branch of the same expression
+ * in buildPlan goes through nextStatutoryDueDate, which resolves the day with
+ * israelParts. Israel is UTC+2/+3, so from Israeli midnight until 02:00/03:00
+ * a plan built in those hours dated its statutory filings from today and its
+ * recommended tasks from yesterday.
+ *
+ * One day early on a recommendation is the harmless direction, which is why
+ * nothing ever noticed. It is still two answers to "what day is it" inside one
+ * expression, in the function that dates every task a business is given, and
+ * the caller already has the Israeli day to hand.
+ *
+ * Same contract as the addDays in deadline-options.ts now -- day in, day out --
+ * so the two remaining copies can no longer differ about what their input
+ * means.
+ */
+function addDays(dayIso: string, days: number): string {
+  const d = new Date(dayIso + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }

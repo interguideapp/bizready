@@ -16,6 +16,8 @@ import {
 } from "@/lib/content/filing-rules";
 import {
   FILING_RECORD_SINCE,
+  periodEndingAt,
+  type FilingPeriod,
   missedPeriodsFor,
   periodForDue,
   periodLabel as periodLabelFor,
@@ -194,11 +196,25 @@ function reportingFrequency(profile: ComplianceProfile): VatFrequency {
   return profile.vatFrequency ?? "bimonthly";
 }
 
-interface FilingPeriod {
-  startAbs: number; // absolute month index (year*12 + month)
-  endAbs: number;
-  dueIso: string; // 15th of the month AFTER the period end
-}
+/*
+ * FilingPeriod and the deadline formula both lived here AND in filings.ts.
+ *
+ * Two shapes under one name -- this one {startAbs, endAbs, dueIso}, the
+ * exported one also carrying the stored key and the label -- and, worse, two
+ * implementations of the deadline itself: this module built "the 15th of the
+ * month after the period" inline, while filings.ts computes it in
+ * dueForPeriod. Identical today.
+ *
+ * They are the most consequential date in the product: every VAT and advances
+ * filing hangs on it, the obligations board reads it from here, and the filing
+ * ledger keys its rows from there. The audit's B3 explicitly contemplates
+ * encoding the online-filing extension into that date -- the edit that would
+ * have made the board and the ledger disagree about when a filing is due,
+ * silently, with every test green.
+ *
+ * So the period comes from filings.ts now, which owns the stored key and is
+ * therefore the only defensible authority for what a period IS.
+ */
 
 /**
  * The next VAT/advances filing whose deadline has NOT yet passed.
@@ -216,17 +232,15 @@ export function nextFilingPeriod(
   for (let endAbs = tAbs - 2 * step; endAbs <= tAbs + 12; endAbs++) {
     // bimonthly periods end on an odd calendar month (Feb=1, Apr=3, …)
     if (frequency === "bimonthly" && endAbs % 2 !== 1) continue;
-    const dueY = Math.floor((endAbs + 1) / 12);
-    const dueM = (endAbs + 1) % 12;
-    const dueIso = iso(new Date(Date.UTC(dueY, dueM, 15)));
-    if (daysBetween(dueIso, today) >= 0) {
-      return { startAbs: endAbs - (step - 1), endAbs, dueIso };
-    }
+    // periodEndingAt owns both the period bounds and the deadline. This loop
+    // decides only WHICH period is still open, which is the one thing it knows
+    // that filings.ts does not.
+    const period = periodEndingAt(endAbs, frequency);
+    if (daysBetween(period.dueIso, today) >= 0) return period;
   }
-  // unreachable in practice; fall back to this month's 15th
-  const y = nowParts.year;
-  const m = nowParts.month;
-  return { startAbs: tAbs, endAbs: tAbs, dueIso: iso(new Date(Date.UTC(y, m, 15))) };
+  // Unreachable in practice, and it must still be a period the ledger would
+  // recognise rather than a hand-built triple.
+  return periodEndingAt(tAbs, frequency);
 }
 
 /** Next April 30 (annual report anchor). */

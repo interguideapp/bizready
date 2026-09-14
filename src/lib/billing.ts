@@ -27,10 +27,22 @@ import Stripe from "stripe";
  *    is told so plainly instead of being sent into a broken flow.
  */
 
-/** Set when both the secret key and a price are configured. */
-export function billingConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
-}
+/*
+ * billingConfigured() lived here and was called by nothing.
+ *
+ * It said "STRIPE_SECRET_KEY && STRIPE_PRICE_ID", which is the same rule
+ * createCheckoutSession below applies as "!stripe || !price" — a second
+ * spelling of one decision, and the unused one. Both copies happened to
+ * agree; every pair that drifted in this codebase (scoreCreditFor,
+ * addRecurrence, formatIls, FilingPeriod) also agreed right up until it did
+ * not.
+ *
+ * Deleted rather than wired, because the rule belongs where the VALUES are
+ * needed: createCheckoutSession cannot act on a boolean, it needs the client
+ * and the price id, so the check has to happen there anyway. What was missing
+ * was not a predicate but a test — claim 3 in the header above, that this is
+ * inert without configuration, had none. It does now.
+ */
 
 export function webhookConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);

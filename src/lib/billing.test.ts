@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
-import { periodEndIso, subscriptionChangeFor, verifyWebhook } from "./billing";
+import {
+  createCheckoutSession,
+  periodEndIso,
+  subscriptionChangeFor,
+  verifyWebhook,
+} from "./billing";
 
 /**
  * The event -> state mapping is the part of billing most likely to be subtly
@@ -171,5 +176,63 @@ describe("verifyWebhook", () => {
 
   it("rejects a missing signature header", () => {
     expect(verifyWebhook("{}", null)).toBeNull();
+  });
+});
+
+describe("inert without configuration, which is claim 3 in this module's header", () => {
+  /**
+   * THE CLAIM HAD NO TEST. The webhook's unconfigured rejection is asserted
+   * above; the CHECKOUT's was not — on the revenue path, where the failure
+   * mode is a logged-in owner pressing "upgrade" and getting a 500 instead of
+   * a sentence.
+   *
+   * It behaved correctly. Nothing pinned it, so a refactor could have turned
+   * the graceful return into a throw and no test would have objected — the
+   * same shape as every promise in this product that was true until it
+   * quietly was not.
+   *
+   * Also removed here: billingConfigured(), an exported predicate with zero
+   * callers that spelled out the same rule createCheckoutSession applies
+   * inline. The rule belongs where the values are needed.
+   */
+  const request = {
+    businessId: "b1",
+    userId: "u1",
+    email: "owner@example.com",
+    origin: "https://biz-ready.vercel.app",
+    existingCustomerId: null,
+  };
+
+  it("returns a refusal rather than throwing when no key is set", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "");
+    vi.stubEnv("STRIPE_PRICE_ID", "price_123");
+    const result = await createCheckoutSession(request);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("unconfigured");
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses when the key is set but no price is", async () => {
+    // Half-configured is the state a real deployment passes through, and it
+    // must not produce a checkout session against a missing price.
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_x");
+    vi.stubEnv("STRIPE_PRICE_ID", "");
+    const result = await createCheckoutSession(request);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("unconfigured");
+    vi.unstubAllEnvs();
+  });
+
+  it("the refusal is a sentence the owner can read, not an error code", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "");
+    vi.stubEnv("STRIPE_PRICE_ID", "");
+    const result = await createCheckoutSession(request);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      // Hebrew, and it says what is true: not open yet, not "something broke".
+      expect(result.error).toMatch(/עוד לא פתוח/);
+      expect(result.error).not.toMatch(/error|Error|500|undefined/);
+    }
+    vi.unstubAllEnvs();
   });
 });

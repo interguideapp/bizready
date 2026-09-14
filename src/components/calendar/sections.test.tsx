@@ -359,8 +359,25 @@ describe("the active-guard claim is conditional on delivery working", () => {
     "utf8"
   );
 
-  it("only promises the escalating reminders when delivery is up", () => {
-    expect(page).toContain("pro && !deliveryIsDown(delivery) &&");
+  /*
+   * THE CONDITION ITSELF IS ASSERTED IN ONE PLACE, NOT TWO.
+   *
+   * This pinned "pro && !deliveryIsDown(delivery) &&" and so did
+   * lib/a11y/promises.test.ts — the same claim guarded twice, which is how the
+   * two copies of STATUTORY_FILINGS and of ConfidenceState became a drift
+   * risk in this codebase. When the condition was corrected (the absence of a
+   * known fault is not evidence of delivery; it needs remindersWillReach) one
+   * copy was updated and this one failed, which is the good outcome of a
+   * duplicate and not a reason to keep it.
+   *
+   * promises.test.ts owns every assertion about what the product claims of its
+   * own future behaviour. What this file owns is the section rendering below.
+   */
+  it("still shows the claim behind SOME condition, never unconditionally", () => {
+    // Coarse on purpose: the exact predicate is promises.test.ts's business,
+    // but a banner that lost its guard entirely must fail here too.
+    expect(page).toMatch(new RegExp("\\{pro && \\w+\\(delivery\\) &&"));
+    expect(page).toContain("שומר הדדליינים פעיל");
   });
 
   it("still renders the delivery notice that explains the other case", () => {

@@ -48,9 +48,31 @@ function read(rel: string): string {
 
 describe("no surface asserts the reminder pipeline is working while it is not", () => {
   it("the obligations board only claims an active guard when delivery is up", () => {
-    expect(read("src/app/(app)/calendar/page.tsx")).toContain(
-      "pro && !deliveryIsDown(delivery) &&"
-    );
+    /*
+     * This assertion USED to pin "pro && !deliveryIsDown(delivery) &&", and
+     * pinning it was preserving a wrong decision — the trap this file's own
+     * docstring warns about one section down.
+     *
+     * !deliveryIsDown means "no fault I know how to detect". Every silent
+     * failure in this pipeline has passed that test at the moment it was
+     * live: a missing mail provider did, until configured.ts learned to ask;
+     * an unreadable heartbeat still does; and zero subscribed push devices
+     * did, which is the state both live businesses were measured in.
+     *
+     * A claim about the future needs the positive answer, so the guard now
+     * pins the positive function. Verified by planting the old expression
+     * back: this fails.
+     */
+    const board = read("src/app/(app)/calendar/page.tsx");
+    expect(board).toContain("pro && remindersWillReach(delivery) &&");
+    expect(board).not.toContain("pro && !deliveryIsDown(delivery) &&");
+  });
+
+  it("and says so, rather than nothing, when the user's own channels are off", () => {
+    // Not an alarm — they chose it. But silence would leave someone counting
+    // on a reminder that no longer has a route.
+    const board = read("src/app/(app)/calendar/page.tsx");
+    expect(board).toContain('deliveryFault(delivery) === "opted-out"');
   });
 
   it("the opt-in screen is told whether sending works", () => {

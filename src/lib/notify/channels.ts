@@ -70,9 +70,30 @@ export async function sendEmailDigest(
 
 // ---------- WhatsApp (Meta Cloud API) ----------
 
+/**
+ * WHY THE TEMPLATE NAME IS REQUIRED, and not merely nice to have.
+ *
+ * Meta delivers a business-initiated WhatsApp message only through a
+ * pre-approved template. Plain text is delivered only inside a 24-hour
+ * customer-service window opened by the CUSTOMER writing first — and a
+ * deadline reminder is, by definition, business-initiated and outside it.
+ *
+ * With the token and phone id alone this function said yes, the reminder sweep
+ * sent the plain-text fallback below, Meta accepted the request with a 200,
+ * and the message was never delivered. reminder_log then recorded a SEND. That
+ * is strictly worse than the empty log a missing mail provider produces: an
+ * empty log is a question, and a log full of sends that did not arrive is a
+ * wrong answer, on the one screen an operator would check to rule this out.
+ *
+ * So the configured channel is the one that can actually deliver a reminder.
+ * The fallback stays for the case where it is legitimate (a reply inside an
+ * open window) and no longer makes the channel count as configured.
+ */
 export function whatsappConfigured(): boolean {
   return Boolean(
-    process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID
+    process.env.WHATSAPP_TOKEN &&
+      process.env.WHATSAPP_PHONE_NUMBER_ID &&
+      process.env.WHATSAPP_TEMPLATE_NAME
   );
 }
 

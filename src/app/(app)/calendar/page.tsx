@@ -1,6 +1,12 @@
-import { CalendarClock, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { BellOff, CalendarClock, ShieldCheck } from "lucide-react";
 import { DeliveryNotice } from "@/components/delivery-notice";
-import { deliveryIsDown, loadDeliveryHealth } from "@/lib/delivery";
+import {
+  deliveryFault,
+  deliveryIsDown,
+  loadDeliveryHealth,
+  remindersWillReach,
+} from "@/lib/delivery";
 import { loadLiveTasks } from "@/lib/tasks-live";
 import { UpgradeCta } from "@/components/upgrade-cta";
 import {
@@ -231,12 +237,41 @@ export default async function CalendarPage() {
               "שומר הדדליינים פעיל" — two statements about the same mechanism,
               opposite, on one screen. The claim is only true while the sweep
               is actually running, so it is made only then. */}
-          {pro && !deliveryIsDown(delivery) && (
+          {/* A SECOND CONTRADICTION, inside the fix for the first.
+              !deliveryIsDown is the absence of a KNOWN fault, and this banner
+              needs the presence of delivery. Both live businesses had push
+              switched off and zero subscribed devices, so setting the VAPID
+              keys and nothing else would have emptied the fault list and put
+              this green banner back on screen with nothing able to reach them.
+              remindersWillReach demands the positive answer instead. */}
+          {pro && remindersWillReach(delivery) && (
             <div className="mb-4 flex items-center gap-2 rounded-xl border border-status-done/30 bg-status-done-bg/40 px-4 py-2.5 text-sm text-status-done">
               <ShieldCheck className="h-4.5 w-4.5" aria-hidden />
               <span className="font-medium">
                 שומר הדדליינים פעיל — נזכיר לכם 30, 14, 7 ויום לפני כל חובה
                 והגשה
+              </span>
+            </div>
+          )}
+
+          {/* The channels are the user's own, and switching them off is a
+              legitimate choice — so this is not an alarm and does not use
+              DeliveryNotice. It exists because the alternative is silence:
+              someone who turned email off months ago has no way to know the
+              reminders they are counting on are not coming. One line, with the
+              switch one tap away. */}
+          {deliveryFault(delivery) === "opted-out" && (
+            <div className="mb-4 flex items-start gap-2 rounded-xl border border-edge-soft bg-surface-2/60 px-4 py-2.5 text-sm text-ink-soft">
+              <BellOff className="mt-0.5 h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
+              <span>
+                התזכורות החוצה כבויות — החובות כאן מעודכנות בכל כניסה, אבל לא
+                תגיע הודעה לפני מועד.{" "}
+                <Link
+                  href="/settings"
+                  className="font-medium text-brand-strong hover:underline"
+                >
+                  להפעיל תזכורות
+                </Link>
               </span>
             </div>
           )}

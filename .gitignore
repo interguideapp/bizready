@@ -32,6 +32,14 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...and the example IS opted in. ".env*" swallowed it, so the one file whose
+# whole purpose is to be read by the next person was never in the repo: the
+# audit's fix for the fail-open cron routes was "document CRON_SECRET in
+# .env.local.example", and that documentation has been sitting untracked on one
+# machine ever since. It contains placeholders only, never a value — the repo
+# is public, and env-documented.test.ts reads this file, so a fresh clone
+# without it fails the build rather than losing the instructions again.
+!.env.local.example
 
 # vercel
 .vercel

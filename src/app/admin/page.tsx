@@ -44,6 +44,11 @@ export default async function AdminPage() {
   // Is the scheduled work running? Read through the security-definer summary
   // rather than the table, so this page needs no extra privilege and never
   // touches the error text in `detail`.
+  // How many devices push could actually reach. Admin-gated inside the
+  // function (031); null means the read failed or the caller is not an admin,
+  // and zero is the answer that matters -- keys with no listener send nothing.
+  const { data: reachCount } = await supabase.rpc("push_reach");
+  const pushDeviceCount = typeof reachCount === "number" ? reachCount : 0;
   const { data: sweeps } = await supabase.rpc("sweep_health");
   const sweepHealthRows = allSweepHealth(
     (sweeps ?? []).map((r: { job: string; last_ok_at: string | null; last_failed_at: string | null }) => ({
@@ -94,6 +99,7 @@ export default async function AdminPage() {
           health={sweepHealthRows}
           secretConfigured={cronSecretConfigured()}
           channels={outboundChannels()}
+          pushDevices={pushDeviceCount}
         />
       </section>
 

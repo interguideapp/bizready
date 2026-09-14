@@ -27,10 +27,18 @@ export function SweepHealthPanel({
   health,
   secretConfigured,
   channels,
+  pushDevices,
 }: {
   health: SweepHealth[];
   /** Whether CRON_SECRET exists. The value is never sent here. */
   secretConfigured: boolean;
+  /**
+   * How many browsers are subscribed to push, across all tenants.
+   *
+   * A count, not a list: it answers "can push reach anyone at all" without
+   * naming a business or an endpoint.
+   */
+  pushDevices: number;
   /**
    * Which outbound channels are configured. Presence only, never a key.
    *
@@ -78,8 +86,11 @@ export function SweepHealthPanel({
           ולכן <span dir="ltr">reminder_log</span> נשאר ריק ולא נרשם כישלון.
           למייל דרושים <span dir="ltr">RESEND_API_KEY</span> ו
           <span dir="ltr">REMINDER_FROM_EMAIL</span>; לפוש{" "}
-          <span dir="ltr">VAPID_PUBLIC_KEY</span> ו
-          <span dir="ltr">VAPID_PRIVATE_KEY</span>. עד אז ההתראות קיימות
+          <span dir="ltr">VAPID_PUBLIC_KEY</span>,{" "}
+          <span dir="ltr">VAPID_PRIVATE_KEY</span> ו
+          <span dir="ltr">VAPID_SUBJECT</span> לשליחה, ובנוסף{" "}
+          <span dir="ltr">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> — בלעדיו כפתור
+          ההרשמה לפוש לא מוצג בכלל ולכן אף דפדפן לא יירשם. עד אז ההתראות קיימות
           באפליקציה בלבד, והמשתמשים רואים על כך הודעה מפורשת.
         </p>
       )}
@@ -89,6 +100,24 @@ export function SweepHealthPanel({
           {[channels.email && "מייל", channels.whatsapp && "וואטסאפ", channels.push && "פוש"]
             .filter(Boolean)
             .join(" · ")}
+          {" · "}
+          <span>
+            דפדפנים רשומים לפוש: <b>{pushDevices}</b>
+          </span>
+        </p>
+      )}
+      {/* CONFIGURED IS NOT REACHABLE, and this is where an operator can see
+          the difference. Keys with no subscribed device send nothing, and the
+          count is the only thing that says so — measured live at zero on both
+          businesses while the keys were the recommended next step. */}
+      {channels.push && pushDevices === 0 && (
+        <p className="mb-3 rounded-xl bg-status-progress-bg/40 p-3 text-sm leading-relaxed text-ink-soft">
+          <b>הפוש מוגדר אבל אין לו יעד</b>
+          {" — "}
+          אף דפדפן לא נרשם, ולכן לא תישלח שום התראת פוש. אם{" "}
+          <span dir="ltr">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> חסר, כפתור ההרשמה
+          לא מוצג למשתמשים ואי אפשר להירשם. שימו לב שערוץ מוגדר ללא נמענים אינו
+          נחשב שליחה בפועל באף מסך משתמש.
         </p>
       )}
       {secretConfigured && broken.length > 0 && (

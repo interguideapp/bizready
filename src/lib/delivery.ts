@@ -3,21 +3,40 @@ import { createClient } from "@/lib/supabase/server";
 import { allSweepHealth, jobIsDown, type SweepHealth, type SweepJob } from "@/lib/heartbeat";
 import {
   anyOutboundChannel,
+  anyReach,
   outboundChannels,
+  reachableChannels,
+  type ChannelReach,
   type OutboundChannels,
 } from "@/lib/notify/configured";
 
 /**
- * The heartbeat plus whether anything can be sent at all.
+ * The heartbeat, whether anything can be sent at all, and whether any of it
+ * reaches THIS business.
  *
- * Two independent ways for a promise of "we will remind you" to be false, and
- * the product only ever measured one of them. See lib/notify/configured.ts:
- * with the sweep healthy and no mail provider set, the board claimed the
- * deadline guard was active while reminder_log had not a single row.
+ * Three independent ways for "we will remind you" to be false, and the product
+ * has measured them one at a time, in the order they were discovered:
+ *
+ *   the sweep never ran            (the heartbeat, migration 029)
+ *   no provider is configured      (lib/notify/configured.ts — reminder_log
+ *                                   had not one row while the sweep was green)
+ *   the provider reaches no one    (this layer: prefs off, no phone, or — for
+ *                                   push — not a single subscribed browser)
+ *
+ * Each was invisible for the same reason: the check that gated the promise was
+ * cheaper than the check the sender performs, and it failed in the reassuring
+ * direction.
  */
 export interface DeliveryHealth {
   sweep: SweepHealth | null;
+  /** Providers this deployment has. What /admin needs to know. */
   channels: OutboundChannels;
+  /**
+   * Channels that reach this business. `null` means we could not find out —
+   * which is not the same as "none", and must not be reported as either a
+   * working guard or an outage.
+   */
+  reach: ChannelReach | null;
 }
 
 /**
@@ -40,11 +59,15 @@ export interface DeliveryHealth {
 export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Promise<DeliveryHealth> {
   const channels = outboundChannels();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("sweep_health");
+  const [healthRes, reach] = await Promise.all([
+    supabase.rpc("sweep_health"),
+    loadReach(supabase, channels),
+  ]);
+  const { data, error } = healthRes;
   // A monitoring read must never break the page it is monitoring. With no
   // answer we say nothing, which is the same position the product was in
   // before this existed.
-  if (error) return { sweep: null, channels };
+  if (error) return { sweep: null, channels, reach };
   const rows = (
     (data ?? []) as {
       job: string;
@@ -62,8 +85,47 @@ export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Pro
   // possible reading.
   const sweep =
     allSweepHealth(rows, new Date().toISOString()).find((h) => h.job === "reminders") ?? null;
-  return { sweep, channels };
+  return { sweep, channels, reach };
 });
+
+/**
+ * The business's own notification settings, read under the user's session.
+ *
+ * RLS scopes this to businesses the caller may see, so no tenant needs naming.
+ * Returns null on any failure — an unreadable answer is reported as unknown
+ * rather than guessed, because both guesses are harmful: "reachable" restores
+ * the false promise this layer exists to remove, and "unreachable" tells
+ * someone their reminders are off when they are not.
+ */
+async function loadReach(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  channels: OutboundChannels
+): Promise<ChannelReach | null> {
+  const { data, error } = await supabase
+    .from("businesses")
+    .select("id, notify_email, notify_push, notify_whatsapp, whatsapp_phone")
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  // Only asked when it can change the answer: with push unconfigured or
+  // switched off, the device count cannot make push reachable.
+  let pushDevices = 0;
+  if (channels.push && data.notify_push) {
+    const { count, error: countError } = await supabase
+      .from("push_subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", data.id);
+    if (countError) return null;
+    pushDevices = count ?? 0;
+  }
+  return reachableChannels(channels, {
+    notifyEmail: Boolean(data.notify_email),
+    notifyPush: Boolean(data.notify_push),
+    notifyWhatsapp: Boolean(data.notify_whatsapp),
+    hasWhatsappPhone: Boolean(data.whatsapp_phone),
+    pushDevices,
+  });
+}
 
 /**
  * Should the user be told that outbound reminders are not going out?
@@ -72,30 +134,48 @@ export const loadDeliveryHealth = cache(async function loadDeliveryHealth(): Pro
  * ignored, and then the real outage is invisible too. Same threshold
  * needsAttention uses, so the admin panel and the user surfaces agree about
  * what counts as broken.
+ *
+ * Deliberately NOT true for "opted-out" either. A person who switched their
+ * own channels off has not suffered an outage, and an alarm bar on four
+ * screens about a setting they chose is how a product teaches people to
+ * dismiss its warnings. They still must not be TOLD the guard is active —
+ * that is remindersWillReach's job, and the two are separate on purpose.
  */
 export function deliveryIsDown(health: DeliveryHealth | null): boolean {
-  if (!health) return false;
-  // No configured channel is not a degraded state, it is the absence of the
-  // mechanism. The sweep can be perfectly healthy and still deliver nothing,
-  // which is the case that was live: a job that runs is not a message that
-  // arrives.
-  if (!anyOutboundChannel(health.channels)) return true;
-  // jobIsDown, not a fourth copy of the same three-state expression.
-  return jobIsDown(health.sweep);
+  const fault = deliveryFault(health);
+  return fault === "unconfigured" || fault === "sweep";
 }
 
 /**
- * Which of the two reasons applies, for copy that names the real problem.
+ * Which reason applies, for copy that names the real problem.
  *
  * "unconfigured" is not something the reader can fix and must not be phrased as
- * a fault of theirs; "sweep" is an outage. Telling someone their reminders are
- * delayed when no channel exists would send them to look at a setting that is
- * not the cause.
+ * a fault of theirs; "sweep" is an outage of a mechanism that exists;
+ * "opted-out" is a setting the reader owns and can change in one tap;
+ * "unknown" is our own blindness and gets no claim in either direction.
  */
 export function deliveryFault(
   health: DeliveryHealth | null
-): "none" | "unconfigured" | "sweep" {
+): "none" | "unconfigured" | "opted-out" | "unknown" | "sweep" {
   if (!health) return "none";
   if (!anyOutboundChannel(health.channels)) return "unconfigured";
-  return deliveryIsDown(health) ? "sweep" : "none";
+  if (health.reach === null) return "unknown";
+  if (!anyReach(health.reach)) return "opted-out";
+  return jobIsDown(health.sweep) ? "sweep" : "none";
+}
+
+/**
+ * May a surface state that reminders WILL arrive?
+ *
+ * The board's green banner used `!deliveryIsDown(delivery)`, and the absence of
+ * a known fault is not evidence of delivery. Every silent failure in this
+ * pipeline has passed that test: a missing provider did, until configured.ts;
+ * an unreadable heartbeat still does; and zero subscribed devices did, which is
+ * the state both live businesses were actually in.
+ *
+ * So the claim now requires the positive answer. "none" is the only value that
+ * means a message would leave the building and arrive.
+ */
+export function remindersWillReach(health: DeliveryHealth | null): boolean {
+  return deliveryFault(health) === "none";
 }

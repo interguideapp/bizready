@@ -20,6 +20,16 @@ const NOW = "2026-09-13T09:00:00Z";
 /** A configured mail provider, so these cases isolate the heartbeat half. */
 const SENDABLE = { email: true, whatsapp: false, push: false };
 
+/**
+ * And a business that mail actually reaches, so they isolate it from the THIRD
+ * way this promise breaks, discovered after these tests were written: a
+ * configured provider that reaches nobody. Every case below that is about the
+ * heartbeat has to hold the other two conditions true, or it would be passing
+ * for a reason it does not name.
+ */
+const REACHED = { email: true, whatsapp: false, push: false };
+const NO_REACH = { email: false, whatsapp: false, push: false };
+
 const sweepOf = (lastOkAt: string | null, lastFailedAt: string | null = null) =>
   allSweepHealth([{ job: "reminders", lastOkAt, lastFailedAt }], NOW).find(
     (h) => h.job === "reminders"
@@ -28,7 +38,11 @@ const sweepOf = (lastOkAt: string | null, lastFailedAt: string | null = null) =>
 const health = (
   lastOkAt: string | null,
   lastFailedAt: string | null = null
-): DeliveryHealth => ({ sweep: sweepOf(lastOkAt, lastFailedAt), channels: SENDABLE });
+): DeliveryHealth => ({
+  sweep: sweepOf(lastOkAt, lastFailedAt),
+  channels: SENDABLE,
+  reach: REACHED,
+});
 
 describe("when to say it", () => {
   it("says it when the sweep has never run at all", () => {
@@ -37,7 +51,7 @@ describe("when to say it", () => {
     // possible reading. allSweepHealth fills a missing job in as "never".
     const none = allSweepHealth([], NOW).find((h) => h.job === "reminders")!;
     expect(none.state).toBe("never");
-    expect(deliveryIsDown({ sweep: none, channels: SENDABLE })).toBe(true);
+    expect(deliveryIsDown({ sweep: none, channels: SENDABLE, reach: REACHED })).toBe(true);
   });
 
   it("says it when the last run was long enough ago to be an outage", () => {
@@ -117,25 +131,29 @@ const NOTHING_CONFIGURED = { email: false, whatsapp: false, push: false };
 describe("a healthy sweep with nowhere to send is still not delivery", () => {
   it("reports down when no channel is configured, however fresh the sweep", () => {
     expect(
-      deliveryIsDown({ sweep: sweepOf("2026-09-13T08:35:00Z"), channels: NOTHING_CONFIGURED })
+      deliveryIsDown({
+        sweep: sweepOf("2026-09-13T08:35:00Z"),
+        channels: NOTHING_CONFIGURED,
+        reach: NO_REACH,
+      })
     ).toBe(true);
   });
 
   it("reports down even when the sweep ran seconds ago", () => {
     expect(
-      deliveryIsDown({ sweep: sweepOf(NOW), channels: NOTHING_CONFIGURED })
+      deliveryIsDown({ sweep: sweepOf(NOW), channels: NOTHING_CONFIGURED, reach: NO_REACH })
     ).toBe(true);
   });
 
   it("counts push on its own, because it reaches a closed tab", () => {
     const pushOnly = { email: false, whatsapp: false, push: true };
     expect(anyOutboundChannel(pushOnly)).toBe(true);
-    expect(deliveryIsDown({ sweep: sweepOf(NOW), channels: pushOnly })).toBe(false);
+    expect(deliveryIsDown({ sweep: sweepOf(NOW), channels: pushOnly, reach: pushOnly })).toBe(false);
   });
 
   it("counts WhatsApp on its own too", () => {
     const waOnly = { email: false, whatsapp: true, push: false };
-    expect(deliveryIsDown({ sweep: sweepOf(NOW), channels: waOnly })).toBe(false);
+    expect(deliveryIsDown({ sweep: sweepOf(NOW), channels: waOnly, reach: waOnly })).toBe(false);
   });
 });
 
@@ -144,7 +162,11 @@ describe("the two faults are told apart, because the copy differs", () => {
     // "לא נשלחו מזה 3 ימים" implies it worked four days ago, and sends the
     // reader to check a setting that is not the cause.
     expect(
-      deliveryFault({ sweep: sweepOf("2026-09-13T08:35:00Z"), channels: NOTHING_CONFIGURED })
+      deliveryFault({
+        sweep: sweepOf("2026-09-13T08:35:00Z"),
+        channels: NOTHING_CONFIGURED,
+        reach: NO_REACH,
+      })
     ).toBe("unconfigured");
   });
 
@@ -159,7 +181,7 @@ describe("the two faults are told apart, because the copy differs", () => {
   it("prefers 'unconfigured' when both are true, since it is the root cause", () => {
     // Fixing a scheduler that has nowhere to send changes nothing.
     expect(
-      deliveryFault({ sweep: sweepOf(null), channels: NOTHING_CONFIGURED })
+      deliveryFault({ sweep: sweepOf(null), channels: NOTHING_CONFIGURED, reach: NO_REACH })
     ).toBe("unconfigured");
   });
 

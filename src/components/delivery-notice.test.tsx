@@ -29,11 +29,15 @@ const unconfigured: DeliveryHealth = {
   // Ran eight minutes ago and succeeded — exactly the live state.
   sweep: sweepOf("2026-09-13T08:52:00Z"),
   channels: { email: false, whatsapp: false, push: false },
+  reach: { email: false, whatsapp: false, push: false },
 };
 
 const outage: DeliveryHealth = {
   sweep: sweepOf("2026-09-01T02:00:00Z"),
   channels: { email: true, whatsapp: false, push: false },
+  // Mail is configured AND reaches this business, so the only fault left is
+  // the outage this fixture is about.
+  reach: { email: true, whatsapp: false, push: false },
 };
 
 describe("no channel configured", () => {

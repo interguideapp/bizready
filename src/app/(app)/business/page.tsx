@@ -4,20 +4,27 @@ import { ScoreRing } from "@/components/score-ring";
 import { LogoUploader } from "@/components/logo-uploader";
 import { PriceList } from "@/components/price-list";
 import { Card, PageTitle } from "@/components/ui";
-import { requireBusinessContext, getDocuments, getProducts } from "@/lib/data";
+import { requireBusinessContext, getBusinessTasks, getDocuments, getProducts } from "@/lib/data";
 import { capabilitiesFor } from "@/lib/members";
+import { buildCertificate } from "@/lib/certificate";
+import { TEMPLATES_BY_ID } from "@/lib/content";
 import { computeProfileCompleteness } from "@/lib/profile-score";
 import { createClient } from "@/lib/supabase/server";
 import { BusinessHubTabs } from "@/components/business-hub-tabs";
+import { BusinessCertificate } from "@/components/business-certificate";
 import { BusinessCard } from "./business-card";
 
 export default async function BusinessPage() {
   const { business, role } = await requireBusinessContext();
   const canEditCard = capabilitiesFor(role).editBusinessCard;
-  const [products, documents] = await Promise.all([
+  const [products, documents, tasks] = await Promise.all([
     getProducts(business.id),
     getDocuments(business.id),
+    getBusinessTasks(business.id),
   ]);
+
+  // Derived from the tasks' own completion evidence, not a second copy of it.
+  const certificate = buildCertificate(tasks, TEMPLATES_BY_ID, business);
 
   const completeness = computeProfileCompleteness(business, {
     products: products.length,
@@ -80,6 +87,9 @@ export default async function BusinessPage() {
           )}
         </div>
       </Card>
+
+      {/* what the business has actually done, with each task's artefact */}
+      <BusinessCertificate certificate={certificate} />
 
       {/* logo */}
       <Card className="mt-5 p-5">

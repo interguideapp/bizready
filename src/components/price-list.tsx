@@ -14,6 +14,42 @@ const UNIT_LABELS: Record<string, string> = {
   project: "לפרויקט",
 };
 
+/**
+ * Real columns, so a price is announced as a price.
+ *
+ * Sortable by name and by price: a price list is exactly the thing someone
+ * wants ordered cheapest-first, and it was previously stuck in insertion order
+ * with no way to change it.
+ */
+const PRICE_COLUMNS: Column<ProductRow>[] = [
+  {
+    id: "name",
+    header: "שירות או מוצר",
+    sortValue: (p) => p.name,
+    cell: (p) => <span className="font-medium text-ink">{p.name}</span>,
+  },
+  {
+    id: "price",
+    header: "מחיר",
+    numeric: true,
+    // Nulls sort last rather than as zero — "no price set" is not free.
+    sortValue: (p) => (p.price == null ? Number.MAX_SAFE_INTEGER : Number(p.price)),
+    cell: (p) => (
+      <>
+        {formatIls(p.price == null ? null : Number(p.price))}
+        <span className="ms-1 text-xs text-ink-muted">{UNIT_LABELS[p.unit] ?? ""}</span>
+      </>
+    ),
+  },
+  {
+    id: "actions",
+    header: "פעולות",
+    headerHidden: true,
+    className: "w-14",
+    cell: (p) => <DeleteProduct product={p} />,
+  },
+];
+
 /** Build & manage the business price list — services/products with prices. */
 export function PriceList({ products }: { products: ProductRow[] }) {
   const [name, setName] = useState("");
@@ -104,41 +140,7 @@ export function PriceList({ products }: { products: ProductRow[] }) {
   );
 }
 
-/**
- * Real columns, so a price is announced as a price.
- *
- * Sortable by name and by price: a price list is exactly the thing someone
- * wants ordered cheapest-first, and it was previously stuck in insertion order
- * with no way to change it.
- */
-const PRICE_COLUMNS: Column<ProductRow>[] = [
-  {
-    id: "name",
-    header: "שירות או מוצר",
-    sortValue: (p) => p.name,
-    cell: (p) => <span className="font-medium text-ink">{p.name}</span>,
-  },
-  {
-    id: "price",
-    header: "מחיר",
-    numeric: true,
-    // Nulls sort last rather than as zero — "no price set" is not free.
-    sortValue: (p) => (p.price == null ? Number.MAX_SAFE_INTEGER : Number(p.price)),
-    cell: (p) => (
-      <>
-        {formatIls(p.price == null ? null : Number(p.price))}
-        <span className="ms-1 text-xs text-ink-muted">{UNIT_LABELS[p.unit] ?? ""}</span>
-      </>
-    ),
-  },
-  {
-    id: "actions",
-    header: "פעולות",
-    headerHidden: true,
-    className: "w-14",
-    cell: (p) => <DeleteProduct product={p} />,
-  },
-];
+
 
 function DeleteProduct({ product }: { product: ProductRow }) {
   const [pending, startTransition] = useTransition();

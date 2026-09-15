@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
     // warning. privacy.test.ts's fake Supabase client has to accept the column
     // list it does not read in order to match the real signature.
     rules: {
+      "@typescript-eslint/no-use-before-define": ["error", { functions: false, classes: false, variables: true, typedefs: false, enums: false, ignoreTypeReferences: true }],
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },

@@ -192,23 +192,6 @@ export function rankByExposure(obligations: Obligation[]): Exposure[] {
 }
 
 /**
- * The single thing most worth doing, with the reason.
- *
- * Returns null when nothing carries real exposure — which is a legitimate and
- * honest answer, and better than promoting the least-irrelevant item to look
- * busy.
- */
-export function topExposure(
-  obligations: Obligation[],
-  threshold = EXPOSURE_THRESHOLD
-): Exposure | null {
-  const ranked = rankByExposure(obligations);
-  const top = ranked[0];
-  if (!top || top.score < threshold) return null;
-  return top;
-}
-
-/**
  * Below this, an obligation is not something that "could cost you".
  *
  * THE THRESHOLD EXISTED AND NOTHING APPLIED IT. topExposure had it as a
@@ -227,6 +210,24 @@ export function topExposure(
  * needs only the filter they were missing.
  */
 export const EXPOSURE_THRESHOLD = 0.1;
+
+/**
+ * The single thing most worth doing, with the reason.
+ *
+ * Returns null when nothing carries real exposure — which is a legitimate and
+ * honest answer, and better than promoting the least-irrelevant item to look
+ * busy.
+ */
+export function topExposure(
+  obligations: Obligation[],
+  threshold = EXPOSURE_THRESHOLD
+): Exposure | null {
+  const ranked = rankByExposure(obligations);
+  const top = ranked[0];
+  if (!top || top.score < threshold) return null;
+  return top;
+}
+
 
 /**
  * The obligations worth putting under a heading that claims consequence.

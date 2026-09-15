@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { completeOnboarding } from "@/lib/actions";
 import { FormMessage } from "@/components/form";
 import { ALREADY_DONE_OPTIONS } from "@/lib/content";
+import { primaryArtefactOf } from "@/lib/task-evidence";
 import type { OnboardingAnswers } from "@/lib/types";
 import { YEARLY_FIGURES } from "@/lib/types";
 
@@ -47,11 +48,46 @@ const STEPS: Step[] = [
 export function OnboardingWizard() {
   const [stepIndex, setStepIndex] = useState(0);
   const [draft, setDraft] = useState<Draft>({ already_done: [] });
+  /**
+   * What they already HAVE, beside each box they ticked.
+   *
+   * Ticking "פתחתי תיק עוסק במע״מ" used to close that task and record
+   * nothing, so the new user's first screen showed the task done, the card's
+   * מספר עוסק empty, the checklist saying it was missing, and the certificate
+   * saying the task had been completed with nothing recorded. Keyed by
+   * template id; the server resolves which field each answer belongs to.
+   */
+  const [evidence, setEvidence] = useState<Record<string, string>>({});
   const [entityHelp, setEntityHelp] = useState(false);
   const [pending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const step = STEPS[stepIndex];
+
+  /**
+   * Some steps are conditional on earlier answers.
+   *
+   * DECLARED HERE, ABOVE ITS FIRST USE, AND AS A FUNCTION.
+   *
+   * This was a `const` arrow BELOW the useMemo that calls it. A useMemo
+   * factory runs during the same render, so the call hit the temporal dead
+   * zone and the component threw `ReferenceError: Cannot access 'isVisible'
+   * before initialization` on its very first render — every signup, since
+   * 2026-09-11, in the commit titled "a funnel that cannot dead-end".
+   *
+   * Nothing caught it: TypeScript does not track the dead zone across a
+   * closure, the build compiled, and no page-level component had a render
+   * test. The two businesses in production both registered before that date.
+   * wizard.test.tsx renders this component now, which is the only kind of
+   * check that could have seen it.
+   */
+  function isVisible(i: number) {
+    const id = STEPS[i].id;
+    if (id === "employees") return !!draft.plans_employees;
+    if (id === "vat") return draft.entity_type === "osek_murshe" || draft.entity_type === "company";
+    return true;
+  }
+
   // Progress is measured over the steps this particular user will actually
   // see, not over all 12 — two of them are conditional, so the old count told
   // someone who answered ten questions that they were on "question 7 of 12".
@@ -70,14 +106,6 @@ export function OnboardingWizard() {
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
   }
-
-  /** Some steps are conditional on earlier answers. */
-  const isVisible = (i: number) => {
-    const id = STEPS[i].id;
-    if (id === "employees") return !!draft.plans_employees;
-    if (id === "vat") return draft.entity_type === "osek_murshe" || draft.entity_type === "company";
-    return true;
-  };
 
   function next() {
     let i = stepIndex + 1;
@@ -120,7 +148,7 @@ export function OnboardingWizard() {
     setSubmitError(null);
     startTransition(async () => {
       try {
-        await completeOnboarding(draft.businessName!.trim(), answers);
+        await completeOnboarding(draft.businessName!.trim(), answers, evidence);
       } catch (err) {
         // redirect() throws a control-flow signal that must be re-thrown, or a
         // successful onboarding would render as a failure.
@@ -360,34 +388,81 @@ export function OnboardingWizard() {
                   (opt) => !opt.entities || !draft.entity_type || opt.entities.includes(draft.entity_type)
                 ).map((opt) => {
                   const selected = draft.already_done?.includes(opt.id);
+                  const field = primaryArtefactOf(opt.id);
                   return (
-                    <button
-                      key={opt.id}
-                      onClick={() =>
-                        set(
-                          "already_done",
+                    <div key={opt.id}>
+                      <button
+                        onClick={() => {
+                          set(
+                            "already_done",
+                            selected
+                              ? draft.already_done!.filter((id) => id !== opt.id)
+                              : [...(draft.already_done ?? []), opt.id]
+                          );
+                          // Unticking drops the answer with it: evidence for a
+                          // task nobody asserted has nothing to be evidence of.
+                          if (selected) {
+                            setEvidence((e) => {
+                              const next = { ...e };
+                              delete next[opt.id];
+                              return next;
+                            });
+                          }
+                        }}
+                        aria-pressed={Boolean(selected)}
+                        className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start text-sm font-medium transition ${
                           selected
-                            ? draft.already_done!.filter((id) => id !== opt.id)
-                            : [...(draft.already_done ?? []), opt.id]
-                        )
-                      }
-                      className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-start text-sm font-medium transition ${
-                        selected
-                          ? "border-brand-600 bg-brand-tint text-brand-strong"
-                          : "border-edge bg-card text-ink-soft hover:border-edge-strong"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-                          selected
-                            ? "border-brand-600 bg-brand-600 text-white"
-                            : "border-edge-strong bg-card"
+                            ? "border-brand-600 bg-brand-tint text-brand-strong"
+                            : "border-edge bg-card text-ink-soft hover:border-edge-strong"
                         }`}
                       >
-                        {selected && <Check className="h-3.5 w-3.5" aria-hidden />}
-                      </span>
-                      {opt.label}
-                    </button>
+                        <span
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                            selected
+                              ? "border-brand-600 bg-brand-600 text-white"
+                              : "border-edge-strong bg-card"
+                          }`}
+                        >
+                          {selected && <Check className="h-3.5 w-3.5" aria-hidden />}
+                        </span>
+                        {opt.label}
+                      </button>
+
+                      {/*
+                        Only for what they ticked, and only the one answer that
+                        task asks for first — so the step grows by exactly what
+                        the user said they have, and never asks for a number
+                        about something they do not.
+
+                        Optional on purpose. Blocking registration on a file
+                        number nobody has to hand would be worse than a card
+                        that fills in later, and the certificate says plainly
+                        which tasks are still missing theirs.
+                      */}
+                      {selected && field && (
+                        <label className="mt-1.5 block ps-12">
+                          <span className="mb-1 block text-xs text-ink-muted">
+                            {field.label} <span className="text-ink-faint">· לא חייב עכשיו</span>
+                          </span>
+                          <input
+                            value={evidence[opt.id] ?? ""}
+                            onChange={(e) =>
+                              setEvidence((prev) => ({ ...prev, [opt.id]: e.target.value }))
+                            }
+                            placeholder={field.placeholder}
+                            dir={
+                              field.type === "url" ||
+                              field.type === "amount" ||
+                              field.type === "reference"
+                                ? "ltr"
+                                : undefined
+                            }
+                            type={field.type === "date" ? "date" : "text"}
+                            className="w-full rounded-xl border border-edge bg-card px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+                          />
+                        </label>
+                      )}
+                    </div>
                   );
                 })}
                 <p className="mt-1 text-xs text-ink-faint">

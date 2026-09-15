@@ -76,14 +76,12 @@ export function CompleteTaskFlow({
   function submit() {
     if (!canSubmit) return;
     setError("");
-    const businessFields: Record<string, string> = {};
-    for (const field of spec.fields ?? []) {
-      const value = (values[field.key] ?? "").trim();
-      if (field.writesTo && value) businessFields[field.writesTo] = value;
-    }
+    // No answer-to-column mapping is built here any more. The server derives
+    // it from the template's spec (lib/task-evidence), so the client cannot
+    // choose which card column an answer lands in.
     startTransition(async () => {
       try {
-        await completeTask(taskId, values, businessFields);
+        await completeTask(taskId, values);
         toast.success("המשימה נסגרה — כל הכבוד");
         // the payoff: show what finishing this just opened up
         if (unlocks.length > 0) {

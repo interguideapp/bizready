@@ -101,10 +101,12 @@ describe("an expiry that has already passed is refused", () => {
     await satisfyTheRest(user);
     expect(screen.queryByRole("alert")).toBeNull();
     await user.click(screen.getByRole("button", { name: /סיימתי את המשימה/ }));
+    // Two arguments, not three: the card-column mapping used to be built
+    // here in the client and is now derived on the server from the template's
+    // spec, so the client cannot choose which column an answer lands in.
     expect(completeTask).toHaveBeenCalledWith(
       "t1",
-      expect.objectContaining({ renewal: "2027-03-10" }),
-      expect.anything()
+      expect.objectContaining({ renewal: "2027-03-10" })
     );
   });
 });

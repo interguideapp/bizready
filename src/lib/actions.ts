@@ -1,7 +1,7 @@
 "use server";
 import { randomBytes } from "node:crypto";
 import { seal, open, sealingAvailable } from "@/lib/crypto-box";
-import { sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
+import { sanitizeAlreadyDoneEvidence, sanitizeAnswers, sanitizeBusinessName } from "@/lib/validate-answers";
 
 import { ISO_DATE_SHAPE, isIsoDate, isIsoMonth, todayInIsrael } from "@/lib/dates";
 import { headers } from "next/headers";
@@ -34,7 +34,7 @@ import { createCheckoutSession } from "@/lib/billing";
 import { looksLikeEmail, normaliseEmail, type MemberRole } from "@/lib/members";
 import { PROVIDERS_BY_ID } from "@/lib/integrations/registry";
 import { executeBatch } from "@/lib/integrations/execute";
-import { completionSpecOf } from "@/lib/types";
+import { cardWritesFor } from "@/lib/task-evidence";
 import type { OnboardingAnswers, TaskStatus } from "@/lib/types";
 import { looksLikeEmailAddress } from "@/lib/email-shape";
 
@@ -68,12 +68,22 @@ async function requireUser() {
 /** Finish onboarding: create the business + its personalized plan. */
 export async function completeOnboarding(
   businessNameInput: string,
-  answersInput: OnboardingAnswers
+  answersInput: OnboardingAnswers,
+  /**
+   * What the user typed beside each "יש לי כבר" box — keyed by template id.
+   *
+   * Optional so a stale client that does not send it still works; the tasks
+   * then close with no artefact, exactly as they did before.
+   */
+  evidenceInput?: unknown
 ) {
   const { supabase, user } = await requireUser();
   // never trust the client payload (see lib/validate-answers)
   const businessName = sanitizeBusinessName(businessNameInput);
   const answers = sanitizeAnswers(answersInput);
+  // Narrowed against the ids actually ticked and the field each template asks
+  // for, because this reaches both the task's evidence and the businesses row.
+  const evidence = sanitizeAlreadyDoneEvidence(evidenceInput, answers.already_done ?? []);
 
   const { data: business, error } = await supabase
     .from("businesses")
@@ -102,10 +112,41 @@ export async function completeOnboarding(
       due_date: t.due_date,
       completed_at: t.status === "done" ? new Date().toISOString() : null,
       is_relevant: true,
+      // The artefact the user typed beside the box they ticked. Without this
+      // the seventeen options all closed a task and recorded nothing, so a
+      // brand-new business could not show a single detail about work it had
+      // genuinely done (see lib/task-evidence).
+      completion_data: evidence[t.template_id] ?? {},
     })),
     { onConflict: "business_id,template_id" }
   );
   if (tasksError) throw new Error(tasksError.message);
+
+  /*
+   * AND ONTO THE CARD, through the same rule completeTask uses.
+   *
+   * Thirteen of the seventeen options declare a `writesTo`, so this is what
+   * stops the card from contradicting the task list on a brand-new account:
+   * the VAT task reading done while מספר עוסק sits empty and the checklist
+   * says it is missing.
+   *
+   * cardWritesFor, never the raw answers — the template's spec decides which
+   * column an answer may reach, and nothing else can.
+   */
+  const cardFromEvidence: Record<string, string> = {};
+  for (const [templateId, answered] of Object.entries(evidence)) {
+    Object.assign(cardFromEvidence, cardWritesFor(templateId, answered));
+  }
+  if (Object.keys(cardFromEvidence).length > 0) {
+    const { error: cardError } = await supabase
+      .from("businesses")
+      .update(cardFromEvidence)
+      .eq("id", business.id);
+    // Not fatal: the plan is built and the evidence is on the tasks, so the
+    // certificate is already right. Failing the whole registration over a
+    // card column would be the worse trade.
+    if (cardError) console.error("onboarding card write failed", cardError.message);
+  }
 
   /*
    * The audit trail has to explain every completion, including these.
@@ -135,7 +176,15 @@ export async function completeOnboarding(
         kind: "completed",
         from_status: "todo",
         to_status: "done",
-        detail: { via: "onboarding", note: "סומן כבר־בוצע בשאלון הפתיחה" },
+        detail: {
+          via: "onboarding",
+          note: "סומן כבר־בוצע בשאלון הפתיחה",
+          // Whether the owner also gave the artefact. "I already did this" and
+          // "I already did this, here is the number" are different strengths
+          // of claim, and an evidence trail that cannot tell them apart is
+          // worth less than one that can.
+          withEvidence: Boolean(evidence[t.template_id]),
+        },
       }))
     );
   }
@@ -203,6 +252,27 @@ export async function updateAnswers(
   const { toAdd, toFlagIrrelevant, toFlagRelevant, toRedate } = reconcile;
 
   if (toAdd.length > 0) {
+    /*
+     * A RECALIBRATION CAN ADD A TASK THAT IS ALREADY CLOSED.
+     *
+     * buildPlan marks everything in `already_done` as done, and toAdd is
+     * whatever buildPlan produced that the business does not have yet. So
+     * correcting the entity type from company to עוסק מורשה, for someone who
+     * ticked "פתחתי תיק עוסק במע״מ" at signup, inserts that task as DONE.
+     *
+     * It arrived with no completed_at and no task_events row of any kind —
+     * a status column asserting done with nothing behind it, which is the
+     * defect completeOnboarding was fixed for one session earlier (four tasks
+     * done, one event in the trail). The trail is what "can this business
+     * prove compliance?" rests on, and it is hash-chained: a completion
+     * missing from it is missing permanently.
+     *
+     * There is no artefact to ask for here — this is a settings form, not a
+     * completion flow — so the trail records HOW the task came to be closed
+     * and the certificate on /business names it as recorded-nothing, with a
+     * link to the task where the detail can still be added.
+     */
+    const now = new Date().toISOString();
     await supabase.from("business_tasks").insert(
       toAdd.map((t) => ({
         business_id: business.id,
@@ -210,8 +280,29 @@ export async function updateAnswers(
         status: t.status,
         due_date: t.due_date,
         is_relevant: true,
+        completed_at: t.status === "done" ? now : null,
+        completion_data: {},
       }))
     );
+
+    const closedOnArrival = toAdd.filter((t) => t.status === "done");
+    if (closedOnArrival.length > 0) {
+      await supabase.from("task_events").insert(
+        closedOnArrival.map((t) => ({
+          business_id: business.id,
+          template_id: t.template_id,
+          kind: "completed",
+          from_status: "todo",
+          to_status: "done",
+          detail: {
+            via: "recalibration",
+            note: "נוסף כבר־בוצע בעקבות עדכון פרטי העסק",
+            // No artefact was collected: this path has nowhere to ask for one.
+            withEvidence: false,
+          },
+        }))
+      );
+    }
   }
   if (toFlagIrrelevant.length > 0) {
     await supabase
@@ -488,8 +579,7 @@ export async function setTaskStatus(
  */
 export async function completeTask(
   taskId: string,
-  completionData: Record<string, string>,
-  businessFields: Record<string, string>
+  completionData: Record<string, string>
 ) {
   const { supabase } = await requireUser();
 
@@ -523,20 +613,16 @@ export async function completeTask(
     .eq("id", taskId);
   if (error) throw new Error(error.message);
 
-  // Evidence that belongs on the business card gets copied there — but ONLY the
-  // columns this template declares via `writesTo`. Server Actions are a public
-  // endpoint and TS types vanish at runtime, so the previous unfiltered splat
-  // let any caller write arbitrary columns (subscription_tier included).
-  const writable = new Set<string>(
-    (completionSpecOf(TEMPLATES_BY_ID.get(current.template_id)).fields ?? [])
-      .map((f) => f.writesTo)
-      .filter((w): w is NonNullable<typeof w> => Boolean(w))
-  );
-  const cleaned = Object.fromEntries(
-    Object.entries(businessFields).filter(
-      ([k, v]) => writable.has(k) && typeof v === "string" && v.trim()
-    )
-  );
+  // Evidence that belongs on the business card gets copied there — see
+  // lib/task-evidence, which is where that decision lives for all three ways a
+  // task can be closed.
+  //
+  // Derived from the answers, not from a second argument the client sent. The
+  // old shape let the CLIENT choose which answer went into which column and
+  // the server only checked that the column was one this template may write —
+  // so a caller could put the domain name into dealer_number and have it
+  // stored there.
+  const cleaned = cardWritesFor(current.template_id, completionData);
   if (Object.keys(cleaned).length > 0) {
     await supabase
       .from("businesses")
@@ -1773,7 +1859,13 @@ export async function runScheduledJobNow(
  * never sees it.
  */
 export async function applyCatchUp(
-  submitted: { templateId: string; mark: CatchUpMark }[]
+  submitted: { templateId: string; mark: CatchUpMark }[],
+  /**
+   * The artefact for each row marked done, keyed by template id — the same
+   * shape and the same validation as onboarding's. Optional, so a stale client
+   * that omits it still updates the plan.
+   */
+  evidenceInput?: unknown
 ): Promise<{ done: number; handled: number; refused: number; attempted: number }> {
   const { supabase, user } = await requireUser();
   const { data: business } = await supabase
@@ -1785,7 +1877,10 @@ export async function applyCatchUp(
 
   const { data: tasks } = await supabase
     .from("business_tasks")
-    .select("id, template_id, status, is_relevant")
+    // completion_data is fetched because the merge below reads it. A select
+    // that omits a field the logic needs is how this codebase has broken the
+    // one-truth rule twice before.
+    .select("id, template_id, status, is_relevant, completion_data")
     .eq("business_id", business.id);
   const plan = tasks ?? [];
 
@@ -1796,6 +1891,18 @@ export async function applyCatchUp(
   );
   const byTemplate = new Map(plan.map((t) => [t.template_id, t] as const));
 
+  /*
+   * Narrowed against the rows that were actually accepted AS DONE.
+   *
+   * Not against everything submitted: a row marked "מטופל בחוץ" is not a
+   * completion, and a row the accept pass rejected did not happen at all.
+   * Evidence for either would be a detail attached to work the product does
+   * not believe was done.
+   */
+  const assertedDone = accepted.filter((a) => a.mark === "done").map((a) => a.templateId);
+  const evidence = sanitizeAlreadyDoneEvidence(evidenceInput, assertedDone);
+  const cardFromEvidence: Record<string, string> = {};
+
   const now = new Date().toISOString();
   let done = 0;
   let handled = 0;
@@ -1805,6 +1912,7 @@ export async function applyCatchUp(
     if (!row) continue;
 
     if (mark === "done") {
+      const answered = evidence[templateId];
       const { error } = await supabase
         .from("business_tasks")
         .update({
@@ -1813,9 +1921,20 @@ export async function applyCatchUp(
           stage: terminalStageFor(templateId),
           waiting_for: null,
           follow_up_date: null,
+          // Merge, never replace: this row may already carry evidence written
+          // by the invoicing webhook, and a blind overwrite destroyed it once.
+          ...(answered
+            ? {
+                completion_data: {
+                  ...((row.completion_data ?? {}) as Record<string, unknown>),
+                  ...answered,
+                },
+              }
+            : {}),
         })
         .eq("id", row.id);
       if (error) continue;
+      if (answered) Object.assign(cardFromEvidence, cardWritesFor(templateId, answered));
       done++;
     } else {
       const { error } = await supabase
@@ -1844,6 +1963,21 @@ export async function applyCatchUp(
       to_status: mark === "done" ? "done" : "not_relevant",
       detail: { via: "catch-up", mark },
     });
+  }
+
+  /*
+   * The artefacts that belong on the card, through the rule that decides it
+   * for every path (lib/task-evidence).
+   *
+   * One update rather than one per row: the columns are on a single row, and a
+   * failure here must not undo the task updates that already succeeded.
+   */
+  if (Object.keys(cardFromEvidence).length > 0) {
+    const { error: cardError } = await supabase
+      .from("businesses")
+      .update(cardFromEvidence)
+      .eq("id", business.id);
+    if (cardError) console.error("catch-up card write failed", cardError.message);
   }
 
   // Everything downstream is derived from the task set, so every surface that

@@ -1,4 +1,5 @@
 import { ALREADY_DONE_OPTIONS } from "@/lib/content";
+import { primaryArtefactOf } from "@/lib/task-evidence";
 import type { OnboardingAnswers } from "@/lib/types";
 
 /**
@@ -80,6 +81,46 @@ export function sanitizeAnswers(input: unknown): OnboardingAnswers {
         ))]
       : [],
   };
+}
+
+/**
+ * The artefacts a user typed beside the boxes they ticked in "מה כבר יש?".
+ *
+ * Validated the same way `already_done` is, and for the same reason: this
+ * arrives at a public POST endpoint, and it ends up both in the task's
+ * evidence and — for the thirteen options whose field declares a `writesTo` —
+ * on the business card. Untrusted input reaching the businesses row is the
+ * mass-assignment hole the audit found, so the rules are narrow:
+ *
+ *   - only ids the wizard offers, AND only ids actually ticked, so an artefact
+ *     cannot smuggle a completion for a task that was never asserted;
+ *   - only the ONE field key that template asks for first, so no caller can
+ *     invent a key and have it stored as evidence;
+ *   - a trimmed, length-capped string, or the entry is dropped.
+ *
+ * Returned keyed by template id with the field key resolved, so callers never
+ * have to decide which key an answer belongs under.
+ */
+export function sanitizeAlreadyDoneEvidence(
+  input: unknown,
+  alreadyDone: string[]
+): Record<string, Record<string, string>> {
+  if (!input || typeof input !== "object") return {};
+  const ticked = new Set(alreadyDone);
+  const raw = input as Record<string, unknown>;
+  const out: Record<string, Record<string, string>> = {};
+
+  for (const [templateId, value] of Object.entries(raw)) {
+    if (!ALREADY_DONE_IDS.has(templateId)) continue;
+    if (!ticked.has(templateId)) continue;
+    if (typeof value !== "string") continue;
+    const text = value.trim().slice(0, 200);
+    if (!text) continue;
+    const field = primaryArtefactOf(templateId);
+    if (!field) continue;
+    out[templateId] = { [field.key]: text };
+  }
+  return out;
 }
 
 /** Business name: trimmed, non-empty, length-capped. */

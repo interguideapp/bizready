@@ -6,6 +6,7 @@ import { applyCatchUp } from "@/lib/actions";
 import { toast } from "@/components/toaster";
 import { Card } from "@/components/ui";
 import type { CatchUpItem, CatchUpMark } from "@/lib/catch-up";
+import { primaryArtefactOf } from "@/lib/task-evidence";
 
 /**
  * "What does the business already have?", asked over the real plan.
@@ -22,6 +23,17 @@ export function CatchUpForm({
   groups: { categoryId: string; title: string; items: CatchUpItem[] }[];
 }) {
   const [marks, setMarks] = useState<Record<string, CatchUpMark>>({});
+  /**
+   * The artefact, for the rows marked "עשיתי".
+   *
+   * This pass closed tasks and recorded nothing, exactly as onboarding's
+   * "מה כבר יש?" did — so a business that caught its plan up showed a wall of
+   * completed work and a certificate with nothing on it.
+   *
+   * Only for "עשיתי". "מטופל בחוץ" is not a completion, so there is no
+   * artefact to ask for.
+   */
+  const [evidence, setEvidence] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
   const chosen = useMemo(() => Object.keys(marks).length, [marks]);
@@ -33,6 +45,17 @@ export function CatchUpForm({
       // without reloading and losing every other answer on the page.
       if (next[templateId] === mark) delete next[templateId];
       else next[templateId] = mark;
+      // An answer only belongs to a row still marked "עשיתי": clearing the
+      // row, or switching it to "מטופל בחוץ", leaves no completion for the
+      // artefact to be evidence of.
+      if (next[templateId] !== "done") {
+        setEvidence((e) => {
+          if (!(templateId in e)) return e;
+          const rest = { ...e };
+          delete rest[templateId];
+          return rest;
+        });
+      }
       return next;
     });
   }
@@ -42,7 +65,8 @@ export function CatchUpForm({
     startTransition(async () => {
       try {
         const res = await applyCatchUp(
-          Object.entries(marks).map(([templateId, mark]) => ({ templateId, mark }))
+          Object.entries(marks).map(([templateId, mark]) => ({ templateId, mark })),
+          evidence
         );
         // Refused is not the same news as nothing-to-do: the write was
         // rejected, which for this table means the role cannot edit. Saying
@@ -61,6 +85,7 @@ export function CatchUpForm({
         if (res.refused > 0) parts.push(`${res.refused} לא עודכנו`);
         toast.success(parts.join(" · ") || "לא היה מה לעדכן");
         setMarks({});
+        setEvidence({});
       } catch {
         // The whole pass failing silently would be the worst outcome here: the
         // user believes the plan now reflects reality and it does not.
@@ -77,28 +102,54 @@ export function CatchUpForm({
           <ul className="flex flex-col divide-y divide-edge-soft">
             {group.items.map((item) => {
               const mark = marks[item.templateId];
+              const field = mark === "done" ? primaryArtefactOf(item.templateId) : null;
               return (
-                <li
-                  key={item.templateId}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2.5"
-                >
-                  <span className="min-w-0 flex-1 text-sm text-ink">{item.title}</span>
-                  <div className="flex shrink-0 gap-1.5">
-                    <Answer
-                      active={mark === "done"}
-                      onClick={() => set(item.templateId, "done")}
-                      icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
-                      label="עשיתי"
-                      tone="done"
-                    />
-                    <Answer
-                      active={mark === "handled_externally"}
-                      onClick={() => set(item.templateId, "handled_externally")}
-                      icon={<UserCheck className="h-3.5 w-3.5" aria-hidden />}
-                      label="מטופל בחוץ"
-                      tone="external"
-                    />
+                <li key={item.templateId} className="py-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0 flex-1 text-sm text-ink">{item.title}</span>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Answer
+                        active={mark === "done"}
+                        onClick={() => set(item.templateId, "done")}
+                        icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
+                        label="עשיתי"
+                        tone="done"
+                      />
+                      <Answer
+                        active={mark === "handled_externally"}
+                        onClick={() => set(item.templateId, "handled_externally")}
+                        icon={<UserCheck className="h-3.5 w-3.5" aria-hidden />}
+                        label="מטופל בחוץ"
+                        tone="external"
+                      />
+                    </div>
                   </div>
+
+                  {/* Optional, like the wizard's: the plan updates either way,
+                      and the certificate says which tasks still owe theirs. */}
+                  {field && (
+                    <label className="mt-2 block">
+                      <span className="mb-1 block text-xs text-ink-muted">
+                        {field.label} <span className="text-ink-faint">· לא חייב</span>
+                      </span>
+                      <input
+                        value={evidence[item.templateId] ?? ""}
+                        onChange={(e) =>
+                          setEvidence((prev) => ({ ...prev, [item.templateId]: e.target.value }))
+                        }
+                        placeholder={field.placeholder}
+                        dir={
+                          field.type === "url" ||
+                          field.type === "amount" ||
+                          field.type === "reference"
+                            ? "ltr"
+                            : undefined
+                        }
+                        type={field.type === "date" ? "date" : "text"}
+                        className="w-full rounded-xl border border-edge bg-card px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-edge"
+                      />
+                    </label>
+                  )}
                 </li>
               );
             })}
